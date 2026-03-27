@@ -1,1 +1,39 @@
 @import "tailwindcss";
+
+@theme {
+  --color-brand:        #e85d26;
+  --color-brand-dark:   #c94e1e;
+  --color-brand-light:  #fdf3ee;
+  --color-brand-border: #f0c9b4;
+  --color-brand-muted:  #fff5f0;
+  --color-brand-badge:  #f9b99a;
+  --color-dark-card:    #1c1009;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.fade-in {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.delay-75  { transition-delay: 75ms; }
+.delay-100 { transition-delay: 100ms; }
+.delay-150 { transition-delay: 150ms; }
+
+.card-hover {
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
