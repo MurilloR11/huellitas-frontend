@@ -164,7 +164,7 @@ function MunicipioCombobox({
   return (
     <div ref={ref} className="relative">
       <div className="relative">
-        <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-zinc-400" />
+        <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
         <input
           type="text"
           placeholder="Buscar municipio…"
@@ -177,7 +177,7 @@ function MunicipioCombobox({
             setOpen(true);
             setQuery('');
           }}
-          className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+          className="w-full rounded-lg border border-zinc-300 bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
         />
         <button
           type="button"
@@ -189,7 +189,7 @@ function MunicipioCombobox({
       </div>
 
       {open && (
-        <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+        <ul className="absolute z-20 mt-1 max-h-40 sm:max-h-48 w-full overflow-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
           {filtered.length === 0 ? (
             <li className="px-3 py-2 text-sm text-zinc-400">
               Sin resultados
@@ -235,12 +235,12 @@ export default function RegisterPage() {
   const strength = getPasswordStrength(password);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen">
       {/* ── LEFT PANEL ── */}
-      <div className="hidden lg:flex lg:w-[44%] sticky top-0 h-screen flex-col justify-between bg-zinc-900 p-10 xl:p-14">
+      <div className="hidden lg:flex lg:w-[44%] flex-col justify-between bg-zinc-900 p-8 lg:p-10 xl:p-14">
         <div>
           {/* Logo */}
-          <div className="flex items-center gap-1.5 mb-16">
+          <div className="flex items-center gap-1.5 mb-6">
             <span className="text-xl font-bold text-white tracking-tight">
               Huellitas
             </span>
@@ -250,27 +250,27 @@ export default function RegisterPage() {
           </div>
 
           {/* Label */}
-          <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500 mb-4">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500 mb-3">
             Únete a la plataforma
           </p>
 
           {/* Heading */}
-          <h1 className="text-3xl font-bold text-white leading-tight mb-3">
+          <h1 className="text-2xl lg:text-3xl font-bold text-white leading-tight mb-2">
             El Tolima tiene su plataforma.
           </h1>
 
           {/* Subtitle */}
-          <p className="text-sm leading-relaxed text-zinc-400 max-w-xs mb-12">
+          <p className="text-sm leading-relaxed text-zinc-400 max-w-xs mb-5">
             Regístrate como ciudadano, fundación o desarrollador y únete a la
             red de adopción animal más completa del departamento.
           </p>
 
           {/* Role cards */}
-          <ul className="space-y-3">
+          <ul className="space-y-2">
             {roleCards.map(({ icon: Icon, title, description }) => (
               <li
                 key={title}
-                className="flex items-start gap-4 rounded-xl border border-white/[0.07] bg-white/[0.04] p-4"
+                className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.04] p-3"
               >
                 <span className="flex shrink-0 items-center justify-center w-10 h-10 rounded-lg bg-brand/[0.15]">
                   <Icon className="w-5 h-5 text-brand" />
@@ -285,7 +285,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Trust badges */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center flex-col lg:flex-row gap-3 lg:gap-6 pt-4">
           {trustBadges.map(({ icon: Icon, label }) => (
             <span key={label} className="flex items-center gap-1.5 text-xs text-zinc-600">
               <Icon className="w-3.5 h-3.5" />
@@ -296,9 +296,9 @@ export default function RegisterPage() {
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col items-center overflow-y-auto bg-white px-6 py-12">
+      <div className="flex-1 flex flex-col items-center overflow-y-auto bg-white px-4 sm:px-6 py-8 sm:py-12">
         {/* Mobile logo */}
-        <div className="lg:hidden flex items-center gap-1.5 mb-10">
+        <div className="lg:hidden flex items-center gap-1.5 mb-6 sm:mb-10">
           <span className="text-xl font-bold text-zinc-900 tracking-tight">
             Huellitas
           </span>
@@ -307,7 +307,7 @@ export default function RegisterPage() {
           </span>
         </div>
 
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm my-auto">
           {/* Heading */}
           <h2 className="text-2xl font-bold text-zinc-900">
             Crear una cuenta
@@ -317,7 +317,7 @@ export default function RegisterPage() {
           </p>
 
           {/* ── Account type toggle ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-6 sm:mb-8">
             {accountTypes.map(({ key, icon: Icon, label, description }) => {
               const active = accountType === key;
               return (
@@ -325,7 +325,7 @@ export default function RegisterPage() {
                   key={key}
                   type="button"
                   onClick={() => setAccountType(key)}
-                  className={`flex items-start gap-3 sm:flex-col sm:items-center sm:text-center rounded-xl border p-3.5 transition cursor-pointer ${
+                  className={`flex items-start gap-2 sm:gap-3 sm:flex-col sm:items-center sm:text-center rounded-xl border p-2.5 sm:p-3.5 transition cursor-pointer ${
                     active
                       ? 'border-brand bg-brand/10'
                       : 'border-zinc-200 bg-white hover:bg-zinc-50'
@@ -361,8 +361,8 @@ export default function RegisterPage() {
 
           {/* ── Fundación notice ── */}
           {accountType === 'fundacion' && (
-            <div className="flex gap-3 rounded-lg border border-brand-border bg-brand-light p-3.5 mb-6">
-              <Info className="w-5 h-5 text-brand shrink-0 mt-0.5" />
+            <div className="flex gap-2 sm:gap-3 rounded-lg border border-brand-border bg-brand-light p-2.5 sm:p-3.5 mb-6">
+              <Info className="w-4 h-4 sm:w-5 sm:h-5 text-brand shrink-0 mt-0.5" />
               <p className="text-[13px] leading-relaxed text-zinc-700">
                 Las fundaciones requieren verificación manual por el
                 administrador antes de poder publicar animales.
@@ -371,23 +371,23 @@ export default function RegisterPage() {
           )}
 
           {/* ── Form ── */}
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-4 sm:space-y-5" onSubmit={(e) => e.preventDefault()}>
             {/* Name */}
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="name"
-                className="text-sm font-medium text-zinc-700"
+                className="text-xs sm:text-sm font-medium text-zinc-700"
               >
                 {nameConfig[accountType].label}
               </label>
               <div className="relative">
-                <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-zinc-400" />
+                <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
                 <input
                   id="name"
                   type="text"
                   placeholder={nameConfig[accountType].placeholder}
                   autoComplete="name"
-                  className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+                  className="w-full rounded-lg border border-zinc-300 bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
                 />
               </div>
             </div>
@@ -397,7 +397,7 @@ export default function RegisterPage() {
               <>
                 {/* Municipio */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-zinc-700">
+                  <label className="text-xs sm:text-sm font-medium text-zinc-700">
                     Municipio
                   </label>
                   <MunicipioCombobox
@@ -410,17 +410,17 @@ export default function RegisterPage() {
                 <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="phone"
-                    className="text-sm font-medium text-zinc-700"
+                    className="text-xs sm:text-sm font-medium text-zinc-700"
                   >
                     Teléfono de contacto
                   </label>
                   <div className="relative">
-                    <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-zinc-400" />
+                    <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
                     <input
                       id="phone"
                       type="tel"
                       placeholder="+57 300 000 0000"
-                      className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+                      className="w-full rounded-lg border border-zinc-300 bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
                     />
                   </div>
                 </div>
@@ -431,18 +431,18 @@ export default function RegisterPage() {
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="reg-email"
-                className="text-sm font-medium text-zinc-700"
+                className="text-xs sm:text-sm font-medium text-zinc-700"
               >
                 Correo electrónico
               </label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-zinc-400" />
+                <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
                 <input
                   id="reg-email"
                   type="email"
                   placeholder="nombre@ejemplo.com"
                   autoComplete="email"
-                  className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+                  className="w-full rounded-lg border border-zinc-300 bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
                 />
               </div>
             </div>
@@ -451,12 +451,12 @@ export default function RegisterPage() {
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="reg-password"
-                className="text-sm font-medium text-zinc-700"
+                className="text-xs sm:text-sm font-medium text-zinc-700"
               >
                 Contraseña
               </label>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-zinc-400" />
+                <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
                 <input
                   id="reg-password"
                   type={showPassword ? 'text' : 'password'}
@@ -464,7 +464,7 @@ export default function RegisterPage() {
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+                  className="w-full rounded-lg border border-zinc-300 bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
                 />
                 <button
                   type="button"
@@ -475,9 +475,9 @@ export default function RegisterPage() {
                   }
                 >
                   {showPassword ? (
-                    <EyeOff className="w-[18px] h-[18px]" />
+                    <EyeOff className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                   ) : (
-                    <Eye className="w-[18px] h-[18px]" />
+                    <Eye className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                   )}
                 </button>
               </div>
@@ -497,7 +497,7 @@ export default function RegisterPage() {
                       />
                     ))}
                   </div>
-                  <p className="text-[11px] text-zinc-500 mt-1">
+                  <p className="text-[10px] sm:text-[11px] text-zinc-500 mt-1">
                     Seguridad: {strength.label}
                   </p>
                 </div>
@@ -508,18 +508,18 @@ export default function RegisterPage() {
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="confirm-password"
-                className="text-sm font-medium text-zinc-700"
+                className="text-xs sm:text-sm font-medium text-zinc-700"
               >
                 Confirmar contraseña
               </label>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-zinc-400" />
+                <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
                 <input
                   id="confirm-password"
                   type="password"
                   placeholder="••••••••"
                   autoComplete="new-password"
-                  className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+                  className="w-full rounded-lg border border-zinc-300 bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
                 />
               </div>
             </div>
@@ -547,7 +547,7 @@ export default function RegisterPage() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 transition cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 sm:py-3 text-sm font-medium text-white hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 transition cursor-pointer"
             >
               {submitLabel[accountType]}
             </button>
@@ -575,10 +575,10 @@ export default function RegisterPage() {
           </Link>
 
           {/* Back link */}
-          <div className="mt-8 text-center">
+          <div className="mt-6 sm:mt-8 text-center">
             <Link
               to={ROUTES.HOME}
-              className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 transition"
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-zinc-500 hover:text-zinc-700 transition"
             >
               <ArrowLeft className="w-4 h-4" />
               Volver al inicio

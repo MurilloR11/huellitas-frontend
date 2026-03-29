@@ -36,12 +36,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen">
       {/* ── LEFT PANEL ── */}
-      <div className="hidden lg:flex lg:w-[44%] sticky top-0 h-screen flex-col justify-between bg-zinc-900 p-10 xl:p-14">
+      <div className="hidden lg:flex lg:w-[44%] flex-col justify-between bg-zinc-900 p-10 xl:p-14">
         <div>
           {/* Logo */}
-          <div className="flex items-center gap-1.5 mb-16">
+          <div className="flex items-center gap-1.5 mb-10">
             <span className="text-xl font-bold text-white tracking-tight">
               Huellitas
             </span>
@@ -52,7 +52,7 @@ export default function LoginPage() {
 
           {/* Tagline */}
           <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500 mb-4">
-            Adoption platform of Tolima
+            Plataforma de adopción del Tolima
           </p>
 
           {/* Heading */}
@@ -61,7 +61,7 @@ export default function LoginPage() {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-sm leading-relaxed text-zinc-400 max-w-xs mb-12">
+          <p className="text-sm leading-relaxed text-zinc-400 max-w-xs mb-8">
             Conectamos fundaciones verificadas del departamento con personas que
             quieren darle un hogar a quien más lo necesita.
           </p>
@@ -88,9 +88,9 @@ export default function LoginPage() {
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto bg-white px-6 py-12">
+      <div className="flex-1 flex flex-col items-center overflow-y-auto bg-white px-4 sm:px-6 py-8 sm:py-12">
         {/* Mobile logo */}
-        <div className="lg:hidden flex items-center gap-1.5 mb-10">
+        <div className="lg:hidden flex items-center gap-1.5 mb-6 sm:mb-10">
           <span className="text-xl font-bold text-zinc-900 tracking-tight">
             Huellitas
           </span>
@@ -99,9 +99,9 @@ export default function LoginPage() {
           </span>
         </div>
 
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm my-auto">
           {/* Heading */}
-          <h2 className="text-2xl font-bold text-zinc-900">
+          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900">
             Bienvenido de nuevo
           </h2>
           <p className="text-sm text-zinc-500 mt-1 mb-8">
@@ -109,23 +109,23 @@ export default function LoginPage() {
           </p>
 
           {/* ── Form ── */}
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-4 sm:space-y-5" onSubmit={(e) => e.preventDefault()}>
             {/* Email */}
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="email"
-                className="text-sm font-medium text-zinc-700"
+                className="text-xs sm:text-sm font-medium text-zinc-700"
               >
                 Correo electrónico
               </label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-zinc-400" />
+                <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
                 <input
                   id="email"
                   type="email"
                   placeholder="nombre@ejemplo.com"
                   autoComplete="email"
-                  className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+                  className="w-full rounded-lg border border-zinc-300 bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
                 />
               </div>
             </div>
@@ -134,18 +134,18 @@ export default function LoginPage() {
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="password"
-                className="text-sm font-medium text-zinc-700"
+                className="text-xs sm:text-sm font-medium text-zinc-700"
               >
                 Contraseña
               </label>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-zinc-400" />
+                <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-10 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+                  className="w-full rounded-lg border border-zinc-300 bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
                 />
                 <button
                   type="button"
@@ -156,9 +156,9 @@ export default function LoginPage() {
                   }
                 >
                   {showPassword ? (
-                    <EyeOff className="w-[18px] h-[18px]" />
+                    <EyeOff className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                   ) : (
-                    <Eye className="w-[18px] h-[18px]" />
+                    <Eye className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                   )}
                 </button>
               </div>
@@ -186,7 +186,7 @@ export default function LoginPage() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 transition cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 sm:py-3 text-sm font-medium text-white hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 transition cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
               Iniciar sesión
@@ -215,7 +215,7 @@ export default function LoginPage() {
           </Link>
 
           {/* Back link */}
-          <div className="mt-8 text-center">
+          <div className="mt-6 sm:mt-8 text-center">
             <Link
               to={ROUTES.HOME}
               className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 transition"
