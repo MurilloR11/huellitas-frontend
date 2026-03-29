@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom';
 import { Search, Code, MapPin, Syringe, Scissors, Users } from 'lucide-react';
+import { ROUTES } from '../../../shared/constants/routes';
 
 const CHIPS = [
   { icon: Syringe,  label: 'Vacunado' },
@@ -30,20 +32,20 @@ export function HeroSection() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <a
-                href="#adoptar"
+              <Link
+                to={ROUTES.PETS}
                 className="inline-flex items-center gap-2 bg-brand text-white font-semibold px-5 py-2.5 rounded-md hover:bg-brand-dark transition-colors"
               >
                 <Search className="w-4 h-4" />
                 Explorar animales
-              </a>
-              <a
-                href="#api"
+              </Link>
+              <Link
+                to={ROUTES.REGISTER}
                 className="inline-flex items-center gap-2 border border-zinc-300 text-zinc-700 font-semibold px-5 py-2.5 rounded-md hover:bg-zinc-50 transition-colors"
               >
                 <Code className="w-4 h-4" />
                 Ver la API
-              </a>
+              </Link>
             </div>
           </div>
 
