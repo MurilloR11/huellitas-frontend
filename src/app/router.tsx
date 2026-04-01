@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createBrowserRouter } from 'react-router-dom';
-import { LandingPage } from '../features/home/pages/LandingPage';
+import { HomePage } from '../features/home/pages/HomePage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
 
@@ -14,7 +14,7 @@ const FoundationDashboard = () => <div className="p-8">Dashboard Fundación</div
 const NotFound = () => <div className="p-8 text-red-500">404 — Página no encontrada</div>;
 
 export const router = createBrowserRouter([
-  { path: '/', element: <LandingPage /> },
+  { path: '/', element: <HomePage /> },
   { path: '/pets', element: <PetsList /> },
   { path: '/pets/:id', element: <PetDetail /> },
   { path: '/foundations', element: <FoundationsList /> },

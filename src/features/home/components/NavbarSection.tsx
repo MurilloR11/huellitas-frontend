@@ -1,25 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { ROUTES } from '../../../shared/constants/routes';
 
 const NAV_LINKS = [
-  { href: '#adoptar',     label: 'Adoptar' },
-  { href: '#fundaciones', label: 'Para fundaciones' },
-  { href: '#api',         label: 'API pública' },
-  { href: '#perdidos',    label: 'Animales perdidos' },
+  { href: '#proyecto',      label: 'Proyecto' },
+  { href: '#mision-vision', label: 'Misión y Visión' },
+  { href: '#objetivos',     label: 'Objetivos' },
+  { href: '#tecnologias',   label: 'Tecnologías' },
 ] as const;
 
 export function NavbarSection() {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-zinc-200">
+    <header
+      className={`fixed top-0 inset-x-0 z-50 transition-colors duration-300 ${
+        scrolled ? 'bg-white border-b border-zinc-200' : 'bg-transparent'
+      }`}
+    >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
 
         {/* Logo */}
         <Link to={ROUTES.HOME} className="flex items-center shrink-0">
-          <span className="text-base font-extrabold text-zinc-900 tracking-tight">Huellitas</span>
+          <span className={`text-base font-extrabold tracking-tight transition-colors duration-300 ${scrolled ? 'text-zinc-900' : 'text-white'}`}>
+            Huellitas
+          </span>
           <span className="text-base font-extrabold text-brand">API</span>
         </Link>
 
@@ -29,7 +42,11 @@ export function NavbarSection() {
             <a
               key={label}
               href={href}
-              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 px-3 py-1.5 rounded-md transition-colors"
+              className={`text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
+                scrolled
+                  ? 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
             >
               {label}
             </a>
@@ -46,7 +63,11 @@ export function NavbarSection() {
           </Link>
 
           <button
-            className="md:hidden p-2 rounded-md text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+            className={`md:hidden p-2 rounded-md transition-colors ${
+              scrolled
+                ? 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                : 'text-white/80 hover:text-white hover:bg-white/10'
+            }`}
             onClick={() => setIsOpen((v) => !v)}
             aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
             aria-expanded={isOpen}
@@ -58,18 +79,22 @@ export function NavbarSection() {
 
       {/* Mobile menu */}
       {isOpen && (
-        <div className="md:hidden bg-white border-t border-zinc-100 px-4 pt-2 pb-4">
+        <div className={`md:hidden px-4 pt-2 pb-4 ${scrolled ? 'bg-white border-t border-zinc-100' : 'bg-black/70 backdrop-blur-md'}`}>
           {NAV_LINKS.map(({ href, label }) => (
             <a
               key={label}
               href={href}
               onClick={() => setIsOpen(false)}
-              className="flex w-full px-3 py-2.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 rounded-md transition-colors"
+              className={`flex w-full px-3 py-2.5 text-sm font-medium rounded-md transition-colors ${
+                scrolled
+                  ? 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
             >
               {label}
             </a>
           ))}
-          <div className="border-t border-zinc-100 mt-2 pt-3">
+          <div className={`mt-2 pt-3 ${scrolled ? 'border-t border-zinc-100' : 'border-t border-white/20'}`}>
             <Link
               to={ROUTES.REGISTER}
               onClick={() => setIsOpen(false)}

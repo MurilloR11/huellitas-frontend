@@ -81,7 +81,7 @@ export function FinalCTASection() {
               ))}
             </ul>
             <Link
-              to={ROUTES.PETS}
+              to={ROUTES.REGISTER}
               className="inline-flex items-center justify-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-dark transition-colors"
             >
               <Search className="w-4 h-4" />

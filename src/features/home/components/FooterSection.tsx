@@ -1,16 +1,17 @@
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../../shared/constants/routes';
 
-const PLATFORM_LINKS = [
-  { label: 'Adoptar',           href: '#adoptar' },
-  { label: 'Para fundaciones',  href: '#fundaciones' },
-  { label: 'API pública',       href: '#api' },
+const NAV_LINKS = [
+  { label: 'Proyecto',        href: '#proyecto' },
+  { label: 'Misión y Visión', href: '#mision-vision' },
+  { label: 'Objetivos',       href: '#objetivos' },
+  { label: 'Tecnologías',     href: '#tecnologias' },
 ] as const;
 
-const RESOURCE_LINKS = [
-  { label: 'Documentación',      href: '#' },
-  { label: 'API Reference',      href: '#' },
-  { label: 'Estado del sistema', href: '#' },
+const PLATFORM_LINKS = [
+  { label: 'Explorar animales', href: '/register' },
+  { label: 'Fundaciones',       href: '/foundations' },
+  { label: 'Iniciar sesión',    href: '/login' },
 ] as const;
 
 export function FooterSection() {
@@ -32,7 +33,21 @@ export function FooterSection() {
             </p>
           </div>
 
-          {/* Col 3: Platform */}
+          {/* Col 3: Navegación */}
+          <div>
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Navegación</p>
+            <ul className="space-y-2">
+              {NAV_LINKS.map(({ label, href }) => (
+                <li key={label}>
+                  <a href={href} className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Col 4: Plataforma */}
           <div>
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Plataforma</p>
             <ul className="space-y-2">
@@ -46,25 +61,11 @@ export function FooterSection() {
             </ul>
           </div>
 
-          {/* Col 4: Resources */}
-          <div>
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Recursos</p>
-            <ul className="space-y-2">
-              {RESOURCE_LINKS.map(({ label, href }) => (
-                <li key={label}>
-                  <a href={href} className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
         </div>
 
         {/* Bottom bar */}
         <div className="border-t border-zinc-800 pt-6 flex flex-col sm:flex-row justify-between gap-2">
-          <p className="text-xs text-zinc-600">© 2025 HuellitasAPI</p>
+          <p className="text-xs text-zinc-600">© 2026 HuellitasAPI</p>
           <p className="text-xs text-zinc-600">Hecho con amor por el Tolima</p>
         </div>
 
