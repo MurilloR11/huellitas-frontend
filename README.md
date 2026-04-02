@@ -1,73 +1,78 @@
-# React + TypeScript + Vite
+# HuellitasAPI — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Plataforma web para la gestión y adopción de animales en el departamento del Tolima, Colombia. Conecta fundaciones animalistas con ciudadanos comprometidos con el bienestar animal, centralizando el proceso de adopción de forma segura y eficiente.
 
-Currently, two official plugins are available:
+## Descripción
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+HuellitasAPI permite a las **fundaciones animalistas** registrar animales disponibles para adopción con información completa (datos médicos, fotografías, disponibilidad), y a los **ciudadanos** buscar, filtrar y solicitar adopciones desde una sola plataforma. Además expone una **API RESTful pública** para que desarrolladores externos puedan integrar los datos en sus propias aplicaciones.
 
-## React Compiler
+Este repositorio contiene únicamente el frontend. El backend (Flask + PostgreSQL) vive en un repositorio separado.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Stack tecnológico
 
-## Expanding the ESLint configuration
+| Tecnología | Uso |
+|---|---|
+| React 19 | Biblioteca de interfaces de usuario |
+| TypeScript | Tipado estático |
+| Tailwind CSS 4 | Estilos utilitarios |
+| Vite | Bundler y servidor de desarrollo |
+| React Router 7 | Enrutamiento del lado del cliente |
+| TanStack Query | Gestión de estado del servidor |
+| Axios | Cliente HTTP |
+| Zod | Validación de esquemas |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Requisitos previos
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Node.js 18 o superior
+- npm 9 o superior
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Instalación
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Scripts disponibles
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+# Servidor de desarrollo
+npm run dev
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Build de producción
+npm run build
+
+# Vista previa del build
+npm run preview
+
+# Linter
+npm run lint
+
+# Tests unitarios (modo watch)
+npm test
+
+# Tests unitarios (una sola pasada)
+npm run test:run
+
+# Tests con cobertura
+npm run test:coverage
+
+# Tests E2E
+npm run test:e2e
+```
+
+## Estructura del proyecto
+
+```
+src/
+  app/          # Configuración global: router, providers, contextos
+  features/     # Módulos por dominio (auth, home, pets, foundations, adoptions)
+  shared/       # Componentes, hooks y utilidades reutilizables
+```
+
+## Variables de entorno
+
+Crea un archivo `.env.local` en la raíz con las siguientes variables:
+
+```env
+VITE_API_URL=http://localhost:5000
 ```
