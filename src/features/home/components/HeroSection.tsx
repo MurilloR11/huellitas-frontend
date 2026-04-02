@@ -40,13 +40,13 @@ export function HeroSection() {
 
           {/* Title */}
           <h1 className="fade-in text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.1] tracking-tight mb-6 drop-shadow-lg">
-            Huellitas
-            <span className="text-brand">API</span>
+            Cada animal merece
+            <span className="text-brand"> un hogar</span>
           </h1>
 
           {/* Subtitle */}
           <p className="fade-in delay-75 text-lg sm:text-xl md:text-2xl font-medium text-white/90 mb-4">
-            Plataforma web para la adopción de animales
+            Plataforma web para la adopción de animales en el Tolima
           </p>
 
           {/* Description */}
