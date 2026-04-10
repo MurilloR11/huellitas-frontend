@@ -1,89 +1,125 @@
-import { Compass, Eye } from 'lucide-react';
+import { Check } from 'lucide-react';
 
-const CARDS = [
-  {
-    Icon: Compass,
-    label: 'Misión',
-    title: 'Nuestro propósito',
-    text: 'Facilitar el proceso de adopción animal en el departamento del Tolima mediante una plataforma web que conecte a fundaciones animalistas con ciudadanos, promoviendo la tenencia responsable y reduciendo el número de animales en situación de abandono a través de herramientas digitales accesibles y eficientes.',
-    accent: 'from-brand/20 to-transparent',
-  },
-  {
-    Icon: Eye,
-    label: 'Visión',
-    title: 'Hacia dónde vamos',
-    text: 'Consolidar a Huellitas como la plataforma de referencia para la adopción de animales en el Tolima, reconocida por su impacto social, la calidad de sus datos abiertos y su contribución a la construcción de una comunidad más comprometida con el bienestar animal.',
-    accent: 'from-amber-500/15 to-transparent',
-  },
+const MISSION_ITEMS = [
+  'Conectar fundaciones animalistas con ciudadanos comprometidos',
+  'Digitalizar y simplificar el proceso de adopción animal',
+  'Construir una comunidad consciente del bienestar animal',
 ] as const;
+
+const VISION_ITEMS = [
+  'Ser la plataforma de referencia para adopción en el Tolima',
+  'Expandir nuestro impacto a otras regiones de Colombia',
+  'Contribuir a la reducción del abandono animal con tecnología',
+] as const;
+
+function CheckItem({ text }: { text: string }) {
+  return (
+    <li className="flex items-start gap-3">
+      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand flex items-center justify-center mt-0.5">
+        <Check className="w-3 h-3 text-white" strokeWidth={3} />
+      </span>
+      <span className="text-zinc-600 text-sm leading-relaxed">{text}</span>
+    </li>
+  );
+}
+
+function ImagePair({
+  primary,
+  secondary,
+  alt,
+}: {
+  primary: string;
+  secondary: string;
+  alt: string;
+}) {
+  return (
+    <div className="relative h-72 sm:h-80 md:h-[420px] mb-8 mr-8">
+      <img
+        src={primary}
+        alt={alt}
+        className="absolute inset-0 w-full h-full object-cover rounded-2xl shadow-md"
+      />
+      <div className="absolute -bottom-6 -right-6 w-2/5 aspect-[4/3] rounded-xl overflow-hidden border-4 border-white shadow-xl">
+        <img src={secondary} alt="" className="w-full h-full object-cover" />
+      </div>
+    </div>
+  );
+}
 
 export function MissionVisionSection() {
   return (
-    <section
-      id="mision-vision"
-      className="relative bg-zinc-900 py-20 md:py-28 border-b border-zinc-800 overflow-hidden"
-    >
-      {/* Radial glow background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-brand/5 rounded-full blur-[120px]" />
-      </div>
+    <section id="mision-vision" className="bg-zinc-50 py-20 md:py-28 border-y border-zinc-100">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-20 md:space-y-28">
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Header */}
-        <div className="fade-in text-center mb-16">
-          <p className="text-brand font-semibold text-sm uppercase tracking-widest mb-3">
-            Lo que nos mueve
-          </p>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4">
-            Misión{' '}
-            <span className="text-zinc-500">&</span>{' '}
-            Visión
-          </h2>
-          <div className="w-12 h-1 bg-brand rounded-full mx-auto" />
+        {/* ── Misión: texto izquierda, imágenes derecha ── */}
+        <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+          {/* Text */}
+          <div className="fade-in">
+            <p className="text-brand font-semibold text-xs uppercase tracking-widest mb-4">
+              Misión
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-zinc-900 mb-5 leading-tight">
+              Nuestro propósito
+            </h2>
+            <p className="text-zinc-500 leading-relaxed mb-8">
+              Facilitar el proceso de adopción animal en el departamento del Tolima mediante
+              una plataforma web que conecte a fundaciones animalistas con ciudadanos,
+              promoviendo la tenencia responsable y reduciendo el número de animales en
+              situación de abandono.
+            </p>
+            <ul className="space-y-4">
+              {MISSION_ITEMS.map((item) => (
+                <CheckItem key={item} text={item} />
+              ))}
+            </ul>
+          </div>
+
+          {/* Images */}
+          <div className="fade-in delay-100 pl-0 md:pl-4">
+            <ImagePair
+              primary="https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=700"
+              secondary="https://images.pexels.com/photos/1805164/pexels-photo-1805164.jpeg?auto=compress&cs=tinysrgb&w=400"
+              alt="Perro esperando ser adoptado"
+            />
+          </div>
         </div>
 
-        {/* Cards */}
-        <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-          {CARDS.map(({ Icon, label, title, text, accent }, i) => (
-            <div
-              key={label}
-              className={`fade-in ${i === 1 ? 'delay-100' : ''} group relative rounded-2xl border border-zinc-700/40 bg-zinc-800/40 backdrop-blur-sm transition-all duration-300 hover:border-zinc-600/60 hover:-translate-y-1`}
-            >
-              {/* Top gradient accent */}
-              <div
-                className={`absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r ${accent}`}
-              />
+        {/* Divider */}
+        <div className="w-full h-px bg-zinc-100" />
 
-              <div className="p-8 md:p-10">
-                {/* Icon + Label row */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-brand/20 rounded-xl blur-md transition-all duration-300 group-hover:blur-lg group-hover:bg-brand/30" />
-                    <div className="relative bg-brand/10 border border-brand/20 rounded-xl w-12 h-12 flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-brand" />
-                    </div>
-                  </div>
-                  <span className="text-brand font-bold text-xs uppercase tracking-[0.2em]">
-                    {label}
-                  </span>
-                </div>
+        {/* ── Visión: imágenes izquierda, texto derecha ── */}
+        <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+          {/* Images — on mobile goes below text */}
+          <div className="fade-in pl-0 md:pl-4 order-2 md:order-1">
+            <ImagePair
+              primary="https://images.pexels.com/photos/551628/pexels-photo-551628.jpeg?auto=compress&cs=tinysrgb&w=700"
+              secondary="https://images.pexels.com/photos/2023384/pexels-photo-2023384.jpeg?auto=compress&cs=tinysrgb&w=400"
+              alt="Animal siendo cuidado"
+            />
+          </div>
 
-                {/* Title */}
-                <h3 className="text-2xl md:text-[1.65rem] font-bold text-white mb-4 leading-tight">
-                  {title}
-                </h3>
-
-                {/* Separator */}
-                <div className="w-8 h-px bg-zinc-600 mb-4 transition-all duration-300 group-hover:w-12 group-hover:bg-brand/60" />
-
-                {/* Body */}
-                <p className="text-zinc-400 leading-relaxed text-[0.95rem]">
-                  {text}
-                </p>
-              </div>
-            </div>
-          ))}
+          {/* Text */}
+          <div className="fade-in delay-100 order-1 md:order-2">
+            <p className="text-brand font-semibold text-xs uppercase tracking-widest mb-4">
+              Visión
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-zinc-900 mb-5 leading-tight">
+              Hacia dónde vamos
+            </h2>
+            <p className="text-zinc-500 leading-relaxed mb-8">
+              Consolidar a Huellitas como la plataforma de referencia para la adopción
+              de animales en el Tolima, reconocida por su impacto social, la calidad de
+              sus datos abiertos y su contribución a una comunidad más comprometida con
+              el bienestar animal.
+            </p>
+            <ul className="space-y-4">
+              {VISION_ITEMS.map((item) => (
+                <CheckItem key={item} text={item} />
+              ))}
+            </ul>
+          </div>
         </div>
+
       </div>
     </section>
   );
