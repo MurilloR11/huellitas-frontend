@@ -4,7 +4,7 @@ import { Menu, X } from 'lucide-react';
 import { ROUTES } from '../../../shared/constants/routes';
 
 const NAV_LINKS = [
-  { href: '#proyecto',      label: 'Proyecto' },
+  { href: '#nosotros',      label: 'Nosotros' },
   { href: '#mision-vision', label: 'Misión y Visión' },
   { href: '#objetivos',     label: 'Objetivos' },
   { href: '#tecnologias',   label: 'Tecnologías' },
