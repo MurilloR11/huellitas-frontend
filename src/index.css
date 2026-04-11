@@ -57,3 +57,26 @@ input, select, textarea, label {
 .paw-fade-out {
   opacity: 0;
 }
+
+/* Carousel infinite scroll */
+@keyframes carousel-scroll-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes carousel-scroll-right {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+
+.carousel-left {
+  animation-name: carousel-scroll-left;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.carousel-right {
+  animation-name: carousel-scroll-right;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}

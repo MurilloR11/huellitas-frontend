@@ -1,46 +1,31 @@
-import { useEffect, useRef } from 'react';
-import {
-  SiReact,
-  SiTypescript,
-  SiTailwindcss,
-  SiVite,
-  SiReactrouter,
-  SiReactquery,
-  SiPython,
-  SiFlask,
-  SiPostgresql,
-  SiSqlalchemy,
-  SiSwagger,
-  SiJsonwebtokens,
-} from 'react-icons/si';
+import { useRef } from 'react';
 
 /* ─── Tech definitions ─────────────────────────────────────────── */
 interface Tech {
   name: string;
-  Icon: React.ComponentType<{ size?: number; color?: string }>;
-  color: string;
+  iconClass: string;
 }
 
 const TECHS_ROW_1: Tech[] = [
-  { name: 'React',         Icon: SiReact,       color: '#61DAFB' },
-  { name: 'TypeScript',    Icon: SiTypescript,  color: '#3178C6' },
-  { name: 'Tailwind CSS',  Icon: SiTailwindcss, color: '#06B6D4' },
-  { name: 'Vite',          Icon: SiVite,        color: '#646CFF' },
-  { name: 'React Router',  Icon: SiReactrouter, color: '#CA4245' },
-  { name: 'TanStack Query',Icon: SiReactquery,  color: '#FF4154' },
+  { name: 'React',        iconClass: 'devicon-react-original colored' },
+  { name: 'TypeScript',   iconClass: 'devicon-typescript-plain colored' },
+  { name: 'Tailwind CSS', iconClass: 'devicon-tailwindcss-plain colored' },
+  { name: 'Vite',         iconClass: 'devicon-vitejs-plain colored' },
+  { name: 'React Router', iconClass: 'devicon-reactrouter-plain colored' },
+  { name: 'JavaScript',   iconClass: 'devicon-javascript-plain colored' },
 ];
 
 const TECHS_ROW_2: Tech[] = [
-  { name: 'Python',      Icon: SiPython,       color: '#3776AB' },
-  { name: 'Flask',       Icon: SiFlask,        color: '#71717a' },
-  { name: 'PostgreSQL',  Icon: SiPostgresql,   color: '#4169E1' },
-  { name: 'SQLAlchemy',  Icon: SiSqlalchemy,   color: '#D71F00' },
-  { name: 'Swagger',     Icon: SiSwagger,      color: '#4BA82E' },
-  { name: 'JWT',         Icon: SiJsonwebtokens,color: '#d13b84' },
+  { name: 'Python',     iconClass: 'devicon-python-plain colored' },
+  { name: 'Flask',      iconClass: 'devicon-flask-original colored' },
+  { name: 'PostgreSQL', iconClass: 'devicon-postgresql-plain colored' },
+  { name: 'SQLAlchemy', iconClass: 'devicon-sqlalchemy-plain colored' },
+  { name: 'Swagger',    iconClass: 'devicon-swagger-plain colored' },
+  { name: 'Git',        iconClass: 'devicon-git-plain colored' },
 ];
 
 /* ─── Sub-components ───────────────────────────────────────────── */
-function TechCard({ name, Icon, color }: Tech) {
+function TechCard({ name, iconClass }: Tech) {
   return (
     <div className="
       flex flex-col items-center justify-center gap-3
@@ -51,69 +36,27 @@ function TechCard({ name, Icon, color }: Tech) {
       hover:bg-brand-light hover:border-brand/30
       cursor-default
     ">
-      <Icon size={32} color={color} />
+      <i className={`${iconClass} text-4xl`} />
       <p className="text-xs font-medium text-zinc-600 text-center leading-tight px-1">{name}</p>
     </div>
   );
-}
-
-/* ─── Infinite scroll hook (rAF-based, no CSS reset glitch) ───── */
-function useInfiniteScroll(pxPerSecond: number, reverse: boolean) {
-  const trackRef  = useRef<HTMLDivElement>(null);
-  const xRef      = useRef<number | null>(null);
-  const pausedRef = useRef(false);
-  const lastRef   = useRef<number | null>(null);
-  const rafRef    = useRef<number>(0);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-
-    // half = width of one copy of the list (track has 2 copies)
-    const half = track.scrollWidth / 2;
-    if (xRef.current === null) xRef.current = reverse ? -half : 0;
-
-    const step = (now: number) => {
-      const dt = lastRef.current !== null ? now - lastRef.current : 0;
-      lastRef.current = now;
-
-      if (!pausedRef.current && dt > 0 && dt < 100) {
-        const delta = (pxPerSecond * dt) / 1000;
-
-        if (reverse) {
-          xRef.current! += delta;
-          if (xRef.current! >= 0) xRef.current = -half;
-        } else {
-          xRef.current! -= delta;
-          if (xRef.current! <= -half) xRef.current = 0;
-        }
-
-        track.style.transform = `translateX(${xRef.current}px)`;
-      }
-
-      rafRef.current = requestAnimationFrame(step);
-    };
-
-    rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [pxPerSecond, reverse]);
-
-  return {
-    trackRef,
-    pause:  () => { pausedRef.current = true;  },
-    resume: () => { pausedRef.current = false; },
-  };
 }
 
 /* ─── CarouselRow ──────────────────────────────────────────────── */
 interface CarouselRowProps {
   techs: Tech[];
   reverse?: boolean;
-  speed?: number;
+  speed?: number; // px/s
 }
 
 function CarouselRow({ techs, reverse = false, speed = 60 }: CarouselRowProps) {
-  const { trackRef, pause, resume } = useInfiniteScroll(speed, reverse);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  // Each card: w-28 (112px) + mx-3*2 (24px) = 136px. One copy = techs.length × 136px.
+  const duration = (techs.length * 136) / speed;
+
+  const pause  = () => { if (trackRef.current) trackRef.current.style.animationPlayState = 'paused';  };
+  const resume = () => { if (trackRef.current) trackRef.current.style.animationPlayState = 'running'; };
 
   return (
     <div
@@ -124,7 +67,11 @@ function CarouselRow({ techs, reverse = false, speed = 60 }: CarouselRowProps) {
       onTouchEnd={resume}
       onTouchCancel={resume}
     >
-      <div ref={trackRef} className="flex will-change-transform">
+      <div
+        ref={trackRef}
+        className={`flex ${reverse ? 'carousel-right' : 'carousel-left'}`}
+        style={{ animationDuration: `${duration}s` }}
+      >
         {[...techs, ...techs].map((tech, i) => (
           <TechCard key={`${tech.name}-${i}`} {...tech} />
         ))}
