@@ -20,6 +20,17 @@ Este repositorio contiene únicamente el frontend. El backend (Flask + PostgreSQ
 | TanStack Query | Gestión de estado del servidor |
 | Axios | Cliente HTTP |
 | Zod | Validación de esquemas |
+| Lucide React | Iconos de la interfaz |
+| Devicon (CDN) | Iconos de tecnologías en el carrusel |
+
+## Características de la interfaz
+
+- **Cursor personalizado** — cursor de huella naranja en toda la aplicación.
+- **Favicon personalizado** — ícono de huella naranja en la pestaña del navegador.
+- **Hero con animación typewriter** — el texto de la frase principal cicla entre varias palabras ("un hogar", "una familia", "amor", "una oportunidad") con efecto de escritura y borrado, y un cursor parpadeante.
+- **Carrusel infinito de tecnologías** — dos filas animadas con iconos de Devicon, implementadas con `@keyframes` CSS puros (sin JavaScript) para evitar saltos al hacer loop. Se pausa al pasar el cursor.
+- **Secciones de la landing** — Hero, Nosotros, Misión y Visión (layout dividido con imágenes superpuestas), Objetivos, Tecnologías, y llamada a la acción final.
+- **Navbar fija** — transparente sobre el hero, blanca al hacer scroll. El logo lleva al inicio de la página con scroll suave.
 
 ## Requisitos previos
 
