@@ -58,6 +58,16 @@ input, select, textarea, label {
   opacity: 0;
 }
 
+/* Typewriter cursor */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: cursor-blink 0.75s step-end infinite;
+}
+
 /* Carousel infinite scroll */
 @keyframes carousel-scroll-left {
   from { transform: translateX(0); }

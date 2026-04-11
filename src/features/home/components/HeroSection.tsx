@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PawPrint, ArrowDown } from 'lucide-react';
 import { ROUTES } from '../../../shared/constants/routes';
@@ -6,9 +6,55 @@ import { ROUTES } from '../../../shared/constants/routes';
 const HERO_VIDEO_URL =
   'https://videos.pexels.com/video-files/853936/853936-hd_1920_1080_25fps.mp4';
 
+const PHRASES = ['un hogar', 'una familia', 'amor', 'una oportunidad'];
+
+/* ─── Typewriter hook ──────────────────────────────────────────── */
+function useTypewriter(
+  phrases: string[],
+  typeSpeed = 120,
+  deleteSpeed = 70,
+  pauseAfterType = 2400,
+  pauseAfterDelete = 500,
+) {
+  const [displayed, setDisplayed]   = useState('');
+  const [phraseIdx, setPhraseIdx]   = useState(0);
+  const [deleting, setDeleting]     = useState(false);
+
+  useEffect(() => {
+    const current = phrases[phraseIdx];
+
+    // Fully typed — pause then start deleting
+    if (!deleting && displayed === current) {
+      const t = setTimeout(() => setDeleting(true), pauseAfterType);
+      return () => clearTimeout(t);
+    }
+
+    // Fully deleted — pause then move to next phrase
+    if (deleting && displayed === '') {
+      const t = setTimeout(() => {
+        setDeleting(false);
+        setPhraseIdx((i) => (i + 1) % phrases.length);
+      }, pauseAfterDelete);
+      return () => clearTimeout(t);
+    }
+
+    const delay = deleting ? deleteSpeed : typeSpeed;
+    const next  = deleting
+      ? displayed.slice(0, -1)
+      : current.slice(0, displayed.length + 1);
+
+    const t = setTimeout(() => setDisplayed(next), delay);
+    return () => clearTimeout(t);
+  }, [displayed, deleting, phraseIdx, phrases, typeSpeed, deleteSpeed, pauseAfterType, pauseAfterDelete]);
+
+  return displayed;
+}
+
+/* ─── Component ────────────────────────────────────────────────── */
 export function HeroSection() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const typedText = useTypewriter(PHRASES);
 
   return (
     <section className="relative overflow-hidden bg-zinc-900 min-h-[100svh] flex items-center justify-center">
@@ -40,8 +86,11 @@ export function HeroSection() {
 
           {/* Title */}
           <h1 className="fade-in text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.1] tracking-tight mb-6 drop-shadow-lg">
-            Cada animal merece
-            <span className="text-brand"> un hogar</span>
+            <span className="block">Cada animal merece</span>
+            <span className="block text-brand" style={{ minHeight: '1.2em' }}>
+              {typedText}
+              <span className="cursor-blink inline-block w-[3px] h-[0.85em] bg-brand align-middle ml-1 rounded-sm" />
+            </span>
           </h1>
 
           {/* Subtitle */}
