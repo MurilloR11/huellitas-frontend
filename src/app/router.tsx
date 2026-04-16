@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { HomePage } from '../features/home/pages/HomePage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
+import AIPage from '../features/ai/pages/AIPage';
 
 const PetsList = () => <div className="p-8">Mascotas en adopción</div>;
 const PetDetail = () => <div className="p-8">Detalle de mascota</div>;
@@ -24,5 +25,6 @@ export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/foundation/dashboard', element: <FoundationDashboard /> },
+  { path: '/ai', element: <AIPage /> },
   { path: '*', element: <NotFound /> },
 ]);

@@ -9,4 +9,5 @@ export const ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   FOUNDATION_DASHBOARD: '/foundation/dashboard',
+  AI: '/ai',
 } as const;
