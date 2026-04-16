@@ -29,7 +29,7 @@ export function NavbarSection() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
 
         {/* Logo */}
-        <Link to={ROUTES.HOME} className="flex items-center shrink-0">
+        <Link to={ROUTES.HOME} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center shrink-0">
           <span className={`text-base font-extrabold tracking-tight transition-colors duration-300 ${scrolled ? 'text-zinc-900' : 'text-white'}`}>
             Huellitas
           </span>
