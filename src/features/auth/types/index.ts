@@ -1,8 +1,11 @@
+export type Role = 'ciudadano' | 'fundacion' | 'developer' | 'admin';
+
 export interface AuthUser {
-  id: number;
+  id: string;
   email: string;
-  name: string;
-  role: 'adopter' | 'foundation' | 'admin';
+  full_name: string;
+  role: Role;
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface LoginPayload {
@@ -11,17 +14,10 @@ export interface LoginPayload {
 }
 
 export interface RegisterPayload {
-  name: string;
+  full_name: string;
   email: string;
   password: string;
-  role: 'adopter' | 'foundation';
-}
-
-export type AuthAction =
-  | { type: 'LOGIN'; payload: AuthUser }
-  | { type: 'LOGOUT' };
-
-export interface AuthState {
-  user: AuthUser | null;
-  isAuthenticated: boolean;
+  role: Role;
+  municipio?: string;
+  phone?: string;
 }

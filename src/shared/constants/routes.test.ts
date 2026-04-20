@@ -53,6 +53,10 @@ describe('ROUTES', () => {
       'LOGIN',
       'REGISTER',
       'FOUNDATION_DASHBOARD',
+      'AI',
+      'ADMIN',
+      'PENDING',
+      'REJECTED',
     ]);
   });
 });

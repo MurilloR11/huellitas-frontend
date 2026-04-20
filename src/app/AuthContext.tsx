@@ -1,47 +1,49 @@
-import { createContext, useReducer } from 'react';
+import { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { AuthState, AuthAction, AuthUser } from '../features/auth/types';
+import { supabase } from '../shared/lib/supabaseClient';
+import { authApi, buildAuthUser } from '../features/auth/services/authApi';
+import type { AuthUser, LoginPayload } from '../features/auth/types';
 
-const initialState: AuthState = {
-  user: null,
-  isAuthenticated: false,
-};
-
-function authReducer(state: AuthState, action: AuthAction): AuthState {
-  switch (action.type) {
-    case 'LOGIN':
-      return { user: action.payload, isAuthenticated: true };
-    case 'LOGOUT':
-      localStorage.removeItem('token');
-      return { user: null, isAuthenticated: false };
-    default:
-      return state;
-  }
-}
-
-interface AuthContextValue extends AuthState {
-  dispatch: React.Dispatch<AuthAction>;
-  login: (user: AuthUser, token: string) => void;
-  logout: () => void;
+interface AuthContextValue {
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (payload: LoginPayload) => Promise<AuthUser>;
+  logout: () => Promise<void>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  function login(user: AuthUser, token: string) {
-    localStorage.setItem('token', token);
-    dispatch({ type: 'LOGIN', payload: user });
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ? buildAuthUser(session.user) : null);
+      setIsLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ? buildAuthUser(session.user) : null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function login(payload: LoginPayload): Promise<AuthUser> {
+    return authApi.login(payload);
   }
 
-  function logout() {
-    dispatch({ type: 'LOGOUT' });
+  async function logout(): Promise<void> {
+    await authApi.logout();
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, dispatch, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, isAuthenticated: user !== null, isLoading, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

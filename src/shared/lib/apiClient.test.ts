@@ -1,3 +1,17 @@
+import { vi } from 'vitest';
+
+const { mockGetSession } = vi.hoisted(() => ({
+  mockGetSession: vi.fn(),
+}));
+
+vi.mock('./supabaseClient', () => ({
+  supabase: {
+    auth: {
+      getSession: mockGetSession,
+    },
+  },
+}));
+
 import apiClient from './apiClient';
 
 describe('apiClient', () => {
@@ -17,20 +31,19 @@ describe('apiClient', () => {
     expect(apiClient.defaults.headers['Content-Type']).toBe('application/json');
   });
 
-  it('attaches Authorization header when token exists in localStorage', async () => {
-    localStorage.setItem('token', 'test-token-123');
+  it('attaches Authorization header when Supabase session has access_token', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: { access_token: 'supabase-token-123' } } });
 
     const interceptor = getRequestInterceptor();
     const config = await interceptor({
       headers: {} as Record<string, string>,
     } as Parameters<NonNullable<typeof interceptor>>[0]);
 
-    expect(config.headers.Authorization).toBe('Bearer test-token-123');
-    localStorage.removeItem('token');
+    expect(config.headers.Authorization).toBe('Bearer supabase-token-123');
   });
 
-  it('does not attach Authorization header when no token', async () => {
-    localStorage.removeItem('token');
+  it('does not attach Authorization header when no session', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: null } });
 
     const interceptor = getRequestInterceptor();
     const config = await interceptor({

@@ -1,7 +1,18 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import LoginPage from './LoginPage';
+
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: () => ({
+    login: vi.fn().mockResolvedValue({ role: 'ciudadano', full_name: 'Test' }),
+    user: null,
+    isAuthenticated: false,
+    isLoading: false,
+    logout: vi.fn(),
+  }),
+}));
 
 function renderLoginPage() {
   return render(
