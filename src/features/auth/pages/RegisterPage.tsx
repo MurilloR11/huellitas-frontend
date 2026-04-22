@@ -227,7 +227,7 @@ export default function RegisterPage() {
       if (role === 'fundacion') {
         navigate(ROUTES.PENDING);
       } else {
-        navigate(ROUTES.HOME);
+        navigate(ROUTES.LOGIN);
       }
     } catch (err) {
       setServerError(err instanceof Error ? err.message : 'Error al crear la cuenta');

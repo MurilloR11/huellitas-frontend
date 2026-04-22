@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { createBrowserRouter, Navigate, useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { HomePage } from '../features/home/pages/HomePage';
 import LoginPage from '../features/auth/pages/LoginPage';
@@ -7,6 +8,7 @@ import RegisterPage from '../features/auth/pages/RegisterPage';
 import PendingApprovalPage from '../features/auth/pages/PendingApprovalPage';
 import RejectedPage from '../features/auth/pages/RejectedPage';
 import AIPage from '../features/ai/pages/AIPage';
+import ExplorePage from '../features/pets/pages/ExplorePage';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import type { Role } from '../features/auth/types';
 
@@ -25,6 +27,16 @@ const Spinner = () => (
     <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
   </div>
 );
+
+function LogoutRoute() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    logout().then(() => navigate('/login', { replace: true }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return <Spinner />;
+}
 
 function ProtectedRoute({ children, roles }: { children: ReactNode; roles?: Role[] }) {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -53,12 +65,16 @@ function PublicOnlyRoute({ children }: { children: ReactNode }) {
     if (user.status === 'rejected') return <Navigate to="/rejected" replace />;
     return <Navigate to="/foundation/dashboard" replace />;
   }
-  return <Navigate to="/" replace />;
+  return <Navigate to="/explore" replace />;
 }
 
 export const router = createBrowserRouter([
   { path: '/', element: <HomePage /> },
   { path: '/pets', element: <PetsList /> },
+  {
+    path: '/explore',
+    element: <ProtectedRoute roles={['ciudadano']}><ExplorePage /></ProtectedRoute>,
+  },
   { path: '/pets/:id', element: <PetDetail /> },
   { path: '/foundations', element: <FoundationsList /> },
   { path: '/foundations/:id', element: <FoundationDetail /> },
@@ -71,6 +87,7 @@ export const router = createBrowserRouter([
     path: '/register',
     element: <PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>,
   },
+  { path: '/logout', element: <LogoutRoute /> },
   { path: '/pending', element: <PendingApprovalPage /> },
   { path: '/rejected', element: <RejectedPage /> },
   {

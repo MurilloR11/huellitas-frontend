@@ -79,7 +79,7 @@ export default function LoginPage() {
         else if (user.status === 'rejected') navigate(ROUTES.REJECTED);
         else navigate(ROUTES.FOUNDATION_DASHBOARD);
       } else {
-        navigate(ROUTES.HOME);
+        navigate('/explore');
       }
     } catch (err) {
       setServerError(err instanceof Error ? err.message : 'Error al iniciar sesión');

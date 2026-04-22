@@ -47,7 +47,11 @@ export const authApi = {
     });
     if (error) throw new Error(mapError(error.message));
     if (!data.user) throw new Error('No se pudo crear la cuenta');
-    return buildAuthUser(data.user);
+    const user = buildAuthUser(data.user);
+    // signUp creates a session automatically — sign out so the user
+    // must log in manually with their credentials.
+    await supabase.auth.signOut();
+    return user;
   },
 
   async logout(): Promise<void> {

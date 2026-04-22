@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
 @theme {
   --color-brand:        #e85d26;
   --color-brand-dark:   #c94e1e;
@@ -8,6 +14,23 @@
   --color-brand-muted:  #fff5f0;
   --color-brand-badge:  #f9b99a;
   --color-dark-card:    #1c1009;
+
+  /* shadcn-compatible semantic tokens */
+  --color-primary:             #e85d26;
+  --color-primary-dark:        #c94e1e;
+  --color-primary-foreground:  #ffffff;
+  --color-muted:               #f5f5f4;
+  --color-muted-foreground:    #78716c;
+  --color-foreground:          #1c1009;
+  --color-accent:              #fdf3ee;
+  --color-accent-foreground:   #c94e1e;
+  --color-sidebar:             #ffffff;
+  --color-sidebar-border:      #f0c9b4;
+
+  /* Semantic status colors — base values for text/border usage */
+  --color-success:  #16a34a;
+  --color-warning:  #d97706;
+  --color-error:    #dc2626;
 }
 
 html {
@@ -89,4 +112,105 @@ input, select, textarea, label {
   animation-name: carousel-scroll-right;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+}
+
+:root {
+  --popover:              #ffffff;
+  --popover-foreground:   #1c1009;
+  --border:               #e7e5e4;
+  --destructive:          #dc2626;
+
+  --sidebar:                    #ffffff;
+  --sidebar-foreground:         #1c1009;
+  --sidebar-primary:            #e85d26;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent:             #fdf3ee;
+  --sidebar-accent-foreground:  #c94e1e;
+  --sidebar-border:             #f0c9b4;
+  --sidebar-ring:               #e85d26;
+
+  /* Semantic state tokens — resolve through CSS vars so .dark can swap them */
+  --success:  #16a34a;
+  --warning:  #d97706;
+  --error:    #dc2626;
+
+  /* Badge surface + foreground pairs */
+  --status-available-bg:  #dcfce7;
+  --status-available-fg:  #166534;
+  --status-pending-bg:    #fef3c7;
+  --status-pending-fg:    #92400e;
+  --status-error-bg:      #fee2e2;
+  --status-error-fg:      #991b1b;
+}
+
+.dark {
+  --popover:            hsl(20 8% 10%);
+  --popover-foreground: hsl(30 15% 90%);
+  --border:             hsl(20 8% 18%);
+  --destructive:        #f87171;
+
+  --sidebar:                    hsl(20 8% 8%);
+  --sidebar-foreground:         hsl(30 15% 90%);
+  --sidebar-primary:            #e85d26;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent:             hsl(20 8% 13%);
+  --sidebar-accent-foreground:  hsl(30 15% 88%);
+  --sidebar-border:             hsl(20 8% 15%);
+  --sidebar-ring:               #e85d26;
+
+  /* Semantic state tokens — lighter shades for dark backgrounds */
+  --success:  #4ade80;
+  --warning:  #fbbf24;
+  --error:    #f87171;
+
+  /* Badge surface + foreground pairs */
+  --status-available-bg:  rgba(20, 83, 45, 0.4);
+  --status-available-fg:  #86efac;
+  --status-pending-bg:    rgba(120, 53, 15, 0.4);
+  --status-pending-fg:    #fcd34d;
+  --status-error-bg:      rgba(127, 29, 29, 0.4);
+  --status-error-fg:      #fca5a5;
+}
+
+@theme inline {
+  --color-popover:            var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-border:             var(--border);
+  --color-destructive:        var(--destructive);
+
+  --color-sidebar:                      var(--sidebar);
+  --color-sidebar-foreground:           var(--sidebar-foreground);
+  --color-sidebar-primary:              var(--sidebar-primary);
+  --color-sidebar-primary-foreground:   var(--sidebar-primary-foreground);
+  --color-sidebar-accent:               var(--sidebar-accent);
+  --color-sidebar-accent-foreground:    var(--sidebar-accent-foreground);
+  --color-sidebar-border:               var(--sidebar-border);
+  --color-sidebar-ring:                 var(--sidebar-ring);
+
+  /* Semantic state — these resolve through CSS vars so dark mode swaps work */
+  --color-success:              var(--success);
+  --color-warning:              var(--warning);
+  --color-error:                var(--error);
+
+  /* Badge surface pairs */
+  --color-status-available-bg:  var(--status-available-bg);
+  --color-status-available-fg:  var(--status-available-fg);
+  --color-status-pending-bg:    var(--status-pending-bg);
+  --color-status-pending-fg:    var(--status-pending-fg);
+  --color-status-error-bg:      var(--status-error-bg);
+  --color-status-error-fg:      var(--status-error-fg);
+}
+
+/* Shared card image layout — enforces 4:3 aspect with cover crop */
+.card-image {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
