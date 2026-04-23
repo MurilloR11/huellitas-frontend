@@ -11,12 +11,14 @@ import {
   UserRound,
   Bell,
   LogOut,
+  ChevronDown,
 } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
@@ -24,6 +26,11 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +69,55 @@ function getInitials(name: string): string {
     .join('');
 }
 
+// ─── NavSection ────────────────────────────────────────────────────────────────
+
+interface NavSectionProps {
+  label: string;
+  items: { id: NavId; icon: typeof PawPrint; label: string }[];
+  activeNav: NavId;
+  onSelect: (id: NavId) => void;
+  defaultOpen?: boolean;
+}
+
+function NavSection({ label, items, activeNav, onSelect, defaultOpen = true }: NavSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="group/section">
+      <SidebarGroup className="p-0">
+        <CollapsibleTrigger asChild>
+          <SidebarGroupLabel className="px-2 mb-1 h-auto py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50 cursor-pointer select-none flex items-center justify-between hover:text-sidebar-foreground/70 transition-colors w-full">
+            {label}
+            <ChevronDown
+              className="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/section:rotate-180"
+              strokeWidth={2}
+            />
+          </SidebarGroupLabel>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {items.map(({ id, icon: Icon, label: itemLabel }) => (
+                <SidebarMenuItem key={id}>
+                  <SidebarMenuButton
+                    isActive={activeNav === id}
+                    onClick={() => onSelect(id)}
+                    aria-current={activeNav === id ? 'page' : undefined}
+                    className="h-10 px-3 gap-3 rounded-lg text-[13px]"
+                  >
+                    <Icon className="!w-[18px] !h-[18px] shrink-0" strokeWidth={1.75} />
+                    <span className="truncate">{itemLabel}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
+  );
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function CitizenSidebar() {
@@ -93,49 +149,11 @@ export function CitizenSidebar() {
       {/* ── Nav ───────────────────────────────────────────────────────────── */}
       <SidebarContent className="px-2 py-3 overflow-hidden">
 
-        <SidebarGroup className="p-0">
-          <SidebarGroupLabel className="px-2 mb-1 h-auto py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50">
-            Adopción
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            {ADOPTION_ITEMS.map(({ id, icon: Icon, label }) => (
-              <SidebarMenuItem key={id}>
-                <SidebarMenuButton
-                  isActive={activeNav === id}
-                  onClick={() => setActiveNav(id)}
-                  aria-current={activeNav === id ? 'page' : undefined}
-                  className="h-10 px-3 gap-3 rounded-lg text-[13px]"
-                >
-                  <Icon className="!w-[18px] !h-[18px] shrink-0" strokeWidth={1.75} />
-                  <span className="truncate">{label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
+        <NavSection label="Adopciones" items={ADOPTION_ITEMS} activeNav={activeNav} onSelect={setActiveNav} defaultOpen />
 
         <SidebarSeparator className="my-3" />
 
-        <SidebarGroup className="p-0">
-          <SidebarGroupLabel className="px-2 mb-1 h-auto py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50">
-            Recursos
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            {RESOURCE_ITEMS.map(({ id, icon: Icon, label }) => (
-              <SidebarMenuItem key={id}>
-                <SidebarMenuButton
-                  isActive={activeNav === id}
-                  onClick={() => setActiveNav(id)}
-                  aria-current={activeNav === id ? 'page' : undefined}
-                  className="h-10 px-3 gap-3 rounded-lg text-[13px]"
-                >
-                  <Icon className="!w-[18px] !h-[18px] shrink-0" strokeWidth={1.75} />
-                  <span className="truncate">{label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
+        <NavSection label="Recursos" items={RESOURCE_ITEMS} activeNav={activeNav} onSelect={setActiveNav} defaultOpen />
 
       </SidebarContent>
 
