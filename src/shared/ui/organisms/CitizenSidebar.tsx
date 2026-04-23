@@ -83,10 +83,10 @@ function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: 
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <SidebarMenuItem>
+    <SidebarMenuItem>
+      <Collapsible open={open} onOpenChange={setOpen} className="w-full">
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton className="h-10 px-3 gap-3 rounded-lg text-[13px]">
+          <SidebarMenuButton className="h-10 px-3 gap-3 rounded-lg text-[13px] w-full">
             <span className="flex-1 truncate text-left font-medium">{label}</span>
             <ChevronRight
               className={cn(
@@ -97,26 +97,26 @@ function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: 
             />
           </SidebarMenuButton>
         </CollapsibleTrigger>
-      </SidebarMenuItem>
 
-      <CollapsibleContent>
-        <SidebarMenuSub>
-          {items.map(({ id, icon: Icon, label: itemLabel }) => (
-            <SidebarMenuSubItem key={id}>
-              <SidebarMenuSubButton
-                isActive={activeNav === id}
-                onClick={() => onSelect(id)}
-                aria-current={activeNav === id ? 'page' : undefined}
-                className="gap-2.5 text-[13px]"
-              >
-                <Icon className="!w-[15px] !h-[15px] shrink-0" strokeWidth={1.75} />
-                <span className="truncate">{itemLabel}</span>
-              </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
-          ))}
-        </SidebarMenuSub>
-      </CollapsibleContent>
-    </Collapsible>
+        <CollapsibleContent className="overflow-hidden">
+          <SidebarMenuSub>
+            {items.map(({ id, icon: Icon, label: itemLabel }) => (
+              <SidebarMenuSubItem key={id}>
+                <SidebarMenuSubButton
+                  isActive={activeNav === id}
+                  onClick={() => onSelect(id)}
+                  aria-current={activeNav === id ? 'page' : undefined}
+                  className="gap-2.5 text-[13px]"
+                >
+                  <Icon className="!w-[15px] !h-[15px] shrink-0" strokeWidth={1.75} />
+                  <span className="truncate">{itemLabel}</span>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarMenuItem>
   );
 }
 
