@@ -11,19 +11,19 @@ import {
   UserRound,
   Bell,
   LogOut,
-  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
@@ -41,16 +41,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { cn } from '@/lib/utils';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 type NavId = 'browse' | 'apply' | 'track' | 'schedule' | 'requirements' | 'contact';
 
 const ADOPTION_ITEMS: { id: NavId; icon: typeof PawPrint; label: string }[] = [
-  { id: 'browse',   icon: Search,       label: 'Ver animales disponibles' },
-  { id: 'apply',    icon: FileText,     label: 'Solicitar adopción'       },
-  { id: 'track',    icon: Clock,        label: 'Estado de mi solicitud'   },
-  { id: 'schedule', icon: CalendarDays, label: 'Agendar un encuentro'     },
+  { id: 'apply',    icon: FileText,     label: 'Solicitar adopción'   },
+  { id: 'track',    icon: Clock,        label: 'Estado de mi solicitud' },
+  { id: 'schedule', icon: CalendarDays, label: 'Agendar un encuentro' },
 ];
 
 const RESOURCE_ITEMS: { id: NavId; icon: typeof PawPrint; label: string }[] = [
@@ -79,41 +79,43 @@ interface NavSectionProps {
   defaultOpen?: boolean;
 }
 
-function NavSection({ label, items, activeNav, onSelect, defaultOpen = true }: NavSectionProps) {
+function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: NavSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="group/section">
-      <SidebarGroup className="p-0">
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <SidebarMenuItem>
         <CollapsibleTrigger asChild>
-          <SidebarGroupLabel className="px-2 mb-1 h-auto py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50 cursor-pointer select-none flex items-center justify-between hover:text-sidebar-foreground/70 transition-colors w-full">
-            {label}
-            <ChevronDown
-              className="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/section:rotate-180"
+          <SidebarMenuButton className="h-10 px-3 gap-3 rounded-lg text-[13px]">
+            <span className="flex-1 truncate text-left font-medium">{label}</span>
+            <ChevronRight
+              className={cn(
+                'w-4 h-4 shrink-0 text-sidebar-foreground/40 transition-transform duration-200',
+                open && 'rotate-90',
+              )}
               strokeWidth={2}
             />
-          </SidebarGroupLabel>
+          </SidebarMenuButton>
         </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map(({ id, icon: Icon, label: itemLabel }) => (
-                <SidebarMenuItem key={id}>
-                  <SidebarMenuButton
-                    isActive={activeNav === id}
-                    onClick={() => onSelect(id)}
-                    aria-current={activeNav === id ? 'page' : undefined}
-                    className="h-10 px-3 gap-3 rounded-lg text-[13px]"
-                  >
-                    <Icon className="!w-[18px] !h-[18px] shrink-0" strokeWidth={1.75} />
-                    <span className="truncate">{itemLabel}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </CollapsibleContent>
-      </SidebarGroup>
+      </SidebarMenuItem>
+
+      <CollapsibleContent>
+        <SidebarMenuSub>
+          {items.map(({ id, icon: Icon, label: itemLabel }) => (
+            <SidebarMenuSubItem key={id}>
+              <SidebarMenuSubButton
+                isActive={activeNav === id}
+                onClick={() => onSelect(id)}
+                aria-current={activeNav === id ? 'page' : undefined}
+                className="gap-2.5 text-[13px]"
+              >
+                <Icon className="!w-[15px] !h-[15px] shrink-0" strokeWidth={1.75} />
+                <span className="truncate">{itemLabel}</span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      </CollapsibleContent>
     </Collapsible>
   );
 }
@@ -148,13 +150,40 @@ export function CitizenSidebar() {
 
       {/* ── Nav ───────────────────────────────────────────────────────────── */}
       <SidebarContent className="px-2 py-3 overflow-hidden">
+        <SidebarMenu>
 
-        <NavSection label="Adopciones" items={ADOPTION_ITEMS} activeNav={activeNav} onSelect={setActiveNav} defaultOpen />
+          {/* Standalone top-level item */}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={activeNav === 'browse'}
+              onClick={() => setActiveNav('browse')}
+              aria-current={activeNav === 'browse' ? 'page' : undefined}
+              className="h-10 px-3 gap-3 rounded-lg text-[13px]"
+            >
+              <Search className="!w-[18px] !h-[18px] shrink-0" strokeWidth={1.75} />
+              <span className="truncate">Ver animales disponibles</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
 
-        <SidebarSeparator className="my-3" />
+          {/* Collapsible: Adopciones */}
+          <NavSection
+            label="Adopciones"
+            items={ADOPTION_ITEMS}
+            activeNav={activeNav}
+            onSelect={setActiveNav}
+          />
 
-        <NavSection label="Recursos" items={RESOURCE_ITEMS} activeNav={activeNav} onSelect={setActiveNav} defaultOpen />
+          <SidebarSeparator className="my-2" />
 
+          {/* Collapsible: Recursos */}
+          <NavSection
+            label="Recursos"
+            items={RESOURCE_ITEMS}
+            activeNav={activeNav}
+            onSelect={setActiveNav}
+          />
+
+        </SidebarMenu>
       </SidebarContent>
 
       {/* ── User profile footer ────────────────────────────────────────────── */}
@@ -167,7 +196,6 @@ export function CitizenSidebar() {
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  {/* Avatar */}
                   <div
                     className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none"
                     aria-hidden="true"
@@ -175,7 +203,6 @@ export function CitizenSidebar() {
                     {initials}
                   </div>
 
-                  {/* Name + role */}
                   <div className="flex-1 min-w-0 text-left">
                     <p className="text-sm font-bold text-sidebar-foreground leading-tight truncate">
                       {displayName}
@@ -195,7 +222,6 @@ export function CitizenSidebar() {
                 sideOffset={8}
                 className="w-56"
               >
-                {/* User info header */}
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2.5 px-2 py-2">
                     <div className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none">
