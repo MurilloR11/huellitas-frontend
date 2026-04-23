@@ -401,7 +401,7 @@ export default function ExplorePage() {
         {/* Top bar */}
         <header className="sticky top-0 z-10 flex items-center px-6 h-14 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-sm border-b border-stone-200 dark:border-zinc-800 shrink-0">
           <h1 className="text-sm font-semibold text-stone-900 dark:text-zinc-50">
-            Ver animales disponibles
+            Encuentra tu próxima mascota
           </h1>
         </header>
 
