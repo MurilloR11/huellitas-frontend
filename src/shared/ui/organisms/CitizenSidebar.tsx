@@ -21,16 +21,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,38 +76,41 @@ function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: 
 
   return (
     <SidebarMenuItem>
-      <Collapsible open={open} onOpenChange={setOpen} className="w-full">
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton className="h-10 px-3 gap-3 rounded-lg text-[13px] w-full">
-            <span className="flex-1 truncate text-left font-medium">{label}</span>
-            <ChevronRight
-              className={cn(
-                'w-4 h-4 shrink-0 text-sidebar-foreground/40 transition-transform duration-200',
-                open && 'rotate-90',
-              )}
-              strokeWidth={2}
-            />
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
+      <SidebarMenuButton
+        onClick={() => setOpen(o => !o)}
+        className="h-10 px-3 gap-3 rounded-lg text-[13px] w-full"
+      >
+        <span className="flex-1 truncate text-left font-medium">{label}</span>
+        <ChevronRight
+          className={cn(
+            'w-4 h-4 shrink-0 text-sidebar-foreground/40 transition-transform duration-200',
+            open && 'rotate-90',
+          )}
+          strokeWidth={2}
+        />
+      </SidebarMenuButton>
 
-        <CollapsibleContent className="overflow-hidden">
-          <SidebarMenuSub>
-            {items.map(({ id, icon: Icon, label: itemLabel }) => (
-              <SidebarMenuSubItem key={id}>
-                <SidebarMenuSubButton
-                  isActive={activeNav === id}
-                  onClick={() => onSelect(id)}
-                  aria-current={activeNav === id ? 'page' : undefined}
-                  className="gap-2.5 text-[13px]"
-                >
-                  <Icon className="!w-[15px] !h-[15px] shrink-0" strokeWidth={1.75} />
-                  <span className="truncate">{itemLabel}</span>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
-            ))}
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </Collapsible>
+      {open && (
+        <div className="ml-3 mt-0.5 flex flex-col gap-0.5 border-l border-sidebar-border pl-3">
+          {items.map(({ id, icon: Icon, label: itemLabel }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onSelect(id)}
+              aria-current={activeNav === id ? 'page' : undefined}
+              className={cn(
+                'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-left',
+                'text-sidebar-foreground/70 transition-colors',
+                'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                activeNav === id && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
+              )}
+            >
+              <Icon className="w-[15px] h-[15px] shrink-0" strokeWidth={1.75} />
+              <span className="truncate">{itemLabel}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </SidebarMenuItem>
   );
 }
