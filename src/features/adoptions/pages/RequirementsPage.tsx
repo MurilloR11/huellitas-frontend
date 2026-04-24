@@ -7,6 +7,7 @@ import {
   Check,
   ChevronRight,
   ShieldCheck,
+  ListChecks,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ const STEP_1_ITEMS = [
   'Residir en el departamento del Tolima',
   'Tener capacidad económica para cubrir gastos veterinarios básicos',
   'No tener antecedentes de maltrato animal',
+  'Comprometerse a informar si ya no puede cuidar al animal',
 ] as const;
 
 const STEP_2_ITEMS = [
@@ -27,6 +29,7 @@ const STEP_2_ITEMS = [
   'No tener más de 3 mascotas actualmente',
   'Compromiso de no abandono ni reventa del animal',
   'Llevar al animal al veterinario dentro de los primeros 30 días',
+  'Garantizar acceso a agua limpia y alimentación adecuada diariamente',
 ] as const;
 
 const STEP_3_DOCS = [
@@ -176,12 +179,7 @@ export default function RequirementsPage({ onContinue }: { onContinue: () => voi
     step === 1 ? `${count2} de ${STEP_2_ITEMS.length} confirmados` :
     step3Ack   ? 'Documentos revisados' : 'Confirma haber revisado los documentos';
 
-  const barProgress =
-    step === 0 ? count1 / STEP_1_ITEMS.length :
-    step === 1 ? count2 / STEP_2_ITEMS.length :
-    step3Ack   ? 1 : 0;
-
-  const StepIcon = STEPS[step].icon;
+const StepIcon = STEPS[step].icon;
 
   return (
     <div className="px-6 sm:px-8 py-6 sm:py-8">
@@ -229,37 +227,39 @@ export default function RequirementsPage({ onContinue }: { onContinue: () => voi
           <span className="text-xs font-semibold text-stone-700 ml-auto">{STEPS[step].short}</span>
         </div>
 
-        {/* Progress summary */}
-        <div className="flex items-center gap-3">
-          <p className={cn(
-            'text-xs font-medium transition-colors duration-200',
-            canProceed ? 'text-green-600' : 'text-stone-400',
-          )}>
-            {summaryText}{canProceed && ' ✓'}
-          </p>
-          <div className="flex-1 h-1.5 rounded-full bg-stone-200 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{
-                width:      `${barProgress * 100}%`,
-                background: canProceed ? '#16a34a' : 'var(--color-brand)',
-              }}
-            />
-          </div>
-        </div>
       </div>
 
       {/* ── Step heading ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 mb-5">
-        <div
-          className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0"
-          style={{ background: 'var(--color-brand-light)' }}
-        >
-          <StepIcon className="w-5 h-5" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
+      <div className="flex items-center justify-between gap-4 mb-5">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0"
+            style={{ background: 'var(--color-brand-light)' }}
+          >
+            <StepIcon className="w-5 h-5" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-stone-900">{STEPS[step].label}</h2>
+            <p className="text-xs text-stone-400">{STEPS[step].description}</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-sm font-semibold text-stone-900">{STEPS[step].label}</h2>
-          <p className="text-xs text-stone-400">{STEPS[step].description}</p>
+
+        <div className={cn(
+          'flex items-center gap-1.5 shrink-0 transition-colors duration-200',
+          canProceed ? 'text-green-600' : 'text-stone-400',
+        )}>
+          <ListChecks className="w-4 h-4" strokeWidth={1.75} />
+          <span className="text-sm font-medium whitespace-nowrap">
+            {step < 2 ? (
+              <>
+                {step === 0 ? count1 : count2}
+                {' de '}
+                {STEP_1_ITEMS.length}
+                {' confirmados'}
+              </>
+            ) : summaryText}
+            {canProceed && ' ✓'}
+          </span>
         </div>
       </div>
 
