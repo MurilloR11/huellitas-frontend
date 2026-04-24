@@ -3,7 +3,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { CitizenSidebar, type NavId } from '@/shared/ui/organisms/CitizenSidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, X, Tag, Cake, Maximize2, ChevronRight, PanelLeft } from 'lucide-react';
+import { Search, X, Tag, Cake, Maximize2, ChevronRight } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -375,7 +375,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 
 export default function ExplorePage() {
   const [activeNav, setActiveNav] = useState<NavId>('browse');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
   const filtered = useMemo(
@@ -393,23 +393,12 @@ export default function ExplorePage() {
 
   return (
     <SidebarProvider className="h-screen overflow-hidden">
-      {sidebarOpen && <CitizenSidebar activeNav={activeNav} onNavChange={setActiveNav} onToggle={() => setSidebarOpen(false)} />}
+      <CitizenSidebar activeNav={activeNav} onNavChange={setActiveNav} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-stone-50 dark:bg-zinc-950">
 
         {/* Top bar */}
         <header className="sticky top-0 z-10 flex items-center gap-2 px-6 h-14 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-sm border-b border-stone-200 dark:border-zinc-800 shrink-0">
-          {!sidebarOpen && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(true)}
-              className="h-8 w-8 shrink-0 text-stone-500 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-              aria-label="Abrir menú"
-            >
-              <PanelLeft className="h-4 w-4" />
-            </Button>
-          )}
           <nav aria-label="Ubicación actual">
             <ol className="flex items-center gap-1 text-sm">
               <li className="font-semibold text-stone-400 dark:text-zinc-500">Huellitas</li>

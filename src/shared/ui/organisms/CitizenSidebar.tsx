@@ -1,4 +1,4 @@
-import { useState } from 'react'; // still used by NavSection
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   PawPrint,
@@ -72,10 +72,36 @@ interface NavSectionProps {
   activeNav: NavId;
   onSelect: (id: NavId) => void;
   defaultOpen?: boolean;
+  collapsed: boolean;
 }
 
-function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: NavSectionProps) {
+function NavSection({ label, items, activeNav, onSelect, defaultOpen = false, collapsed }: NavSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
+
+  if (collapsed) {
+    return (
+      <>
+        {items.map(({ id, icon: Icon, label: itemLabel }) => (
+          <SidebarMenuItem key={id}>
+            <button
+              type="button"
+              onClick={() => onSelect(id)}
+              aria-current={activeNav === id ? 'page' : undefined}
+              title={itemLabel}
+              className={cn(
+                'flex w-full items-center justify-center rounded-lg p-2.5',
+                'text-sidebar-foreground/70 transition-colors',
+                'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                activeNav === id && 'bg-sidebar-accent text-sidebar-accent-foreground',
+              )}
+            >
+              <Icon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
+            </button>
+          </SidebarMenuItem>
+        ))}
+      </>
+    );
+  }
 
   return (
     <SidebarMenuItem className="w-full overflow-hidden">
@@ -124,39 +150,62 @@ function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: 
 interface CitizenSidebarProps {
   activeNav: NavId;
   onNavChange: (id: NavId) => void;
+  collapsed: boolean;
   onToggle: () => void;
 }
 
-export function CitizenSidebar({ activeNav, onNavChange, onToggle }: CitizenSidebarProps) {
+export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: CitizenSidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const initials = user ? getInitials(user.full_name) : '--';
   const displayName = user?.full_name ?? 'Invitado';
 
+  const avatarEl = user?.avatar_url
+    ? <img src={user.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+    : initials;
+
   return (
     <Sidebar
       collapsible="none"
-      className="border-r border-sidebar-border overflow-hidden shrink-0"
-      style={{ width: 'var(--sidebar-width)', minWidth: 'var(--sidebar-width)', maxWidth: 'var(--sidebar-width)' }}
+      className={cn(
+        'border-r border-sidebar-border overflow-hidden shrink-0',
+        'transition-[width,min-width,max-width] duration-300 ease-in-out',
+      )}
+      style={{
+        width:    collapsed ? '3.5rem' : 'var(--sidebar-width)',
+        minWidth: collapsed ? '3.5rem' : 'var(--sidebar-width)',
+        maxWidth: collapsed ? '3.5rem' : 'var(--sidebar-width)',
+      }}
     >
       {/* ── Logo ──────────────────────────────────────────────────────────── */}
-      <SidebarHeader className="py-3 px-4">
+      <SidebarHeader className={cn('py-3', collapsed ? 'px-1.5' : 'px-4')}>
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-primary shrink-0">
-            <PawPrint className="w-5 h-5 text-sidebar-primary-foreground" strokeWidth={2} />
-          </div>
-          <span className="text-xl font-bold text-sidebar-foreground tracking-tight leading-none flex-1">
-            Huellitas
-          </span>
+          {!collapsed && (
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-primary shrink-0">
+              <PawPrint className="w-5 h-5 text-sidebar-primary-foreground" strokeWidth={2} />
+            </div>
+          )}
+
+          {!collapsed && (
+            <span className="text-xl font-bold text-sidebar-foreground tracking-tight leading-none flex-1">
+              Huellitas
+            </span>
+          )}
+
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggle}
-            className="h-8 w-8 shrink-0 text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-            aria-label="Cerrar menú"
+            className={cn(
+              'h-8 w-8 shrink-0 text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent',
+              collapsed && 'mx-auto',
+            )}
+            aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
           >
-            <PanelLeft className="h-4 w-4" />
+            <PanelLeft
+              className={cn('h-4 w-4 transition-transform duration-300', collapsed && 'rotate-180')}
+            />
           </Button>
         </div>
       </SidebarHeader>
@@ -164,19 +213,37 @@ export function CitizenSidebar({ activeNav, onNavChange, onToggle }: CitizenSide
       <SidebarSeparator />
 
       {/* ── Nav ───────────────────────────────────────────────────────────── */}
-      <SidebarContent className="px-2 py-3" style={{ overflow: 'hidden' }}>
+      <SidebarContent className={cn('py-3', collapsed ? 'px-1.5' : 'px-2')} style={{ overflow: 'hidden' }}>
         <SidebarMenu>
 
+          {/* Browse */}
           <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={activeNav === 'browse'}
-              onClick={() => onNavChange('browse')}
-              aria-current={activeNav === 'browse' ? 'page' : undefined}
-              className="h-10 px-3 gap-3 rounded-lg text-[13px]"
-            >
-              <Search className="!w-[18px] !h-[18px] shrink-0" strokeWidth={1.75} />
-              <span className="truncate">Ver animales disponibles</span>
-            </SidebarMenuButton>
+            {collapsed ? (
+              <button
+                type="button"
+                onClick={() => onNavChange('browse')}
+                aria-current={activeNav === 'browse' ? 'page' : undefined}
+                title="Ver animales disponibles"
+                className={cn(
+                  'flex w-full items-center justify-center rounded-lg p-2.5',
+                  'text-sidebar-foreground/70 transition-colors',
+                  'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  activeNav === 'browse' && 'bg-sidebar-accent text-sidebar-accent-foreground',
+                )}
+              >
+                <Search className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
+              </button>
+            ) : (
+              <SidebarMenuButton
+                isActive={activeNav === 'browse'}
+                onClick={() => onNavChange('browse')}
+                aria-current={activeNav === 'browse' ? 'page' : undefined}
+                className="h-10 px-3 gap-3 rounded-lg text-[13px]"
+              >
+                <Search className="!w-[18px] !h-[18px] shrink-0" strokeWidth={1.75} />
+                <span className="truncate">Ver animales disponibles</span>
+              </SidebarMenuButton>
+            )}
           </SidebarMenuItem>
 
           <NavSection
@@ -184,66 +251,68 @@ export function CitizenSidebar({ activeNav, onNavChange, onToggle }: CitizenSide
             items={ADOPTION_ITEMS}
             activeNav={activeNav}
             onSelect={onNavChange}
+            collapsed={collapsed}
           />
 
-          <li role="separator" aria-hidden="true" className="mx-2 my-1.5 h-px bg-sidebar-border list-none" />
+          {!collapsed && (
+            <li role="separator" aria-hidden="true" className="mx-2 my-1.5 h-px bg-sidebar-border list-none" />
+          )}
 
           <NavSection
             label="Recursos"
             items={RESOURCE_ITEMS}
             activeNav={activeNav}
             onSelect={onNavChange}
+            collapsed={collapsed}
           />
 
         </SidebarMenu>
       </SidebarContent>
 
       {/* ── User profile footer ────────────────────────────────────────────── */}
-      <SidebarFooter className="p-2 border-t border-sidebar-border">
+      <SidebarFooter className={cn('border-t border-sidebar-border', collapsed ? 'p-1.5' : 'p-2')}>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                >
-                  <div
-                    className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none overflow-hidden"
-                    aria-hidden="true"
+                {collapsed ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-center rounded-lg p-1.5 hover:bg-sidebar-accent transition-colors"
+                    aria-label={displayName}
                   >
-                    {user?.avatar_url
-                      ? <img src={user.avatar_url} alt={displayName} className="w-full h-full object-cover" />
-                      : initials
-                    }
-                  </div>
+                    <div className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none overflow-hidden">
+                      {avatarEl}
+                    </div>
+                  </button>
+                ) : (
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none overflow-hidden">
+                      {avatarEl}
+                    </div>
 
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-bold text-sidebar-foreground leading-tight truncate">
-                      {displayName}
-                    </p>
-                    <p className="text-xs text-sidebar-foreground/50 leading-tight truncate mt-0.5">
-                      Adoptante
-                    </p>
-                  </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-sm font-bold text-sidebar-foreground leading-tight truncate">
+                        {displayName}
+                      </p>
+                      <p className="text-xs text-sidebar-foreground/50 leading-tight truncate mt-0.5">
+                        Adoptante
+                      </p>
+                    </div>
 
-                  <ChevronsUpDown className="ml-auto w-4 h-4 text-sidebar-foreground/40 shrink-0" />
-                </SidebarMenuButton>
+                    <ChevronsUpDown className="ml-auto w-4 h-4 text-sidebar-foreground/40 shrink-0" />
+                  </SidebarMenuButton>
+                )}
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent
-                side="right"
-                align="end"
-                sideOffset={8}
-                className="w-56"
-              >
+              <DropdownMenuContent side="right" align="end" sideOffset={8} className="w-56">
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2.5 px-2 py-2">
                     <div className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none overflow-hidden">
-                      {user?.avatar_url
-                        ? <img src={user.avatar_url} alt={displayName} className="w-full h-full object-cover" />
-                        : initials
-                      }
+                      {avatarEl}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground leading-tight truncate">
