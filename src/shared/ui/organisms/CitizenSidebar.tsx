@@ -40,14 +40,14 @@ import { cn } from '@/lib/utils';
 type NavId = 'browse' | 'apply' | 'track' | 'schedule' | 'requirements' | 'contact';
 
 const ADOPTION_ITEMS: { id: NavId; icon: typeof PawPrint; label: string }[] = [
-  { id: 'apply',    icon: FileText,     label: 'Solicitar adopción'   },
-  { id: 'track',    icon: Clock,        label: 'Estado de mi solicitud' },
-  { id: 'schedule', icon: CalendarDays, label: 'Agendar un encuentro' },
+  { id: 'requirements', icon: ClipboardList, label: 'Requisitos de adopción' },
+  { id: 'apply',        icon: FileText,      label: 'Solicitar adopción'     },
+  { id: 'track',        icon: Clock,         label: 'Estado de mi solicitud' },
+  { id: 'schedule',     icon: CalendarDays,  label: 'Agendar un encuentro'   },
 ];
 
 const RESOURCE_ITEMS: { id: NavId; icon: typeof PawPrint; label: string }[] = [
-  { id: 'requirements', icon: ClipboardList, label: 'Requisitos de adopción' },
-  { id: 'contact',      icon: MessageCircle, label: 'Contactar a un agente'  },
+  { id: 'contact', icon: MessageCircle, label: 'Contactar a un agente' },
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
