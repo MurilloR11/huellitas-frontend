@@ -75,12 +75,13 @@ function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: 
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
+    <SidebarMenuItem className="w-full overflow-hidden">
+      <button
+        type="button"
         onClick={() => setOpen(o => !o)}
-        className="h-10 px-3 gap-3 rounded-lg text-[13px] w-full"
+        className="flex h-10 w-full items-center gap-3 overflow-hidden rounded-lg px-3 text-[13px] text-left text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
       >
-        <span className="flex-1 truncate text-left font-medium">{label}</span>
+        <span className="flex-1 min-w-0 truncate font-medium">{label}</span>
         <ChevronRight
           className={cn(
             'w-4 h-4 shrink-0 text-sidebar-foreground/40 transition-transform duration-200',
@@ -88,10 +89,10 @@ function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: 
           )}
           strokeWidth={2}
         />
-      </SidebarMenuButton>
+      </button>
 
       {open && (
-        <div className="ml-3 mt-0.5 flex flex-col gap-0.5 border-l border-sidebar-border pl-3">
+        <div className="ml-3 mt-0.5 overflow-hidden flex flex-col gap-0.5 border-l border-sidebar-border pl-3">
           {items.map(({ id, icon: Icon, label: itemLabel }) => (
             <button
               key={id}
@@ -99,14 +100,14 @@ function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: 
               onClick={() => onSelect(id)}
               aria-current={activeNav === id ? 'page' : undefined}
               className={cn(
-                'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-left',
+                'flex w-full overflow-hidden items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-left',
                 'text-sidebar-foreground/70 transition-colors',
                 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                 activeNav === id && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
               )}
             >
               <Icon className="w-[15px] h-[15px] shrink-0" strokeWidth={1.75} />
-              <span className="truncate">{itemLabel}</span>
+              <span className="min-w-0 truncate">{itemLabel}</span>
             </button>
           ))}
         </div>
@@ -127,7 +128,8 @@ export function CitizenSidebar() {
   return (
     <Sidebar
       collapsible="none"
-      className="border-r border-sidebar-border overflow-hidden"
+      className="border-r border-sidebar-border overflow-hidden shrink-0"
+      style={{ width: 'var(--sidebar-width)', minWidth: 'var(--sidebar-width)', maxWidth: 'var(--sidebar-width)' }}
     >
       {/* ── Logo ──────────────────────────────────────────────────────────── */}
       <SidebarHeader className="py-5 px-4">
@@ -144,10 +146,9 @@ export function CitizenSidebar() {
       <SidebarSeparator />
 
       {/* ── Nav ───────────────────────────────────────────────────────────── */}
-      <SidebarContent className="px-2 py-3 overflow-hidden">
+      <SidebarContent className="px-2 py-3" style={{ overflow: 'hidden' }}>
         <SidebarMenu>
 
-          {/* Standalone top-level item */}
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={activeNav === 'browse'}
@@ -160,7 +161,6 @@ export function CitizenSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
 
-          {/* Collapsible: Adopciones */}
           <NavSection
             label="Adopciones"
             items={ADOPTION_ITEMS}
@@ -168,9 +168,8 @@ export function CitizenSidebar() {
             onSelect={setActiveNav}
           />
 
-          <SidebarSeparator className="my-2" />
+          <li role="separator" aria-hidden="true" className="mx-2 my-1.5 h-px bg-sidebar-border list-none" />
 
-          {/* Collapsible: Recursos */}
           <NavSection
             label="Recursos"
             items={RESOURCE_ITEMS}
