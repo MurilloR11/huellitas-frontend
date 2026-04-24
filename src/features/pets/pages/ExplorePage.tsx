@@ -37,7 +37,7 @@ interface Animal {
 // ─── Breadcrumb map ────────────────────────────────────────────────────────────
 
 const BREADCRUMBS: Record<NavId, string[]> = {
-  browse:       ['Ver animales disponibles'],
+  browse:       [],
   requirements: ['Adopciones', 'Requisitos de adopción'],
   apply:        ['Adopciones', 'Solicitar adopción'],
   track:        ['Adopciones', 'Estado de mi solicitud'],
