@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   ShieldCheck,
   FileText,
@@ -71,6 +72,9 @@ export default function LoginPage() {
 
     try {
       const user = await login(result.data);
+
+      const firstName = user.full_name.split(' ')[0];
+      toast.success(`Bienvenido, ${firstName}`, { duration: 4000 });
 
       if (user.role === 'admin') {
         navigate(ROUTES.ADMIN);
