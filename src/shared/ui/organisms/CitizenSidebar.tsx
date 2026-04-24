@@ -13,6 +13,7 @@ import {
   Bell,
   LogOut,
   ChevronRight,
+  PanelLeft,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -35,6 +36,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -122,9 +124,10 @@ function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: 
 interface CitizenSidebarProps {
   activeNav: NavId;
   onNavChange: (id: NavId) => void;
+  onToggle: () => void;
 }
 
-export function CitizenSidebar({ activeNav, onNavChange }: CitizenSidebarProps) {
+export function CitizenSidebar({ activeNav, onNavChange, onToggle }: CitizenSidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -138,14 +141,23 @@ export function CitizenSidebar({ activeNav, onNavChange }: CitizenSidebarProps) 
       style={{ width: 'var(--sidebar-width)', minWidth: 'var(--sidebar-width)', maxWidth: 'var(--sidebar-width)' }}
     >
       {/* ── Logo ──────────────────────────────────────────────────────────── */}
-      <SidebarHeader className="py-5 px-4">
+      <SidebarHeader className="py-3 px-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-primary shrink-0">
             <PawPrint className="w-5 h-5 text-sidebar-primary-foreground" strokeWidth={2} />
           </div>
-          <span className="text-xl font-bold text-sidebar-foreground tracking-tight leading-none">
+          <span className="text-xl font-bold text-sidebar-foreground tracking-tight leading-none flex-1">
             Huellitas
           </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggle}
+            className="h-8 w-8 shrink-0 text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            aria-label="Cerrar menú"
+          >
+            <PanelLeft className="h-4 w-4" />
+          </Button>
         </div>
       </SidebarHeader>
 
