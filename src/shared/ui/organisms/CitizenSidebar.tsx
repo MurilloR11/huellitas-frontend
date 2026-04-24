@@ -1,4 +1,5 @@
 import { useState } from 'react'; // still used by NavSection
+import { useNavigate } from 'react-router-dom';
 import {
   PawPrint,
   Search,
@@ -125,6 +126,7 @@ interface CitizenSidebarProps {
 
 export function CitizenSidebar({ activeNav, onNavChange }: CitizenSidebarProps) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const initials = user ? getInitials(user.full_name) : '--';
   const displayName = user?.full_name ?? 'Invitado';
@@ -195,10 +197,13 @@ export function CitizenSidebar({ activeNav, onNavChange }: CitizenSidebarProps) 
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <div
-                    className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none"
+                    className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none overflow-hidden"
                     aria-hidden="true"
                   >
-                    {initials}
+                    {user?.avatar_url
+                      ? <img src={user.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+                      : initials
+                    }
                   </div>
 
                   <div className="flex-1 min-w-0 text-left">
@@ -222,8 +227,11 @@ export function CitizenSidebar({ activeNav, onNavChange }: CitizenSidebarProps) 
               >
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2.5 px-2 py-2">
-                    <div className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none">
-                      {initials}
+                    <div className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none overflow-hidden">
+                      {user?.avatar_url
+                        ? <img src={user.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+                        : initials
+                      }
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground leading-tight truncate">
@@ -239,7 +247,7 @@ export function CitizenSidebar({ activeNav, onNavChange }: CitizenSidebarProps) 
                 <DropdownMenuSeparator />
 
                 <DropdownMenuGroup>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/account')}>
                     <UserRound className="w-4 h-4" />
                     Mi cuenta
                   </DropdownMenuItem>

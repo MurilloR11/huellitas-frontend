@@ -18,6 +18,7 @@ export function buildAuthUser(user: User): AuthUser {
     full_name: meta.full_name ?? '',
     role: meta.role ?? 'ciudadano',
     status: meta.status,
+    avatar_url: meta.avatar_url,
   };
 }
 
@@ -52,6 +53,27 @@ export const authApi = {
     // must log in manually with their credentials.
     await supabase.auth.signOut();
     return user;
+  },
+
+  async uploadAvatar(userId: string, file: File): Promise<string> {
+    const ext = file.name.split('.').pop() ?? 'jpg';
+    const path = `${userId}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) throw new Error('Error al subir la imagen');
+
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: { avatar_url: data.publicUrl },
+    });
+
+    if (updateError) throw new Error('Error al actualizar el perfil');
+
+    return data.publicUrl;
   },
 
   async logout(): Promise<void> {

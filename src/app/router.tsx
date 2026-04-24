@@ -9,6 +9,7 @@ import PendingApprovalPage from '../features/auth/pages/PendingApprovalPage';
 import RejectedPage from '../features/auth/pages/RejectedPage';
 import AIPage from '../features/ai/pages/AIPage';
 import ExplorePage from '../features/pets/pages/ExplorePage';
+import AccountPage from '../features/account/pages/AccountPage';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import type { Role } from '../features/auth/types';
 
@@ -105,6 +106,10 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: <ProtectedRoute roles={['admin']}><AdminPage /></ProtectedRoute>,
+  },
+  {
+    path: '/account',
+    element: <ProtectedRoute roles={['ciudadano']}><AccountPage /></ProtectedRoute>,
   },
   { path: '*', element: <NotFound /> },
 ]);

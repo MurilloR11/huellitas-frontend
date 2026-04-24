@@ -13,4 +13,5 @@ export const ROUTES = {
   ADMIN: '/admin',
   PENDING: '/pending',
   REJECTED: '/rejected',
+  ACCOUNT: '/account',
 } as const;

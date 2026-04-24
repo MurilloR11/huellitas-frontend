@@ -6,6 +6,7 @@ export interface AuthUser {
   full_name: string;
   role: Role;
   status?: 'pending' | 'approved' | 'rejected';
+  avatar_url?: string;
 }
 
 export interface LoginPayload {
