@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from 'react'; // still used by NavSection
 import {
   PawPrint,
   Search,
@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type NavId = 'browse' | 'apply' | 'track' | 'schedule' | 'requirements' | 'contact';
+export type NavId = 'browse' | 'apply' | 'track' | 'schedule' | 'requirements' | 'contact';
 
 const ADOPTION_ITEMS: { id: NavId; icon: typeof PawPrint; label: string }[] = [
   { id: 'requirements', icon: ClipboardList, label: 'Requisitos de adopción' },
@@ -118,8 +118,12 @@ function NavSection({ label, items, activeNav, onSelect, defaultOpen = false }: 
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function CitizenSidebar() {
-  const [activeNav, setActiveNav] = useState<NavId>('browse');
+interface CitizenSidebarProps {
+  activeNav: NavId;
+  onNavChange: (id: NavId) => void;
+}
+
+export function CitizenSidebar({ activeNav, onNavChange }: CitizenSidebarProps) {
   const { user, logout } = useAuth();
 
   const initials = user ? getInitials(user.full_name) : '--';
@@ -152,7 +156,7 @@ export function CitizenSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={activeNav === 'browse'}
-              onClick={() => setActiveNav('browse')}
+              onClick={() => onNavChange('browse')}
               aria-current={activeNav === 'browse' ? 'page' : undefined}
               className="h-10 px-3 gap-3 rounded-lg text-[13px]"
             >
@@ -165,7 +169,7 @@ export function CitizenSidebar() {
             label="Adopciones"
             items={ADOPTION_ITEMS}
             activeNav={activeNav}
-            onSelect={setActiveNav}
+            onSelect={onNavChange}
           />
 
           <li role="separator" aria-hidden="true" className="mx-2 my-1.5 h-px bg-sidebar-border list-none" />
@@ -174,7 +178,7 @@ export function CitizenSidebar() {
             label="Recursos"
             items={RESOURCE_ITEMS}
             activeNav={activeNav}
-            onSelect={setActiveNav}
+            onSelect={onNavChange}
           />
 
         </SidebarMenu>

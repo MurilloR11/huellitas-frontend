@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { CitizenSidebar } from '@/shared/ui/organisms/CitizenSidebar';
+import { CitizenSidebar, type NavId } from '@/shared/ui/organisms/CitizenSidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, X, Tag, Cake, Maximize2 } from 'lucide-react';
+import { Search, X, Tag, Cake, Maximize2, ChevronRight } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -33,6 +33,17 @@ interface Animal {
   goodWithKids: boolean;
   goodWithPets: boolean;
 }
+
+// ─── Breadcrumb map ────────────────────────────────────────────────────────────
+
+const BREADCRUMBS: Record<NavId, string[]> = {
+  browse:       ['Ver animales disponibles'],
+  requirements: ['Adopciones', 'Requisitos de adopción'],
+  apply:        ['Adopciones', 'Solicitar adopción'],
+  track:        ['Adopciones', 'Estado de mi solicitud'],
+  schedule:     ['Adopciones', 'Agendar un encuentro'],
+  contact:      ['Recursos', 'Contactar a un agente'],
+};
 
 // ─── Mock catalog ──────────────────────────────────────────────────────────────
 
@@ -362,6 +373,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ExplorePage() {
+  const [activeNav, setActiveNav] = useState<NavId>('browse');
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
   const filtered = useMemo(
@@ -379,15 +391,28 @@ export default function ExplorePage() {
 
   return (
     <SidebarProvider className="h-screen overflow-hidden">
-      <CitizenSidebar />
+      <CitizenSidebar activeNav={activeNav} onNavChange={setActiveNav} />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-stone-50 dark:bg-zinc-950">
 
         {/* Top bar */}
         <header className="sticky top-0 z-10 flex items-center px-6 h-14 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-sm border-b border-stone-200 dark:border-zinc-800 shrink-0">
-          <h1 className="text-sm font-semibold text-stone-900 dark:text-zinc-50">
-            Encuentra tu próxima mascota
-          </h1>
+          <nav aria-label="Ubicación actual">
+            <ol className="flex items-center gap-1 text-sm">
+              <li className="font-semibold text-stone-400 dark:text-zinc-500">Huellitas</li>
+              {BREADCRUMBS[activeNav].map((crumb, i, arr) => (
+                <li key={crumb} className="flex items-center gap-1">
+                  <ChevronRight className="w-3.5 h-3.5 text-stone-300 dark:text-zinc-600 shrink-0" aria-hidden="true" />
+                  <span className={i === arr.length - 1
+                    ? 'font-semibold text-stone-800 dark:text-zinc-100'
+                    : 'text-stone-400 dark:text-zinc-500'
+                  }>
+                    {crumb}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </nav>
         </header>
 
         <div className="flex-1 overflow-y-auto">
