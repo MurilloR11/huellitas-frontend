@@ -266,14 +266,14 @@ function AnimalCard({ animal }: { animal: Animal }) {
   return (
     <article
       className={cn(
-        'group flex flex-col overflow-hidden rounded-2xl',
+        'group flex flex-col h-full overflow-hidden rounded-2xl',
         'bg-white dark:bg-zinc-900',
         'border border-stone-100 dark:border-zinc-800',
         'shadow-sm hover:shadow-md transition-shadow duration-200',
       )}
     >
       {/* Image */}
-      <div className="card-image bg-stone-100 dark:bg-zinc-800">
+      <div className="card-image bg-stone-100 dark:bg-zinc-800 shrink-0">
         <img
           src={animal.photo}
           alt={`${animal.name} — ${animal.breed}`}
@@ -283,7 +283,7 @@ function AnimalCard({ animal }: { animal: Animal }) {
       </div>
 
       {/* Body */}
-      <div className="flex flex-col gap-2.5 p-4">
+      <div className="flex flex-col flex-1 p-4 gap-2">
 
         {/* Name + status badge */}
         <div className="flex items-start justify-between gap-2">
@@ -298,39 +298,24 @@ function AnimalCard({ animal }: { animal: Animal }) {
           </Badge>
         </div>
 
-        {/* Breed + age on same row */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <span className="flex items-center gap-1.5 text-sm text-stone-600 dark:text-zinc-400">
-            <Tag className="w-4 h-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
-            {animal.breed}
-          </span>
+        {/* Breed */}
+        <span className="flex items-center gap-1.5 text-sm text-stone-600 dark:text-zinc-400 truncate">
+          <Tag className="w-4 h-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+          <span className="truncate">{animal.breed}</span>
+        </span>
+
+        {/* Age + Size on same row */}
+        <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5 text-sm text-stone-600 dark:text-zinc-400">
             <Cake className="w-4 h-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
             {animal.age}
           </span>
+          <span className="flex items-center gap-1.5 text-sm text-stone-600 dark:text-zinc-400">
+            <Maximize2 className="w-4 h-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+            {SIZE_LABELS[animal.size]}
+          </span>
         </div>
 
-        {/* Size */}
-        <div className="flex items-center gap-1.5 text-sm text-stone-600 dark:text-zinc-400">
-          <Maximize2 className="w-4 h-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
-          {SIZE_LABELS[animal.size]}
-        </div>
-
-        {/* Compatibility chips */}
-        {(animal.goodWithKids || animal.goodWithPets) && (
-          <div className="flex flex-wrap gap-1.5 pt-0.5">
-            {animal.goodWithKids && (
-              <span className="rounded-full bg-stone-100 dark:bg-zinc-800 px-3 py-1 text-xs text-stone-500 dark:text-zinc-400">
-                Bueno con niños
-              </span>
-            )}
-            {animal.goodWithPets && (
-              <span className="rounded-full bg-stone-100 dark:bg-zinc-800 px-3 py-1 text-xs text-stone-500 dark:text-zinc-400">
-                Bueno con perros
-              </span>
-            )}
-          </div>
-        )}
 
       </div>
     </article>
