@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import RequirementsPage from '@/features/adoptions/pages/RequirementsPage';
 
 // ─── Domain types ──────────────────────────────────────────────────────────────
 
@@ -417,68 +418,78 @@ export default function ExplorePage() {
 
         <div className="flex-1 overflow-y-auto">
 
-          {/* Filter bar — card style matching reference */}
-          <section className="px-6 py-4" aria-label="Filtrar animales">
-            <div className="flex items-end gap-5 flex-wrap bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-xl px-5 py-4">
+          {/* Non-browse pages */}
+          {activeNav === 'requirements' && (
+            <RequirementsPage onContinue={() => setActiveNav('apply')} />
+          )}
 
-              <FilterSelect
-                label="Especie"
-                value={filters.species}
-                onChange={v => setFilters(f => ({ ...f, species: v }))}
-                options={[
-                  { value: 'All',    label: 'Todas las especies' },
-                  { value: 'Dog',    label: 'Perro'              },
-                  { value: 'Cat',    label: 'Gato'               },
-                  { value: 'Rabbit', label: 'Conejo'             },
-                  { value: 'Other',  label: 'Otro'               },
-                ]}
-              />
+          {/* Browse view */}
+          {activeNav === 'browse' && (
+            <>
+              {/* Filter bar — card style matching reference */}
+              <section className="px-6 py-4" aria-label="Filtrar animales">
+                <div className="flex items-end gap-5 flex-wrap bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-xl px-5 py-4">
 
-              <FilterSelect
-                label="Edad"
-                value={filters.ageRange}
-                onChange={v => setFilters(f => ({ ...f, ageRange: v }))}
-                options={[
-                  { value: 'All',    label: 'Cualquier edad' },
-                  { value: 'Puppy',  label: 'Cachorro'       },
-                  { value: 'Young',  label: 'Joven'          },
-                  { value: 'Adult',  label: 'Adulto'         },
-                  { value: 'Senior', label: 'Senior'         },
-                ]}
-              />
+                  <FilterSelect
+                    label="Especie"
+                    value={filters.species}
+                    onChange={v => setFilters(f => ({ ...f, species: v }))}
+                    options={[
+                      { value: 'All',    label: 'Todas las especies' },
+                      { value: 'Dog',    label: 'Perro'              },
+                      { value: 'Cat',    label: 'Gato'               },
+                      { value: 'Rabbit', label: 'Conejo'             },
+                      { value: 'Other',  label: 'Otro'               },
+                    ]}
+                  />
 
-              <FilterSelect
-                label="Tamaño"
-                value={filters.size}
-                onChange={v => setFilters(f => ({ ...f, size: v }))}
-                options={[
-                  { value: 'All',    label: 'Cualquier tamaño' },
-                  { value: 'Small',  label: 'Pequeño'          },
-                  { value: 'Medium', label: 'Mediano'          },
-                  { value: 'Large',  label: 'Grande'           },
-                ]}
-              />
+                  <FilterSelect
+                    label="Edad"
+                    value={filters.ageRange}
+                    onChange={v => setFilters(f => ({ ...f, ageRange: v }))}
+                    options={[
+                      { value: 'All',    label: 'Cualquier edad' },
+                      { value: 'Puppy',  label: 'Cachorro'       },
+                      { value: 'Young',  label: 'Joven'          },
+                      { value: 'Adult',  label: 'Adulto'         },
+                      { value: 'Senior', label: 'Senior'         },
+                    ]}
+                  />
 
-            </div>
-          </section>
+                  <FilterSelect
+                    label="Tamaño"
+                    value={filters.size}
+                    onChange={v => setFilters(f => ({ ...f, size: v }))}
+                    options={[
+                      { value: 'All',    label: 'Cualquier tamaño' },
+                      { value: 'Small',  label: 'Pequeño'          },
+                      { value: 'Medium', label: 'Mediano'          },
+                      { value: 'Large',  label: 'Grande'           },
+                    ]}
+                  />
 
-          {/* Catalog grid */}
-          <main className="px-6 pb-6" id="main-content">
-            {filtered.length === 0 ? (
-              <EmptyState onClear={clearFilters} />
-            ) : (
-              <ul
-                className="grid gap-5 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                aria-label="Animales disponibles para adopción"
-              >
-                {filtered.map(animal => (
-                  <li key={animal.id}>
-                    <AnimalCard animal={animal} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </main>
+                </div>
+              </section>
+
+              {/* Catalog grid */}
+              <main className="px-6 pb-6" id="main-content">
+                {filtered.length === 0 ? (
+                  <EmptyState onClear={clearFilters} />
+                ) : (
+                  <ul
+                    className="grid gap-5 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                    aria-label="Animales disponibles para adopción"
+                  >
+                    {filtered.map(animal => (
+                      <li key={animal.id}>
+                        <AnimalCard animal={animal} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </main>
+            </>
+          )}
 
         </div>
       </div>
