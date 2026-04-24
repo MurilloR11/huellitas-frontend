@@ -5,14 +5,14 @@ export type Theme = 'light' | 'dark';
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'light';
-    const stored = localStorage.getItem('huellitas-theme');
+    const stored = localStorage.getItem('huellitas-theme-v2');
     if (stored === 'dark' || stored === 'light') return stored;
     return 'light';
   });
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('huellitas-theme', theme);
+    localStorage.setItem('huellitas-theme-v2', theme);
   }, [theme]);
 
   const toggle = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'));
