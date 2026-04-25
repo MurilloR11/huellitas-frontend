@@ -223,104 +223,144 @@ function MonthCalendar({
   const canGoPrev = monthOffset > 0;
   const canGoNext = monthOffset < 2;
 
+  const todayStr = new Date().toDateString();
+
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+    <div className="bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+      {/* Colored header */}
+      <div
+        className="flex items-center justify-between px-5 py-4"
+        style={{ background: 'var(--color-brand-light)' }}
+      >
         <button
           disabled={!canGoPrev}
           onClick={() => canGoPrev && onMonthChange(monthOffset - 1)}
           aria-label="Mes anterior"
           className={cn(
-            'flex items-center justify-center w-8 h-8 rounded-lg transition-colors',
+            'flex items-center justify-center w-8 h-8 rounded-lg transition-all',
             canGoPrev
-              ? 'hover:bg-stone-100 dark:hover:bg-zinc-800 text-stone-600 dark:text-zinc-300'
-              : 'text-stone-200 dark:text-zinc-700 cursor-not-allowed',
+              ? 'hover:bg-white/70 text-stone-600 dark:text-zinc-300'
+              : 'opacity-30 cursor-not-allowed text-stone-400',
           )}
         >
-          <ChevronLeft className="w-4 h-4" strokeWidth={2} />
+          <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
         </button>
 
-        <h3 className="text-sm font-bold text-stone-900 dark:text-zinc-100">
-          {MONTHS_ES_CAP[month]} {year}
-        </h3>
+        <div className="text-center">
+          <p className="text-base font-bold text-stone-900 dark:text-zinc-100 leading-tight">
+            {MONTHS_ES_CAP[month]}
+          </p>
+          <p className="text-xs text-stone-500 dark:text-zinc-400">{year}</p>
+        </div>
 
         <button
           disabled={!canGoNext}
           onClick={() => canGoNext && onMonthChange(monthOffset + 1)}
           aria-label="Mes siguiente"
           className={cn(
-            'flex items-center justify-center w-8 h-8 rounded-lg transition-colors',
+            'flex items-center justify-center w-8 h-8 rounded-lg transition-all',
             canGoNext
-              ? 'hover:bg-stone-100 dark:hover:bg-zinc-800 text-stone-600 dark:text-zinc-300'
-              : 'text-stone-200 dark:text-zinc-700 cursor-not-allowed',
+              ? 'hover:bg-white/70 text-stone-600 dark:text-zinc-300'
+              : 'opacity-30 cursor-not-allowed text-stone-400',
           )}
         >
-          <ChevronRight className="w-4 h-4" strokeWidth={2} />
+          <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
         </button>
       </div>
 
-      {/* Day headers */}
-      <div className="grid grid-cols-7 mb-2">
-        {DAY_HEADERS.map(d => (
-          <div
-            key={d}
-            className="text-center text-[11px] font-semibold text-stone-400 dark:text-zinc-500 py-1"
-          >
-            {d}
-          </div>
-        ))}
-      </div>
-
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-y-1">
-        {cells.map((day, i) => {
-          if (day === null) return <div key={`empty-${i}`} />;
-
-          const cellDate = new Date(year, month, day);
-          const isAvailable = available.includes(day);
-          const isSelected = selectedDate?.toDateString() === cellDate.toDateString();
-
-          if (isSelected) {
-            return (
-              <button
-                key={day}
-                onClick={() => onSelectDate(cellDate)}
-                className="w-9 h-9 mx-auto flex items-center justify-center rounded-full text-sm font-bold text-white"
-                style={{ background: 'var(--color-brand)' }}
-              >
-                {day}
-              </button>
-            );
-          }
-
-          if (isAvailable) {
-            return (
-              <button
-                key={day}
-                onClick={() => onSelectDate(cellDate)}
-                className="w-9 h-9 mx-auto flex items-center justify-center rounded-full text-sm font-semibold border-2 transition-colors hover:bg-orange-50 dark:hover:bg-zinc-800"
-                style={{ borderColor: 'var(--color-brand)', color: 'var(--color-brand)' }}
-              >
-                {day}
-              </button>
-            );
-          }
-
-          return (
+      <div className="px-4 pt-4 pb-5">
+        {/* Day headers */}
+        <div className="grid grid-cols-7 mb-2">
+          {DAY_HEADERS.map((d, i) => (
             <div
-              key={day}
-              className="w-9 h-9 mx-auto flex items-center justify-center rounded-full text-sm text-stone-300 dark:text-zinc-600 select-none"
+              key={d}
+              className={cn(
+                'text-center text-[11px] font-bold uppercase tracking-wide py-1',
+                i === 0 || i === 6
+                  ? 'text-stone-300 dark:text-zinc-600'
+                  : 'text-stone-400 dark:text-zinc-500',
+              )}
             >
-              {day}
+              {d}
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
 
-      <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-4 text-center">
-        Los días con borde naranja son fechas disponibles para visita
-      </p>
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((day, i) => {
+            if (day === null) return <div key={`empty-${i}`} className="h-11" />;
+
+            const cellDate = new Date(year, month, day);
+            const isAvailable = available.includes(day);
+            const isSelected = selectedDate?.toDateString() === cellDate.toDateString();
+            const isToday = todayStr === cellDate.toDateString();
+
+            if (isSelected) {
+              return (
+                <button
+                  key={day}
+                  onClick={() => onSelectDate(cellDate)}
+                  className="h-11 w-full flex items-center justify-center rounded-xl text-sm font-bold text-white shadow-md transition-all hover:opacity-90 active:scale-95"
+                  style={{ background: 'var(--color-brand)' }}
+                >
+                  {day}
+                </button>
+              );
+            }
+
+            if (isAvailable) {
+              return (
+                <button
+                  key={day}
+                  onClick={() => onSelectDate(cellDate)}
+                  className="h-11 w-full flex flex-col items-center justify-center rounded-xl text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+                  style={{
+                    background: 'rgba(232, 87, 42, 0.09)',
+                    color: 'var(--color-brand)',
+                  }}
+                >
+                  <span className="leading-none">{day}</span>
+                  <span
+                    className="w-1 h-1 rounded-full mt-0.5"
+                    style={{ background: 'var(--color-brand)' }}
+                  />
+                </button>
+              );
+            }
+
+            return (
+              <div
+                key={day}
+                className={cn(
+                  'h-11 w-full flex items-center justify-center rounded-xl text-sm select-none',
+                  isToday
+                    ? 'font-bold text-stone-500 dark:text-zinc-400 ring-1 ring-stone-300 dark:ring-zinc-600'
+                    : 'text-stone-300 dark:text-zinc-600',
+                )}
+              >
+                {day}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-5 mt-4 pt-3 border-t border-stone-100 dark:border-zinc-800">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded" style={{ background: 'rgba(232, 87, 42, 0.15)' }} />
+            <span className="text-[11px] text-stone-400 dark:text-zinc-500">Disponible</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded" style={{ background: 'var(--color-brand)' }} />
+            <span className="text-[11px] text-stone-400 dark:text-zinc-500">Seleccionado</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded ring-1 ring-stone-300 dark:ring-zinc-600" />
+            <span className="text-[11px] text-stone-400 dark:text-zinc-500">Hoy</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
