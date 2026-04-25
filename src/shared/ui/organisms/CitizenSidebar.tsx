@@ -16,6 +16,14 @@ import {
   PanelLeft,
 } from 'lucide-react';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -157,6 +165,7 @@ interface CitizenSidebarProps {
 export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: CitizenSidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const initials = user ? getInitials(user.full_name) : '--';
   const displayName = user?.full_name ?? 'Invitado';
@@ -166,6 +175,7 @@ export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: 
     : initials;
 
   return (
+    <>
     <Sidebar
       collapsible="none"
       className={cn(
@@ -342,7 +352,7 @@ export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: 
 
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
-                  onClick={logout}
+                  onClick={() => setLogoutOpen(true)}
                 >
                   <LogOut className="w-4 h-4" />
                   Cerrar sesión
@@ -353,5 +363,30 @@ export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: 
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
+
+    <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+      <AlertDialogContent className="max-w-sm gap-0 p-0 overflow-hidden">
+        <div className="px-6 pt-5 pb-4">
+          <AlertDialogTitle className="text-base font-semibold text-foreground">
+            ¿Cerrar sesión?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+            Tu sesión actual se cerrará. Tendrás que volver a iniciar sesión para acceder a tu cuenta.
+          </AlertDialogDescription>
+        </div>
+        <div className="flex items-center justify-between gap-2 px-6 py-4 bg-muted/40 border-t border-border">
+          <AlertDialogAction
+            className="h-9 px-4 text-sm rounded-lg bg-destructive text-white hover:bg-destructive/90 shadow-sm"
+            onClick={logout}
+          >
+            Cerrar sesión
+          </AlertDialogAction>
+          <AlertDialogCancel className="h-9 px-4 text-sm rounded-lg border border-border bg-white hover:bg-muted/60 text-foreground">
+            Cancelar
+          </AlertDialogCancel>
+        </div>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
