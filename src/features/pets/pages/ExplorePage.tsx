@@ -4,7 +4,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { CitizenSidebar, type NavId } from '@/shared/ui/organisms/CitizenSidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, X, Tag, Cake, Maximize2, ChevronRight, Eye, PawPrint } from 'lucide-react';
+import { Search, X, Tag, Cake, Maximize2, ChevronLeft, ChevronRight, Eye, PawPrint } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -306,6 +306,81 @@ function TraitPill({ ok, label }: { ok: boolean; label: string }) {
   );
 }
 
+// ─── Photo carousel ────────────────────────────────────────────────────────────
+
+function getAnimalPhotos(basePhoto: string): string[] {
+  const match = basePhoto.match(/lock=(\d+)/);
+  const lock = match ? parseInt(match[1]) : 1;
+  return [
+    basePhoto,
+    basePhoto.replace(`lock=${lock}`, `lock=${lock + 50}`),
+    basePhoto.replace(`lock=${lock}`, `lock=${lock + 100}`),
+  ];
+}
+
+function PhotoCarousel({ photos, name }: { photos: string[]; name: string }) {
+  const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState(1);
+
+  const go = (next: number, dir: number) => { setDirection(dir); setCurrent(next); };
+  const prev = () => go((current - 1 + photos.length) % photos.length, -1);
+  const next = () => go((current + 1) % photos.length, 1);
+
+  return (
+    <div className="relative w-full h-full overflow-hidden bg-stone-100 dark:bg-zinc-800">
+      <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+        <motion.img
+          key={current}
+          src={photos[current]}
+          alt={`${name} — foto ${current + 1} de ${photos.length}`}
+          className="absolute inset-0 w-full h-full object-cover"
+          custom={direction}
+          variants={{
+            enter: (dir: number) => ({ x: dir * 50, opacity: 0 }),
+            center: { x: 0, opacity: 1 },
+            exit:  (dir: number) => ({ x: -dir * 50, opacity: 0 }),
+          }}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.28, ease: 'easeInOut' }}
+        />
+      </AnimatePresence>
+
+      {/* Arrows */}
+      <button
+        onClick={prev}
+        aria-label="Foto anterior"
+        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
+      </button>
+      <button
+        onClick={next}
+        aria-label="Foto siguiente"
+        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors"
+      >
+        <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
+      </button>
+
+      {/* Dots */}
+      <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+        {photos.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => go(i, i > current ? 1 : -1)}
+            aria-label={`Foto ${i + 1}`}
+            className={cn(
+              'h-1.5 rounded-full bg-white transition-all duration-200',
+              i === current ? 'w-4 opacity-100' : 'w-1.5 opacity-50',
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Animal Modal ──────────────────────────────────────────────────────────────
 
 function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void }) {
@@ -337,16 +412,12 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 10 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="relative z-10 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-zinc-900 flex"
-        style={{ maxHeight: '82vh' }}
+        className="relative z-10 w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-zinc-900 flex"
+        style={{ maxHeight: '90vh' }}
       >
-        {/* Left — image */}
-        <div className="w-[42%] shrink-0 relative">
-          <img
-            src={animal.photo}
-            alt={`${animal.name} — ${animal.breed}`}
-            className="w-full h-full object-cover"
-          />
+        {/* Left — carousel */}
+        <div className="w-[44%] shrink-0 relative min-h-[420px]">
+          <PhotoCarousel photos={getAnimalPhotos(animal.photo)} name={animal.name} />
         </div>
 
         {/* Right — info */}
