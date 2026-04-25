@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { CitizenSidebar, type NavId } from '@/shared/ui/organisms/CitizenSidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, X, Tag, Cake, Maximize2, ChevronRight } from 'lucide-react';
+import { Search, X, Tag, Cake, Maximize2, ChevronRight, Eye, PawPrint, Heart } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -221,6 +222,10 @@ const STATUS_LABELS: Record<AdoptionStatus, string> = {
   Available: 'Disponible', Pending: 'En proceso', Reserved: 'Reservado',
 };
 
+const SPECIES_LABELS: Record<Species, string> = {
+  Dog: 'Perro', Cat: 'Gato', Rabbit: 'Conejo', Other: 'Otro',
+};
+
 // ─── Filter state ──────────────────────────────────────────────────────────────
 
 interface Filters {
@@ -269,9 +274,171 @@ function FilterSelect<T extends string>({
   );
 }
 
+// ─── Modal helpers ─────────────────────────────────────────────────────────────
+
+function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="text-stone-400 dark:text-zinc-500 mt-0.5 shrink-0">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-stone-400 dark:text-zinc-500">
+          {label}
+        </p>
+        <p className="text-sm font-semibold text-stone-800 dark:text-zinc-200 truncate">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function TraitPill({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold',
+        ok
+          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+          : 'bg-stone-100 text-stone-400 dark:bg-zinc-800 dark:text-zinc-500',
+      )}
+    >
+      <span className={cn('w-1.5 h-1.5 rounded-full', ok ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-zinc-600')} />
+      {label}
+    </span>
+  );
+}
+
+// ─── Animal Modal ──────────────────────────────────────────────────────────────
+
+function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void }) {
+  const statusVariant =
+    animal.status === 'Available' ? 'available' : animal.status === 'Pending' ? 'pending' : 'reserved';
+  const code = `HLL-${animal.id.padStart(5, '0')}`;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.18 }}
+        className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 10 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className="relative z-10 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-zinc-900 flex"
+        style={{ maxHeight: '82vh' }}
+      >
+        {/* Left — image */}
+        <div className="w-[42%] shrink-0 relative">
+          <img
+            src={animal.photo}
+            alt={`${animal.name} — ${animal.breed}`}
+            className="w-full h-full object-cover"
+          />
+          {/* Gradient overlay so code badge is readable */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          <div className="absolute bottom-4 left-4">
+            <span className="px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-sm font-mono text-xs font-bold text-white tracking-widest">
+              {code}
+            </span>
+          </div>
+        </div>
+
+        {/* Right — info */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-stone-100 dark:border-zinc-800 shrink-0">
+            <div>
+              <h2 className="text-2xl font-bold text-stone-900 dark:text-zinc-100 leading-tight">
+                {animal.name}
+              </h2>
+              <p className="text-sm text-stone-500 dark:text-zinc-400 mt-0.5">{animal.breed}</p>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Cerrar"
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-zinc-200 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors shrink-0 mt-0.5 ml-3"
+            >
+              <X className="w-4 h-4" strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+            <Badge
+              variant={statusVariant}
+              className="uppercase text-[10px] tracking-wide font-semibold"
+            >
+              {STATUS_LABELS[animal.status]}
+            </Badge>
+
+            {/* Detail grid */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <InfoRow
+                icon={<PawPrint className="w-4 h-4" strokeWidth={1.5} />}
+                label="Especie"
+                value={SPECIES_LABELS[animal.species]}
+              />
+              <InfoRow
+                icon={<Tag className="w-4 h-4" strokeWidth={1.5} />}
+                label="Raza"
+                value={animal.breed}
+              />
+              <InfoRow
+                icon={<Cake className="w-4 h-4" strokeWidth={1.5} />}
+                label="Edad"
+                value={animal.age}
+              />
+              <InfoRow
+                icon={<Maximize2 className="w-4 h-4" strokeWidth={1.5} />}
+                label="Tamaño"
+                value={SIZE_LABELS[animal.size]}
+              />
+            </div>
+
+            {/* Compatibility */}
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 dark:text-zinc-500 mb-2.5">
+                Compatibilidad
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <TraitPill ok={animal.goodWithKids} label="Bueno con niños" />
+                <TraitPill ok={animal.goodWithPets} label="Bueno con mascotas" />
+              </div>
+            </div>
+          </div>
+
+          {/* Footer CTA */}
+          <div className="px-6 py-4 border-t border-stone-100 dark:border-zinc-800 shrink-0">
+            <button
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ background: 'var(--color-brand)' }}
+            >
+              <Heart className="w-4 h-4" strokeWidth={2} />
+              Solicitar adopción
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Animal card ───────────────────────────────────────────────────────────────
 
-function AnimalCard({ animal }: { animal: Animal }) {
+function AnimalCard({ animal, onView }: { animal: Animal; onView: () => void }) {
   const statusVariant =
     animal.status === 'Available'
       ? 'available'
@@ -332,6 +499,17 @@ function AnimalCard({ animal }: { animal: Animal }) {
           </span>
         </div>
 
+        {/* View button */}
+        <div className="pt-1 mt-auto border-t border-stone-100 dark:border-zinc-800">
+          <button
+            onClick={onView}
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90 active:scale-[0.98] text-white"
+            style={{ background: 'var(--color-brand)' }}
+          >
+            <Eye className="w-3.5 h-3.5" strokeWidth={2} />
+            Ver perfil
+          </button>
+        </div>
 
       </div>
     </article>
@@ -381,6 +559,7 @@ export default function ExplorePage() {
   const [activeNav, setActiveNav] = useState<NavId>('browse');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
+  const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -403,6 +582,12 @@ export default function ExplorePage() {
   const clearFilters = () => setFilters(INITIAL_FILTERS);
 
   return (
+    <>
+    <AnimatePresence>
+      {selectedAnimal && (
+        <AnimalModal animal={selectedAnimal} onClose={() => setSelectedAnimal(null)} />
+      )}
+    </AnimatePresence>
     <SidebarProvider className="h-screen overflow-hidden">
       <CitizenSidebar activeNav={activeNav} onNavChange={setActiveNav} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
 
@@ -502,7 +687,7 @@ export default function ExplorePage() {
                   >
                     {filtered.map(animal => (
                       <li key={animal.id}>
-                        <AnimalCard animal={animal} />
+                        <AnimalCard animal={animal} onView={() => setSelectedAnimal(animal)} />
                       </li>
                     ))}
                   </ul>
@@ -514,5 +699,6 @@ export default function ExplorePage() {
         </div>
       </div>
     </SidebarProvider>
+    </>
   );
 }
