@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { CitizenSidebar, type NavId } from '@/shared/ui/organisms/CitizenSidebar';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import RequirementsPage from '@/features/adoptions/pages/RequirementsPage';
+import ApplyPage from '@/features/adoptions/pages/ApplyPage';
 
 // ─── Domain types ──────────────────────────────────────────────────────────────
 
@@ -378,6 +379,13 @@ export default function ExplorePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
+  useEffect(() => {
+    const html = document.documentElement;
+    const prev = html.style.overflow;
+    html.style.overflow = 'hidden';
+    return () => { html.style.overflow = prev; };
+  }, []);
+
   const filtered = useMemo(
     () =>
       ANIMALS.filter(a => {
@@ -417,12 +425,14 @@ export default function ExplorePage() {
           </nav>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
 
           {/* Non-browse pages */}
           {activeNav === 'requirements' && (
             <RequirementsPage onContinue={() => setActiveNav('apply')} />
           )}
+
+          {activeNav === 'apply' && <ApplyPage />}
 
           {/* Browse view */}
           {activeNav === 'browse' && (
