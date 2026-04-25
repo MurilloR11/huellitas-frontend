@@ -4,7 +4,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { CitizenSidebar, type NavId } from '@/shared/ui/organisms/CitizenSidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, X, Tag, Cake, Maximize2, ChevronLeft, ChevronRight, Eye, PawPrint } from 'lucide-react';
+import { Search, X, Tag, Cake, Maximize2, ChevronLeft, ChevronRight, PawPrint } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -570,7 +570,7 @@ function AnimalCard({ animal, onView }: { animal: Animal; onView: () => void }) 
             className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90 active:scale-[0.98] text-white"
             style={{ background: 'var(--color-brand)' }}
           >
-            <Eye className="w-3.5 h-3.5" strokeWidth={2} />
+            <PawPrint className="w-3.5 h-3.5" strokeWidth={2} />
             Conocer más
           </button>
         </div>
