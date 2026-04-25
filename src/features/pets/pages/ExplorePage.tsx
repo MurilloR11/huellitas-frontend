@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import RequirementsPage from '@/features/adoptions/pages/RequirementsPage';
 import ApplyPage from '@/features/adoptions/pages/ApplyPage';
+import StatusPage from '@/features/adoptions/pages/StatusPage';
 
 // ─── Domain types ──────────────────────────────────────────────────────────────
 
@@ -433,6 +434,8 @@ export default function ExplorePage() {
           )}
 
           {activeNav === 'apply' && <ApplyPage />}
+
+          {activeNav === 'track' && <StatusPage />}
 
           {/* Browse view */}
           {activeNav === 'browse' && (
