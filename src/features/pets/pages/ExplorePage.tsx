@@ -16,6 +16,7 @@ import RequirementsPage from '@/features/adoptions/pages/RequirementsPage';
 import ApplyPage from '@/features/adoptions/pages/ApplyPage';
 import StatusPage from '@/features/adoptions/pages/StatusPage';
 import SchedulePage from '@/features/adoptions/pages/SchedulePage';
+import ContactPage from '@/features/adoptions/pages/ContactPage';
 
 // ─── Domain types ──────────────────────────────────────────────────────────────
 
@@ -439,6 +440,8 @@ export default function ExplorePage() {
           {activeNav === 'track' && <StatusPage />}
 
           {activeNav === 'schedule' && <SchedulePage />}
+
+          {activeNav === 'contact' && <ContactPage />}
 
           {/* Browse view */}
           {activeNav === 'browse' && (
