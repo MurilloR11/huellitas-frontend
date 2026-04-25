@@ -10,6 +10,10 @@ import {
   ArrowRight,
   ClipboardList,
   CalendarDays,
+  TrendingUp,
+  MapPin,
+  Phone,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -471,6 +475,90 @@ function NextStepCard({ text }: { text: string }) {
   );
 }
 
+// ─── While You Wait Card (sidebar) ────────────────────────────────────────────
+
+const WAIT_TIPS = [
+  'Prepara el espacio donde vivirá el animal: cama, comedero y bebedero.',
+  'Investiga los cuidados específicos de su especie y raza.',
+  'Habla con todos en casa para que la llegada sea una sorpresa positiva.',
+  'Agenda una visita veterinaria para el primer chequeo.',
+];
+
+function WhileYouWaitCard() {
+  return (
+    <div
+      className="rounded-2xl border p-4 space-y-3"
+      style={{
+        background: 'var(--color-brand-light)',
+        borderColor: 'var(--color-brand-border, #e8d8c8)',
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <TrendingUp
+          className="w-4 h-4 shrink-0"
+          style={{ color: 'var(--color-brand)' }}
+          strokeWidth={1.75}
+        />
+        <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">
+          Mientras esperas
+        </span>
+      </div>
+      <ul className="space-y-2">
+        {WAIT_TIPS.map(tip => (
+          <li key={tip} className="flex items-start gap-1.5 text-xs text-stone-600 dark:text-zinc-400 leading-relaxed">
+            <span className="mt-0.5 shrink-0" style={{ color: 'var(--color-brand)' }}>•</span>
+            {tip}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ─── Shelter Contact Card (sidebar) ────────────────────────────────────────────
+
+function ShelterContactCard({ shelter }: { shelter: string }) {
+  return (
+    <div
+      className="rounded-2xl border p-4 space-y-3"
+      style={{
+        background: 'var(--color-brand-light)',
+        borderColor: 'var(--color-brand-border, #e8d8c8)',
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <Building2
+          className="w-4 h-4 shrink-0"
+          style={{ color: 'var(--color-brand)' }}
+          strokeWidth={1.75}
+        />
+        <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100 leading-snug">
+          {shelter}
+        </span>
+      </div>
+
+      <ul className="space-y-1.5">
+        <li className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-zinc-400">
+          <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
+          Calle 42 # 5-28, Ibagué
+        </li>
+        <li className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-zinc-400">
+          <Phone className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
+          +57 315 234 5678
+        </li>
+        <li className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-zinc-400">
+          <Mail className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
+          contacto@huellitas.org
+        </li>
+      </ul>
+
+      <p className="text-xs text-stone-500 dark:text-zinc-400 leading-relaxed">
+        ¿Tienes preguntas sobre tu solicitud? Contáctanos directamente.
+      </p>
+    </div>
+  );
+}
+
 // ─── Loading Skeleton ──────────────────────────────────────────────────────────
 
 function LoadingSkeleton() {
@@ -531,6 +619,8 @@ function FoundPhase({ request }: { request: MockRequest }) {
     <div className="flex">
       <aside className="w-[320px] shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto border-r border-stone-200 dark:border-zinc-800 px-5 py-6 space-y-4">
         <AnimalCard request={request} />
+        <WhileYouWaitCard />
+        <ShelterContactCard shelter={request.animal.shelter} />
       </aside>
 
       <div className="flex-1 px-6 py-6 space-y-6">
