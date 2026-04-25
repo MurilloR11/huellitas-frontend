@@ -41,7 +41,8 @@ const AVAILABLE_DAYS: Record<number, number[]> = {
   1: [2, 5, 9, 12, 16, 20, 23, 27],
 };
 
-const TIME_SLOTS = ['9:00 AM', '10:30 AM', '12:00 PM', '2:00 PM', '3:30 PM'];
+const MORNING_SLOTS   = ['9:00 AM', '10:30 AM', '12:00 PM'];
+const AFTERNOON_SLOTS = ['2:00 PM', '3:30 PM'];
 
 const APPOINTMENT_CODE = 'CIT-2024-089';
 
@@ -375,55 +376,54 @@ function TimeSlotPicker({
   onSelectTime: (t: string) => void;
 }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
-      <div className="flex items-center gap-3 pb-4 border-b border-stone-100 dark:border-zinc-800 mb-4">
-        <div
-          className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-          style={{ background: 'var(--color-brand-light)' }}
-        >
-          <Clock
-            className="w-4 h-4"
-            style={{ color: 'var(--color-brand)' }}
-            strokeWidth={1.75}
-          />
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-stone-900 dark:text-zinc-100">
-            Horario disponible
-          </h3>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">
-            Elige el horario que mejor te convenga
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Clock className="w-4 h-4 shrink-0" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
+        <h3 className="text-sm font-bold text-stone-900 dark:text-zinc-100">Horario disponible</h3>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {TIME_SLOTS.map(slot => {
-          const isSelected = selectedTime === slot;
-          return (
-            <button
-              key={slot}
-              onClick={() => onSelectTime(slot)}
-              className={cn(
-                'px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all',
-                !isSelected && 'bg-white dark:bg-zinc-900',
-              )}
-              style={
-                isSelected
-                  ? { background: 'var(--color-brand)', borderColor: 'var(--color-brand)', color: '#fff' }
-                  : { borderColor: 'var(--color-brand)', color: 'var(--color-brand)' }
-              }
-            >
-              {slot}
-            </button>
-          );
-        })}
-      </div>
+      {[
+        { label: 'Mañana', slots: MORNING_SLOTS },
+        { label: 'Tarde',  slots: AFTERNOON_SLOTS },
+      ].map(({ label, slots }) => (
+        <div key={label}>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 dark:text-zinc-500 mb-2.5">
+            {label}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {slots.map(slot => {
+              const isSelected = selectedTime === slot;
+              const [time, period] = slot.split(' ');
+              return (
+                <button
+                  key={slot}
+                  onClick={() => onSelectTime(slot)}
+                  className={cn(
+                    'flex flex-col items-center px-5 py-3 rounded-xl border-2 transition-all',
+                    isSelected
+                      ? 'text-white shadow-md'
+                      : 'bg-white dark:bg-zinc-900 hover:scale-105 active:scale-95',
+                  )}
+                  style={
+                    isSelected
+                      ? { background: 'var(--color-brand)', borderColor: 'var(--color-brand)' }
+                      : { borderColor: 'var(--color-brand)', color: 'var(--color-brand)' }
+                  }
+                >
+                  <span className="text-sm font-bold leading-none">{time}</span>
+                  <span className="text-[10px] font-semibold mt-0.5 opacity-75">{period}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
 // ─── Appointment Summary ───────────────────────────────────────────────────────
+
 
 function AppointmentSummary({ date, time }: { date: Date; time: string }) {
   const rows = [
