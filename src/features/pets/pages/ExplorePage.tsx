@@ -4,7 +4,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { CitizenSidebar, type NavId } from '@/shared/ui/organisms/CitizenSidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, X, Tag, Cake, Maximize2, ChevronLeft, ChevronRight, PawPrint } from 'lucide-react';
+import { Search, X, Tag, Cake, Maximize2, ChevronLeft, ChevronRight, PawPrint, Copy, Check } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -387,6 +387,13 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
   const statusVariant =
     animal.status === 'Available' ? 'available' : animal.status === 'Pending' ? 'pending' : 'reserved';
   const code = `HLL-${animal.id.padStart(5, '0')}`;
+  const [copied, setCopied] = useState(false);
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -412,11 +419,11 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 10 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="relative z-10 w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-zinc-900 flex"
+        className="relative z-10 w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-zinc-900 flex"
         style={{ maxHeight: '90vh' }}
       >
         {/* Left — carousel */}
-        <div className="w-[44%] shrink-0 relative min-h-[420px]">
+        <div className="w-[44%] shrink-0 relative min-h-[360px]">
           <PhotoCarousel photos={getAnimalPhotos(animal.photo)} name={animal.name} />
         </div>
 
@@ -455,6 +462,16 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
                 <span className="font-mono text-xs font-bold tracking-widest" style={{ color: 'var(--color-brand)' }}>
                   {code}
                 </span>
+                <button
+                  onClick={copyCode}
+                  aria-label={copied ? 'Copiado' : 'Copiar código'}
+                  className="flex items-center justify-center w-5 h-5 rounded text-stone-400 hover:text-stone-700 dark:hover:text-zinc-200 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  {copied
+                    ? <Check className="w-3 h-3 text-emerald-500" strokeWidth={2.5} />
+                    : <Copy className="w-3 h-3" strokeWidth={2} />
+                  }
+                </button>
               </div>
             </div>
 
