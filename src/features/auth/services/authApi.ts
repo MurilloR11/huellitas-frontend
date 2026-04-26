@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../../../shared/lib/supabaseClient';
+import apiClient from '../../../shared/lib/apiClient';
 import type { AuthUser, LoginPayload, RegisterPayload } from '../types';
 
 function mapError(message: string): string {
@@ -24,12 +25,14 @@ export function buildAuthUser(user: User): AuthUser {
 
 export const authApi = {
   async login(payload: LoginPayload): Promise<AuthUser> {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: payload.email,
       password: payload.password,
     });
     if (error) throw new Error(mapError(error.message));
-    return buildAuthUser(data.user);
+    // Lee el perfil desde el backend (fuente de verdad del rol, no user_metadata)
+    const { data: profile } = await apiClient.get<AuthUser>('/auth/me');
+    return profile;
   },
 
   async register(payload: RegisterPayload): Promise<AuthUser> {
@@ -82,6 +85,8 @@ export const authApi = {
 
   async me(): Promise<AuthUser | null> {
     const { data: { user } } = await supabase.auth.getUser();
-    return user ? buildAuthUser(user) : null;
+    if (!user) return null;
+    const { data: profile } = await apiClient.get<AuthUser>('/auth/me');
+    return profile;
   },
 };
