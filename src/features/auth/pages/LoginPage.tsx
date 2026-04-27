@@ -20,6 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ROUTES } from '../../../shared/constants/routes';
 import { useAuth } from '../hooks/useAuth';
+import apiClient from '../../../shared/lib/apiClient';
 import { loginSchema } from '../schemas/authSchemas';
 
 const features = [
@@ -52,6 +53,9 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   const [confirmPass, setConfirmPass] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -73,6 +77,59 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
       digitRefs.current[i - 1]?.focus();
     }
   };
+
+  async function handleSendCode() {
+    if (!emailVal.trim()) { setError('Ingresa tu correo'); return; }
+    setError('');
+    setIsLoading(true);
+    try {
+      await apiClient.post('/auth/forgot-password', { email: emailVal.trim().toLowerCase() });
+      setStep('code');
+    } catch {
+      setError('No se pudo enviar el código. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp() {
+    const otp = digits.join('');
+    if (otp.length < 4) { setError('Ingresa el código completo'); return; }
+    setError('');
+    setIsLoading(true);
+    try {
+      const { data } = await apiClient.post<{ reset_token: string }>('/auth/verify-otp', {
+        email: emailVal.trim().toLowerCase(),
+        otp,
+      });
+      setResetToken(data.reset_token);
+      setStep('password');
+    } catch {
+      setError('Código inválido o expirado.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleResetPassword() {
+    if (newPass.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); return; }
+    if (newPass !== confirmPass) { setError('Las contraseñas no coinciden'); return; }
+    setError('');
+    setIsLoading(true);
+    try {
+      await apiClient.post('/auth/reset-password', {
+        email: emailVal.trim().toLowerCase(),
+        reset_token: resetToken,
+        new_password: newPass,
+      });
+      toast.success('Contraseña actualizada exitosamente');
+      onClose();
+    } catch {
+      setError('No se pudo actualizar la contraseña. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const stepIndex = step === 'email' ? 0 : step === 'code' ? 1 : 2;
 
@@ -161,12 +218,17 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
 
+              {error && step === 'email' && (
+                <p className="text-xs text-red-500 text-center">{error}</p>
+              )}
+
               <button
                 type="button"
-                onClick={() => setStep('code')}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark transition"
+                onClick={handleSendCode}
+                disabled={isLoading}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Enviar código
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enviar código'}
               </button>
             </motion.div>
           )}
@@ -218,19 +280,26 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
                 ))}
               </div>
 
+              {error && step === 'code' && (
+                <p className="text-xs text-red-500 text-center">{error}</p>
+              )}
+
               <button
                 type="button"
-                onClick={() => setStep('password')}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark transition"
+                onClick={handleVerifyOtp}
+                disabled={isLoading}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Verificar código
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verificar código'}
               </button>
 
               <p className="text-center text-xs text-zinc-400">
                 ¿No recibiste el código?{' '}
                 <button
                   type="button"
-                  className="font-medium text-brand hover:text-brand-dark transition"
+                  onClick={handleSendCode}
+                  disabled={isLoading}
+                  className="font-medium text-brand hover:text-brand-dark transition disabled:opacity-50"
                 >
                   Reenviar
                 </button>
@@ -313,12 +382,17 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
 
+              {error && step === 'password' && (
+                <p className="text-xs text-red-500 text-center">{error}</p>
+              )}
+
               <button
                 type="button"
-                onClick={() => { toast.success('Contraseña actualizada exitosamente'); onClose(); }}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark transition"
+                onClick={handleResetPassword}
+                disabled={isLoading}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Cambiar contraseña
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cambiar contraseña'}
               </button>
             </motion.div>
           )}
