@@ -12,6 +12,7 @@ import ExplorePage from '../features/pets/pages/ExplorePage';
 import AccountPage from '../features/account/pages/AccountPage';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import type { Role } from '../features/auth/types';
+import AdminPage from '../features/admin/pages/AdminPage';
 
 const PetsList = () => <div className="p-8">Mascotas en adopción</div>;
 const PetDetail = () => <div className="p-8">Detalle de mascota</div>;
@@ -20,7 +21,7 @@ const FoundationDetail = () => <div className="p-8">Detalle de fundación</div>;
 const AdoptionRequest = () => <div className="p-8">Solicitar adopción</div>;
 const MyAdoptions = () => <div className="p-8">Mis adopciones</div>;
 const FoundationDashboard = () => <div className="p-8">Dashboard Fundación</div>;
-const AdminPage = () => <div className="p-8">Administración</div>;
+const DeveloperPage = () => <div className="p-8">Panel Developer</div>;
 const NotFound = () => <div className="p-8 text-red-500">404 — Página no encontrada</div>;
 
 const Spinner = () => (
@@ -61,6 +62,7 @@ function PublicOnlyRoute({ children }: { children: ReactNode }) {
   if (!isAuthenticated) return <>{children}</>;
 
   if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+  if (user?.role === 'developer') return <Navigate to="/developer/dashboard" replace />;
   if (user?.role === 'fundacion') {
     if (user.status === 'pending') return <Navigate to="/pending" replace />;
     if (user.status === 'rejected') return <Navigate to="/rejected" replace />;
@@ -106,6 +108,10 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: <ProtectedRoute roles={['admin']}><AdminPage /></ProtectedRoute>,
+  },
+  {
+    path: '/developer/dashboard',
+    element: <ProtectedRoute roles={['developer']}><DeveloperPage /></ProtectedRoute>,
   },
   {
     path: '/account',

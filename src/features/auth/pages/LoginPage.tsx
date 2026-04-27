@@ -373,6 +373,8 @@ export default function LoginPage() {
 
       if (user.role === 'admin') {
         navigate(ROUTES.ADMIN);
+      } else if (user.role === 'developer') {
+        navigate(ROUTES.DEVELOPER_DASHBOARD);
       } else if (user.role === 'fundacion') {
         if (user.status === 'pending') navigate(ROUTES.PENDING);
         else if (user.status === 'rejected') navigate(ROUTES.REJECTED);

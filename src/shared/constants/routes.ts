@@ -11,6 +11,7 @@ export const ROUTES = {
   FOUNDATION_DASHBOARD: '/foundation/dashboard',
   AI: '/ai',
   ADMIN: '/admin',
+  DEVELOPER_DASHBOARD: '/developer/dashboard',
   PENDING: '/pending',
   REJECTED: '/rejected',
   ACCOUNT: '/account',
