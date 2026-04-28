@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, ArrowLeft, Bot, AlertCircle, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../../shared/constants/routes';
-import { mockAIResponse } from '../../../services/aiService.mock';
-import type { ChatMessage } from '../../../services/aiService.mock';
+import { sendMessage } from '../../../services/aiService';
+import type { ChatMessage } from '../../../services/aiService';
 
 const MAX_CHARS = 1000;
 
@@ -75,7 +75,7 @@ export default function AIPage() {
     setIsLoading(true);
 
     try {
-      const text = await mockAIResponse(updatedMessages);
+      const text = await sendMessage(updatedMessages);
       setMessages((prev) => [
         ...prev,
         {
@@ -101,7 +101,7 @@ export default function AIPage() {
     setIsLoading(true);
 
     try {
-      const text = await mockAIResponse(snapshot);
+      const text = await sendMessage(snapshot);
       setMessages((prev) => [
         ...prev,
         {
