@@ -25,7 +25,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = await apiClient.get<AuthUser>('/auth/me');
       return data;
     } catch {
-      // Si el backend no está disponible, usa user_metadata como fallback
       return buildAuthUser(fallbackUser);
     }
   }
@@ -33,18 +32,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // onAuthStateChange fires INITIAL_SESSION on subscribe (Supabase v2),
     // so we rely on it exclusively — no separate getSession() call.
+    // SIGNED_IN is intentionally excluded: manual logins go through login()
+    // which already calls /auth/me and updates state, so reacting to SIGNED_IN
+    // here would cause a duplicate request.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsLoading(false);
         return;
       }
-      // Only fetch profile on events that indicate a new or restored session.
-      // Ignore TOKEN_REFRESHED, USER_UPDATED, PASSWORD_RECOVERY, etc.
-      if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN') {
-        setIsLoading(false);
-        return;
-      }
+      // Only INITIAL_SESSION determines the auth state on page load.
+      // Other events (TOKEN_REFRESHED, USER_UPDATED, SIGNED_IN, etc.) are
+      // ignored here — manual logins go through login() which calls setUser directly.
+      if (event !== 'INITIAL_SESSION') return;
+
       if (session?.user) {
         try {
           const profile = await fetchProfile(session.user);
@@ -62,7 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(payload: LoginPayload): Promise<AuthUser> {
-    return authApi.login(payload);
+    const profile = await authApi.login(payload);
+    setUser(profile);
+    return profile;
   }
 
   async function logout(): Promise<void> {
