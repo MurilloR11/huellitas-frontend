@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, ArrowLeft, Bot, AlertCircle, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../../shared/constants/routes';
-import { sendMessage } from '../../../services/aiService';
+import { sendMessage as fetchAIReply } from '../../../services/aiService';
 import type { ChatMessage } from '../../../services/aiService';
 
 const MAX_CHARS = 1000;
@@ -75,7 +75,7 @@ export default function AIPage() {
     setIsLoading(true);
 
     try {
-      const text = await sendMessage(updatedMessages);
+      const text = await fetchAIReply(updatedMessages);
       setMessages((prev) => [
         ...prev,
         {
@@ -101,7 +101,7 @@ export default function AIPage() {
     setIsLoading(true);
 
     try {
-      const text = await sendMessage(snapshot);
+      const text = await fetchAIReply(snapshot);
       setMessages((prev) => [
         ...prev,
         {
