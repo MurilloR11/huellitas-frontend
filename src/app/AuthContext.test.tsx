@@ -6,9 +6,10 @@ import { useContext } from 'react';
 vi.mock('../shared/lib/supabaseClient', () => ({
   supabase: {
     auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-      onAuthStateChange: vi.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: vi.fn() } },
+      onAuthStateChange: vi.fn().mockImplementation((callback) => {
+        // Simulate Supabase v2 firing INITIAL_SESSION immediately on subscribe
+        Promise.resolve().then(() => callback('INITIAL_SESSION', null));
+        return { data: { subscription: { unsubscribe: vi.fn() } } };
       }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
     },

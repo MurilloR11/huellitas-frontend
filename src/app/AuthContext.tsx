@@ -31,30 +31,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    async function init() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
+    // onAuthStateChange fires INITIAL_SESSION on subscribe (Supabase v2),
+    // so we rely on it exclusively — no separate getSession() call.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+      // Only fetch profile on events that indicate a new or restored session.
+      // Ignore TOKEN_REFRESHED, USER_UPDATED, PASSWORD_RECOVERY, etc.
+      if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN') {
+        setIsLoading(false);
+        return;
+      }
+      if (session?.user) {
+        try {
           const profile = await fetchProfile(session.user);
           setUser(profile);
-        } else {
+        } catch {
           setUser(null);
         }
-      } catch {
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    init();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const profile = await fetchProfile(session.user);
-        setUser(profile);
       } else {
         setUser(null);
       }
+      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
