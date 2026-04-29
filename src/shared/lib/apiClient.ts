@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as Sentry from '@sentry/react';
 import { supabase } from './supabaseClient';
 
 const apiClient = axios.create({
@@ -26,7 +27,10 @@ apiClient.interceptors.request.use(async (config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error),
+  (error) => {
+    Sentry.captureException(error);
+    return Promise.reject(error);
+  },
 );
 
 export default apiClient;
