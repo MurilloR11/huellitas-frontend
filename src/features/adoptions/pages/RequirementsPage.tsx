@@ -230,7 +230,7 @@ const StepIcon = STEPS[step].icon;
       </div>
 
       {/* ── Step heading ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4 mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-5">
         <div className="flex items-center gap-3">
           <div
             className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0"
@@ -245,11 +245,11 @@ const StepIcon = STEPS[step].icon;
         </div>
 
         <div className={cn(
-          'flex items-center gap-1.5 shrink-0 transition-colors duration-200',
+          'flex items-center gap-1.5 transition-colors duration-200',
           canProceed ? 'text-green-600' : 'text-stone-400',
         )}>
-          <ListChecks className="w-4 h-4" strokeWidth={1.75} />
-          <span className="text-sm font-medium whitespace-nowrap">
+          <ListChecks className="w-4 h-4 shrink-0" strokeWidth={1.75} />
+          <span className="text-sm font-medium">
             {step < 2 ? (
               <>
                 {step === 0 ? count1 : count2}

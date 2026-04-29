@@ -4,7 +4,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { CitizenSidebar, type NavId } from '@/shared/ui/organisms/CitizenSidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, X, Tag, Cake, Maximize2, ChevronLeft, ChevronRight, PawPrint, Copy, Check } from 'lucide-react';
+import { Search, X, Tag, Cake, Maximize2, ChevronLeft, ChevronRight, PawPrint, Copy, Check, Menu } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -254,7 +254,7 @@ function FilterSelect<T extends string>({
   options: { value: T; label: string }[];
 }) {
   return (
-    <div className="flex flex-col gap-1.5 min-w-[152px]">
+    <div className="flex flex-col gap-1.5 w-full">
       <label className="text-xs font-medium text-stone-500 dark:text-zinc-400 select-none">
         {label}
       </label>
@@ -402,7 +402,7 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6">
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -415,22 +415,22 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
 
       {/* Panel */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 10 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="relative z-10 w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-zinc-900 flex"
-        style={{ maxHeight: '90vh' }}
+        className="relative z-10 w-full sm:max-w-5xl rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-zinc-900 flex flex-col sm:flex-row"
+        style={{ maxHeight: '92vh' }}
       >
         {/* Left — carousel */}
-        <div className="w-[44%] shrink-0 relative min-h-[360px]">
+        <div className="w-full sm:w-[44%] shrink-0 relative min-h-[240px] sm:min-h-[360px]">
           <PhotoCarousel photos={getAnimalPhotos(animal.photo)} name={animal.name} />
         </div>
 
         {/* Right — info */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-stone-100 dark:border-zinc-800 shrink-0">
+          <div className="flex items-start justify-between px-4 sm:px-6 pt-5 pb-4 border-b border-stone-100 dark:border-zinc-800 shrink-0">
             <div>
               <h2 className="text-2xl font-bold text-stone-900 dark:text-zinc-100 leading-tight">
                 {animal.name}
@@ -447,7 +447,7 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
           </div>
 
           {/* Scrollable body */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
             <div className="flex items-center gap-3 flex-wrap">
               <Badge
                 variant={statusVariant}
@@ -639,6 +639,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 export default function ExplorePage() {
   const [activeNav, setActiveNav] = useState<NavId>('browse');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
 
@@ -670,12 +671,19 @@ export default function ExplorePage() {
       )}
     </AnimatePresence>
     <SidebarProvider className="h-screen overflow-hidden">
-      <CitizenSidebar activeNav={activeNav} onNavChange={setActiveNav} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
+      <CitizenSidebar activeNav={activeNav} onNavChange={setActiveNav} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} mobileOpen={mobileSidebarOpen} onMobileClose={() => setMobileSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-stone-50 dark:bg-zinc-950">
 
         {/* Top bar */}
-        <header className="sticky top-0 z-10 flex items-center gap-2 px-6 h-14 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-sm border-b border-stone-200 dark:border-zinc-800 shrink-0">
+        <header className="sticky top-0 z-10 flex items-center gap-2 px-4 sm:px-6 h-14 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-sm border-b border-stone-200 dark:border-zinc-800 shrink-0">
+          <button
+            className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
+            onClick={() => setMobileSidebarOpen(true)}
+            aria-label="Abrir menú"
+          >
+            <Menu className="w-5 h-5" strokeWidth={2} />
+          </button>
           <nav aria-label="Ubicación actual">
             <ol className="flex items-center gap-1 text-sm">
               <li className="font-semibold text-stone-400 dark:text-zinc-500">Huellitas</li>
@@ -713,8 +721,8 @@ export default function ExplorePage() {
           {activeNav === 'browse' && (
             <>
               {/* Filter bar — card style matching reference */}
-              <section className="px-6 py-4" aria-label="Filtrar animales">
-                <div className="flex items-end gap-5 flex-wrap bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-xl px-5 py-4">
+              <section className="px-4 sm:px-6 py-4" aria-label="Filtrar animales">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-xl px-5 py-4">
 
                   <FilterSelect
                     label="Especie"
@@ -758,12 +766,12 @@ export default function ExplorePage() {
               </section>
 
               {/* Catalog grid */}
-              <main className="px-6 pb-6" id="main-content">
+              <main className="px-4 sm:px-6 pb-4 sm:pb-6" id="main-content">
                 {filtered.length === 0 ? (
                   <EmptyState onClear={clearFilters} />
                 ) : (
                   <ul
-                    className="grid gap-5 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                    className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                     aria-label="Animales disponibles para adopción"
                   >
                     {filtered.map(animal => (

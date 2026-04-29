@@ -260,7 +260,7 @@ export default function AccountPage() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Sidebar nav ─────────────────────────────────────────────────── */}
-        <aside className="w-52 shrink-0 border-r border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-950 overflow-y-auto py-6 px-3">
+        <aside className="hidden md:block w-52 shrink-0 border-r border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-950 overflow-y-auto py-6 px-3">
           <p className="px-3 mb-2 text-xs font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">
             Mi cuenta
           </p>
@@ -288,7 +288,28 @@ export default function AccountPage() {
 
         {/* ── Content ─────────────────────────────────────────────────────── */}
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-2xl w-full mx-auto px-10 py-8">
+          {/* Mobile section nav */}
+          <div className="md:hidden flex overflow-x-auto gap-1 px-4 py-3 border-b border-stone-200 dark:border-zinc-800 sticky top-0 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-sm z-10">
+            {NAV_ITEMS.map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveSection(id)}
+                className={cn(
+                  'flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
+                  activeSection === id
+                    ? 'bg-stone-200 text-stone-900 dark:bg-zinc-800 dark:text-zinc-100'
+                    : 'text-stone-500 hover:bg-stone-100 dark:text-zinc-400 dark:hover:bg-zinc-900',
+                  id === 'peligro' && activeSection !== 'peligro' && 'text-red-400',
+                  id === 'peligro' && activeSection === 'peligro' && 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400',
+                )}
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="max-w-2xl w-full mx-auto px-4 sm:px-10 py-6 sm:py-8">
 
             {/* ── Cuenta ──────────────────────────────────────────────────── */}
             {activeSection === 'cuenta' && (

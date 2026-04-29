@@ -563,8 +563,8 @@ function ShelterContactCard({ shelter }: { shelter: string }) {
 
 function LoadingSkeleton() {
   return (
-    <div className="flex">
-      <div className="w-[320px] shrink-0 self-start border-r border-stone-200 dark:border-zinc-800 px-5 py-6 space-y-4">
+    <div className="flex flex-col md:flex-row">
+      <div className="w-full md:w-[320px] shrink-0 md:self-start border-b md:border-b-0 md:border-r border-stone-200 dark:border-zinc-800 px-5 py-6 space-y-4">
         <div className="rounded-2xl overflow-hidden border border-stone-100 dark:border-zinc-800">
           <Skeleton className="w-full h-44" />
           <div className="p-4 space-y-3">
@@ -616,8 +616,8 @@ function LoadingSkeleton() {
 
 function FoundPhase({ request }: { request: MockRequest }) {
   return (
-    <div className="flex">
-      <aside className="w-[320px] shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto border-r border-stone-200 dark:border-zinc-800 px-5 py-6 space-y-4">
+    <div className="flex flex-col md:flex-row">
+      <aside className="w-full md:w-[320px] shrink-0 md:sticky md:top-0 md:self-start md:max-h-screen overflow-y-auto border-b md:border-b-0 md:border-r border-stone-200 dark:border-zinc-800 px-5 py-6 space-y-4">
         <AnimalCard request={request} />
         <WhileYouWaitCard />
         <ShelterContactCard shelter={request.animal.shelter} />

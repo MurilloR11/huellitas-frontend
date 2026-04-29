@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   PawPrint,
@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronRight,
   PanelLeft,
+  X,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -70,6 +71,17 @@ function getInitials(name: string): string {
     .map(w => w[0].toUpperCase())
     .slice(0, 2)
     .join('');
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isMobile;
 }
 
 // ─── NavSection ────────────────────────────────────────────────────────────────
@@ -160,12 +172,18 @@ interface CitizenSidebarProps {
   onNavChange: (id: NavId) => void;
   collapsed: boolean;
   onToggle: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: CitizenSidebarProps) {
+export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle, mobileOpen = false, onMobileClose }: CitizenSidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [logoutOpen, setLogoutOpen] = useState(false);
+
+  const isMobile = useIsMobile();
+  const effectiveCollapsed = collapsed && !isMobile;
+  const handleNavChange = (id: NavId) => { onNavChange(id); if (isMobile) onMobileClose?.(); };
 
   const initials = user ? getInitials(user.full_name) : '--';
   const displayName = user?.full_name ?? 'Invitado';
@@ -176,28 +194,38 @@ export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: 
 
   return (
     <>
+    {isMobile && mobileOpen && (
+      <div
+        className="fixed inset-0 bg-black/50 z-40"
+        onClick={onMobileClose}
+        aria-hidden="true"
+      />
+    )}
     <Sidebar
       collapsible="none"
       className={cn(
         'border-r border-sidebar-border overflow-hidden shrink-0',
-        'transition-[width,min-width,max-width] duration-300 ease-in-out',
+        'md:transition-[width,min-width,max-width] md:duration-300 md:ease-in-out',
+        'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:shadow-2xl',
+        'max-md:transition-transform max-md:duration-300 max-md:ease-in-out',
+        mobileOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full',
       )}
       style={{
-        width:    collapsed ? '3.5rem' : 'var(--sidebar-width)',
-        minWidth: collapsed ? '3.5rem' : 'var(--sidebar-width)',
-        maxWidth: collapsed ? '3.5rem' : 'var(--sidebar-width)',
+        width:    effectiveCollapsed ? '3.5rem' : 'var(--sidebar-width)',
+        minWidth: effectiveCollapsed ? '3.5rem' : 'var(--sidebar-width)',
+        maxWidth: effectiveCollapsed ? '3.5rem' : 'var(--sidebar-width)',
       }}
     >
       {/* ── Logo ──────────────────────────────────────────────────────────── */}
-      <SidebarHeader className={cn('py-3', collapsed ? 'px-1.5' : 'px-4')}>
+      <SidebarHeader className={cn('py-3', effectiveCollapsed ? 'px-1.5' : 'px-4')}>
         <div className="flex items-center gap-3">
-          {!collapsed && (
+          {!effectiveCollapsed && (
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-primary shrink-0">
               <PawPrint className="w-5 h-5 text-sidebar-primary-foreground" strokeWidth={2} />
             </div>
           )}
 
-          {!collapsed && (
+          {!effectiveCollapsed && (
             <span className="text-xl font-bold text-sidebar-foreground tracking-tight leading-none flex-1">
               Huellitas
             </span>
@@ -209,29 +237,41 @@ export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: 
             onClick={onToggle}
             className={cn(
               'h-8 w-8 shrink-0 text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent',
-              collapsed && 'mx-auto',
+              'max-md:hidden',
+              effectiveCollapsed && 'mx-auto',
             )}
-            aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+            aria-label={effectiveCollapsed ? 'Expandir menú' : 'Colapsar menú'}
           >
             <PanelLeft
-              className={cn('h-4 w-4 transition-transform duration-300', collapsed && 'rotate-180')}
+              className={cn('h-4 w-4 transition-transform duration-300', effectiveCollapsed && 'rotate-180')}
             />
           </Button>
+
+          {isMobile && (
+            <button
+              type="button"
+              onClick={onMobileClose}
+              aria-label="Cerrar menú"
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0 ml-auto"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </SidebarHeader>
 
       <SidebarSeparator />
 
       {/* ── Nav ───────────────────────────────────────────────────────────── */}
-      <SidebarContent className={cn('py-3', collapsed ? 'px-1.5' : 'px-2')} style={{ overflow: 'hidden' }}>
+      <SidebarContent className={cn('py-3', effectiveCollapsed ? 'px-1.5' : 'px-2')} style={{ overflow: 'hidden' }}>
         <SidebarMenu>
 
           {/* Browse */}
           <SidebarMenuItem>
-            {collapsed ? (
+            {effectiveCollapsed ? (
               <button
                 type="button"
-                onClick={() => onNavChange('browse')}
+                onClick={() => handleNavChange('browse')}
                 aria-current={activeNav === 'browse' ? 'page' : undefined}
                 title="Ver animales disponibles"
                 className={cn(
@@ -246,7 +286,7 @@ export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: 
             ) : (
               <SidebarMenuButton
                 isActive={activeNav === 'browse'}
-                onClick={() => onNavChange('browse')}
+                onClick={() => handleNavChange('browse')}
                 aria-current={activeNav === 'browse' ? 'page' : undefined}
                 className="h-10 px-3 gap-3 rounded-lg text-[13px]"
               >
@@ -260,11 +300,11 @@ export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: 
             label="Adopciones"
             items={ADOPTION_ITEMS}
             activeNav={activeNav}
-            onSelect={onNavChange}
-            collapsed={collapsed}
+            onSelect={handleNavChange}
+            collapsed={effectiveCollapsed}
           />
 
-          {!collapsed && (
+          {!effectiveCollapsed && (
             <li role="separator" aria-hidden="true" className="mx-2 my-1.5 h-px bg-sidebar-border list-none" />
           )}
 
@@ -272,20 +312,20 @@ export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: 
             label="Recursos"
             items={RESOURCE_ITEMS}
             activeNav={activeNav}
-            onSelect={onNavChange}
-            collapsed={collapsed}
+            onSelect={handleNavChange}
+            collapsed={effectiveCollapsed}
           />
 
         </SidebarMenu>
       </SidebarContent>
 
       {/* ── User profile footer ────────────────────────────────────────────── */}
-      <SidebarFooter className={cn('border-t border-sidebar-border', collapsed ? 'p-1.5' : 'p-2')}>
+      <SidebarFooter className={cn('border-t border-sidebar-border', effectiveCollapsed ? 'p-1.5' : 'p-2')}>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                {collapsed ? (
+                {effectiveCollapsed ? (
                   <button
                     type="button"
                     className="flex w-full items-center justify-center rounded-lg p-1.5 hover:bg-sidebar-accent transition-colors"
@@ -318,7 +358,7 @@ export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle }: 
                 )}
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent side="right" align="end" sideOffset={8} className="w-56">
+              <DropdownMenuContent side={isMobile ? 'top' : 'right'} align="end" sideOffset={8} className="w-56">
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2.5 px-2 py-2">
                     <div className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none overflow-hidden">
