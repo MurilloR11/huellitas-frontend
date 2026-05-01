@@ -1,4 +1,4 @@
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid } from 'recharts';
 import type { LucideIcon } from 'lucide-react';
 import { PawPrint, Building2, CheckCircle2, Clock, Heart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,10 +24,13 @@ const D = {
 
 const total = D.available + D.inProcess + D.adopted;
 
-const statusChartData = [
-  { key: 'available', label: 'Disponibles', value: D.available, fill: '#16a34a' },
-  { key: 'inProcess', label: 'En proceso',  value: D.inProcess, fill: '#d97706' },
-  { key: 'adopted',   label: 'Adoptadas',   value: D.adopted,   fill: '#e85d26' },
+const adoptionTrendData = [
+  { mes: 'Nov', adopciones: 5 },
+  { mes: 'Dic', adopciones: 8 },
+  { mes: 'Ene', adopciones: 6 },
+  { mes: 'Feb', adopciones: 11 },
+  { mes: 'Mar', adopciones: 9 },
+  { mes: 'Abr', adopciones: 14 },
 ];
 
 const speciesChartData = [
@@ -36,10 +39,8 @@ const speciesChartData = [
   { species: 'Otros',  count: D.other, fill: '#a8a29e' },
 ];
 
-const statusConfig: ChartConfig = {
-  available: { label: 'Disponibles', color: '#16a34a' },
-  inProcess: { label: 'En proceso',  color: '#d97706' },
-  adopted:   { label: 'Adoptadas',   color: '#e85d26' },
+const trendConfig: ChartConfig = {
+  adopciones: { label: 'Adopciones', color: '#e85d26' },
 };
 
 const speciesConfig: ChartConfig = {
@@ -143,49 +144,54 @@ export default function AdminPage() {
       {/* ── Charts ─────────────────────────────────────────────────────── */}
       <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
 
-        {/* Donut — estado */}
+        {/* Area — tendencia de adopciones */}
         <Card className="rounded-2xl border-stone-200 shadow-none">
           <CardContent className="p-5">
-            <p className="text-sm font-semibold text-stone-800">Estado de mascotas</p>
-            <p className="text-xs text-stone-400 mt-0.5 mb-4">Distribución por estado actual</p>
+            <p className="text-sm font-semibold text-stone-800">Tendencia de adopciones</p>
+            <p className="text-xs text-stone-400 mt-0.5 mb-4">Últimos 6 meses</p>
 
-            <ChartContainer
-              config={statusConfig}
-              className="mx-auto aspect-square max-h-60"
-            >
-              <PieChart>
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent hideLabel nameKey="label" />}
+            <ChartContainer config={trendConfig} className="h-72 w-full">
+              <AreaChart
+                accessibilityLayer
+                data={adoptionTrendData}
+                margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="adoptGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#e85d26" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#e85d26" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="#f5f5f4" />
+                <XAxis
+                  dataKey="mes"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={10}
+                  tick={{ fontSize: 12, fill: '#a8a29e' }}
                 />
-                <Pie
-                  data={statusChartData}
-                  dataKey="value"
-                  nameKey="label"
-                  innerRadius="55%"
-                  outerRadius="80%"
-                  strokeWidth={0}
-                  paddingAngle={2}
-                >
-                  {statusChartData.map(entry => (
-                    <Cell key={entry.key} fill={entry.fill} />
-                  ))}
-                </Pie>
-              </PieChart>
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tick={{ fontSize: 12, fill: '#a8a29e' }}
+                  allowDecimals={false}
+                />
+                <ChartTooltip
+                  cursor={{ stroke: '#e85d26', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="adopciones"
+                  stroke="#e85d26"
+                  strokeWidth={2}
+                  fill="url(#adoptGradient)"
+                  dot={{ fill: '#e85d26', r: 3, strokeWidth: 0 }}
+                  activeDot={{ r: 5, strokeWidth: 0 }}
+                />
+              </AreaChart>
             </ChartContainer>
-
-            <div className="flex justify-center gap-5 mt-4">
-              {statusChartData.map(item => (
-                <div key={item.key} className="flex items-center gap-1.5">
-                  <span
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: item.fill }}
-                  />
-                  <span className="text-xs text-stone-500">{item.label}</span>
-                  <span className="text-xs font-semibold text-stone-700">{item.value}</span>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
 
