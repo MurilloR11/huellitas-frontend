@@ -337,7 +337,7 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen = false, onMobile
                         <p className="text-sm font-bold text-sidebar-foreground leading-tight truncate">
                           {displayName}
                         </p>
-                        <p className="text-xs font-semibold text-sidebar-foreground/50 leading-tight truncate mt-0.5">
+                        <p className="text-sm font-semibold text-sidebar-foreground leading-tight truncate mt-0.5">
                           Administrador
                         </p>
                       </div>
@@ -356,7 +356,7 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen = false, onMobile
                         <p className="text-sm font-semibold text-foreground leading-tight truncate">
                           {displayName}
                         </p>
-                        <p className="text-xs font-semibold text-muted-foreground leading-tight truncate mt-0.5">
+                        <p className="text-sm font-semibold text-foreground leading-tight truncate mt-0.5">
                           Administrador
                         </p>
                       </div>
