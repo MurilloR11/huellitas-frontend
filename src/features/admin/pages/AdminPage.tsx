@@ -1,13 +1,7 @@
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import type { LucideIcon } from 'lucide-react';
 import { PawPrint, Building2, CheckCircle2, Clock, Heart } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   ChartContainer,
   ChartTooltip,
@@ -59,22 +53,25 @@ interface StatCardProps {
   value: number;
   icon: LucideIcon;
   description: string;
+  color: string;
+  colorBg: string;
 }
 
-function StatCard({ label, value, icon: Icon, description }: StatCardProps) {
+function StatCard({ label, value, icon: Icon, description, color, colorBg }: StatCardProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {label}
-        </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-bold tabular-nums">
+    <Card className="rounded-2xl border-stone-200 shadow-none">
+      <CardContent className="p-5">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: colorBg }}
+        >
+          <Icon className="w-4 h-4" style={{ color }} strokeWidth={1.75} />
+        </div>
+        <p className="text-3xl font-bold tabular-nums mt-4 leading-none" style={{ color }}>
           {value.toLocaleString('es-CO')}
         </p>
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        <p className="text-sm font-medium text-stone-700 mt-1.5">{label}</p>
+        <p className="text-xs text-stone-400 mt-0.5">{description}</p>
       </CardContent>
     </Card>
   );
@@ -95,59 +92,66 @@ export default function AdminPage() {
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-stone-900">
+          <h1 className="text-xl font-bold text-stone-900">
             Bienvenido, {user?.full_name ?? 'Admin'}
           </h1>
-          <p className="text-sm text-muted-foreground capitalize mt-0.5">{today}</p>
+          <p className="text-sm text-stone-400 capitalize mt-0.5">{today}</p>
         </div>
-        <div className="hidden sm:flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm shadow-sm">
-          <Building2 className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+        <div className="hidden sm:flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm">
+          <Building2 className="h-4 w-4 text-stone-400" strokeWidth={1.75} />
           <span className="font-semibold text-stone-700">{D.foundations}</span>
-          <span className="text-muted-foreground">fundaciones</span>
+          <span className="text-stone-400">fundaciones</span>
         </div>
       </div>
 
       {/* ── KPI cards ──────────────────────────────────────────────────── */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total mascotas"
           value={total}
           icon={PawPrint}
-          description={`${D.available} disponibles para adopción`}
+          description={`${D.available} disponibles ahora`}
+          color="#44403c"
+          colorBg="#f5f5f4"
         />
         <StatCard
           label="Disponibles"
           value={D.available}
           icon={CheckCircle2}
-          description="Listas para ser adoptadas"
+          description="Listas para adopción"
+          color="#16a34a"
+          colorBg="#f0fdf4"
         />
         <StatCard
           label="En proceso"
           value={D.inProcess}
           icon={Clock}
           description="Con solicitud activa"
+          color="#d97706"
+          colorBg="#fffbeb"
         />
         <StatCard
           label="Adoptadas"
           value={D.adopted}
           icon={Heart}
           description="Han encontrado hogar"
+          color="#e85d26"
+          colorBg="#fdf3ee"
         />
       </div>
 
       {/* ── Charts ─────────────────────────────────────────────────────── */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+      <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
 
         {/* Donut — estado */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Estado de mascotas</CardTitle>
-            <CardDescription>Distribución por estado actual</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Card className="rounded-2xl border-stone-200 shadow-none">
+          <CardContent className="p-5">
+            <p className="text-sm font-semibold text-stone-800">Estado de mascotas</p>
+            <p className="text-xs text-stone-400 mt-0.5 mb-4">Distribución por estado actual</p>
+
             <ChartContainer
               config={statusConfig}
-              className="mx-auto aspect-square max-h-65"
+              className="mx-auto aspect-square max-h-60"
             >
               <PieChart>
                 <ChartTooltip
@@ -170,15 +174,15 @@ export default function AdminPage() {
               </PieChart>
             </ChartContainer>
 
-            <div className="flex justify-center gap-5 mt-2">
+            <div className="flex justify-center gap-5 mt-4">
               {statusChartData.map(item => (
                 <div key={item.key} className="flex items-center gap-1.5">
                   <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    className="w-2 h-2 rounded-full shrink-0"
                     style={{ backgroundColor: item.fill }}
                   />
-                  <span className="text-xs text-muted-foreground">{item.label}</span>
-                  <span className="text-xs font-semibold">{item.value}</span>
+                  <span className="text-xs text-stone-500">{item.label}</span>
+                  <span className="text-xs font-semibold text-stone-700">{item.value}</span>
                 </div>
               ))}
             </div>
@@ -186,13 +190,12 @@ export default function AdminPage() {
         </Card>
 
         {/* Bar — especie */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Mascotas por especie</CardTitle>
-            <CardDescription>Total registrado en la plataforma</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={speciesConfig} className="h-75 w-full">
+        <Card className="rounded-2xl border-stone-200 shadow-none">
+          <CardContent className="p-5">
+            <p className="text-sm font-semibold text-stone-800">Mascotas por especie</p>
+            <p className="text-xs text-stone-400 mt-0.5 mb-4">Total registrado en la plataforma</p>
+
+            <ChartContainer config={speciesConfig} className="h-72 w-full">
               <BarChart
                 accessibilityLayer
                 data={speciesChartData}
@@ -204,19 +207,19 @@ export default function AdminPage() {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={10}
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12, fill: '#a8a29e' }}
                 />
                 <YAxis
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12, fill: '#a8a29e' }}
                 />
                 <ChartTooltip
                   cursor={{ fill: '#f5f5f4' }}
                   content={<ChartTooltipContent hideLabel />}
                 />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={64}>
+                <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={56}>
                   {speciesChartData.map(entry => (
                     <Cell key={entry.species} fill={entry.fill} />
                   ))}
