@@ -12,7 +12,12 @@ import ExplorePage from '../features/pets/pages/ExplorePage';
 import AccountPage from '../features/account/pages/AccountPage';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import type { Role } from '../features/auth/types';
+import AdminLayout from '../features/admin/pages/AdminLayout';
 import AdminPage from '../features/admin/pages/AdminPage';
+import AdminFoundationsPage from '../features/admin/pages/AdminFoundationsPage';
+import AdminUsersPage from '../features/admin/pages/AdminUsersPage';
+import AdminPetsPage from '../features/admin/pages/AdminPetsPage';
+import AdminAdoptionsPage from '../features/admin/pages/AdminAdoptionsPage';
 
 const PetsList = () => <div className="p-8">Mascotas en adopción</div>;
 const PetDetail = () => <div className="p-8">Detalle de mascota</div>;
@@ -107,7 +112,14 @@ export const router = createBrowserRouter([
   },
   {
     path: '/admin',
-    element: <ProtectedRoute roles={['admin']}><AdminPage /></ProtectedRoute>,
+    element: <ProtectedRoute roles={['admin']}><AdminLayout /></ProtectedRoute>,
+    children: [
+      { index: true,              element: <AdminPage />            },
+      { path: 'fundaciones',      element: <AdminFoundationsPage /> },
+      { path: 'usuarios',         element: <AdminUsersPage />       },
+      { path: 'mascotas',         element: <AdminPetsPage />        },
+      { path: 'solicitudes',      element: <AdminAdoptionsPage />   },
+    ],
   },
   {
     path: '/developer/dashboard',
