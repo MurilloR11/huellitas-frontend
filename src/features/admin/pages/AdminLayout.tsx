@@ -11,7 +11,7 @@ export default function AdminLayout() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen overflow-hidden bg-stone-50">
+      <div className="flex h-screen w-full overflow-hidden bg-stone-50">
         <AdminSidebar
           collapsed={collapsed}
           onToggle={() => setCollapsed(c => !c)}

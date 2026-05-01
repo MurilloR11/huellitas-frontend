@@ -1,36 +1,56 @@
-import { useQueries } from '@tanstack/react-query';
-import {
-  Chart as ChartJS,
-  ArcElement,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Doughnut, Bar } from 'react-chartjs-2';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import type { LucideIcon } from 'lucide-react';
-import { PawPrint, Building2, CheckCircle2, Clock, Heart, AlertCircle } from 'lucide-react';
-import { petsApi } from '../../pets/services/petsApi';
-import { foundationsApi } from '../../foundations/services/foundationsApi';
+import { PawPrint, Building2, CheckCircle2, Clock, Heart } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
 import { useAuth } from '../../auth/hooks/useAuth';
 
-ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+// ─── Static placeholder data ───────────────────────────────────────────────────
 
-// ─── Palette ───────────────────────────────────────────────────────────────────
-
-const C = {
-  brand:        '#e85d26',
-  brandLight:   '#fdf3ee',
-  success:      '#16a34a',
-  successLight: '#f0fdf4',
-  warning:      '#d97706',
-  warningLight: '#fffbeb',
-  stone:        '#78716c',
-  stoneLight:   '#f5f5f4',
+const D = {
+  available:   24,
+  inProcess:    8,
+  adopted:     47,
+  dogs:        45,
+  cats:        28,
+  other:        6,
+  foundations: 12,
 };
 
-const CHART_FONT = 'Plus Jakarta Sans';
+const total = D.available + D.inProcess + D.adopted;
+
+const statusChartData = [
+  { key: 'available', label: 'Disponibles', value: D.available, fill: '#16a34a' },
+  { key: 'inProcess', label: 'En proceso',  value: D.inProcess, fill: '#d97706' },
+  { key: 'adopted',   label: 'Adoptadas',   value: D.adopted,   fill: '#e85d26' },
+];
+
+const speciesChartData = [
+  { species: 'Perros', count: D.dogs,  fill: '#e85d26' },
+  { species: 'Gatos',  count: D.cats,  fill: '#d97706' },
+  { species: 'Otros',  count: D.other, fill: '#a8a29e' },
+];
+
+const statusConfig: ChartConfig = {
+  available: { label: 'Disponibles', color: '#16a34a' },
+  inProcess: { label: 'En proceso',  color: '#d97706' },
+  adopted:   { label: 'Adoptadas',   color: '#e85d26' },
+};
+
+const speciesConfig: ChartConfig = {
+  count: { label: 'Mascotas', color: '#e85d26' },
+};
 
 // ─── StatCard ──────────────────────────────────────────────────────────────────
 
@@ -38,51 +58,25 @@ interface StatCardProps {
   label: string;
   value: number;
   icon: LucideIcon;
-  iconColor: string;
-  iconBg: string;
-  loading: boolean;
+  description: string;
 }
 
-function StatCard({ label, value, icon: Icon, iconColor, iconBg, loading }: StatCardProps) {
+function StatCard({ label, value, icon: Icon, description }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-5 flex items-center gap-4">
-      <div
-        className="flex items-center justify-center w-11 h-11 rounded-lg shrink-0"
-        style={{ backgroundColor: iconBg }}
-      >
-        <Icon className="w-5 h-5" style={{ color: iconColor }} strokeWidth={1.75} />
-      </div>
-      <div className="min-w-0">
-        {loading ? (
-          <div className="h-7 w-14 rounded-md bg-stone-100 animate-pulse" />
-        ) : (
-          <p className="text-2xl font-bold text-stone-900 leading-none tabular-nums">
-            {value.toLocaleString('es-CO')}
-          </p>
-        )}
-        <p className="text-sm text-stone-500 mt-1 truncate">{label}</p>
-      </div>
-    </div>
-  );
-}
-
-// ─── ChartCard ─────────────────────────────────────────────────────────────────
-
-function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white rounded-xl border border-stone-200 p-5">
-      <p className="text-sm font-semibold text-stone-800">{title}</p>
-      <p className="text-xs text-stone-400 mt-0.5 mb-4">{subtitle}</p>
-      <div className="relative h-52">{children}</div>
-    </div>
-  );
-}
-
-function EmptyChart() {
-  return (
-    <div className="flex h-full items-center justify-center text-sm text-stone-400">
-      Sin datos disponibles
-    </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {label}
+        </CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+      </CardHeader>
+      <CardContent>
+        <p className="text-2xl font-bold tabular-nums">
+          {value.toLocaleString('es-CO')}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -91,150 +85,147 @@ function EmptyChart() {
 export default function AdminPage() {
   const { user } = useAuth();
 
-  const [
-    availableQ, inProcessQ, adoptedQ,
-    dogsQ, catsQ, otherQ,
-    foundationsQ,
-  ] = useQueries({
-    queries: [
-      { queryKey: ['admin', 'pets', 'available'],  queryFn: () => petsApi.list({ status: 'available',  per_page: 1 }), staleTime: 5 * 60 * 1000 },
-      { queryKey: ['admin', 'pets', 'in_process'], queryFn: () => petsApi.list({ status: 'in_process', per_page: 1 }), staleTime: 5 * 60 * 1000 },
-      { queryKey: ['admin', 'pets', 'adopted'],    queryFn: () => petsApi.list({ status: 'adopted',    per_page: 1 }), staleTime: 5 * 60 * 1000 },
-      { queryKey: ['admin', 'pets', 'dog'],        queryFn: () => petsApi.list({ species: 'dog',       per_page: 1 }), staleTime: 5 * 60 * 1000 },
-      { queryKey: ['admin', 'pets', 'cat'],        queryFn: () => petsApi.list({ species: 'cat',       per_page: 1 }), staleTime: 5 * 60 * 1000 },
-      { queryKey: ['admin', 'pets', 'other'],      queryFn: () => petsApi.list({ species: 'other',     per_page: 1 }), staleTime: 5 * 60 * 1000 },
-      { queryKey: ['admin', 'foundations'],        queryFn: () => foundationsApi.list(),                               staleTime: 5 * 60 * 1000 },
-    ],
-  });
-
-  const allQueries = [availableQ, inProcessQ, adoptedQ, dogsQ, catsQ, otherQ, foundationsQ];
-  const isLoading  = allQueries.some(q => q.isLoading);
-  const isError    = allQueries.some(q => q.isError);
-
-  const available   = availableQ.data?.total   ?? 0;
-  const inProcess   = inProcessQ.data?.total   ?? 0;
-  const adopted     = adoptedQ.data?.total     ?? 0;
-  const total       = available + inProcess + adopted;
-  const dogs        = dogsQ.data?.total        ?? 0;
-  const cats        = catsQ.data?.total        ?? 0;
-  const otherPets   = otherQ.data?.total       ?? 0;
-  const foundations = foundationsQ.data?.total ?? 0;
-
-  const noStatusData  = !isLoading && total === 0;
-  const noSpeciesData = !isLoading && dogs + cats + otherPets === 0;
-
-  const doughnutData = {
-    labels: ['Disponibles', 'En proceso', 'Adoptadas'],
-    datasets: [{
-      data: [available, inProcess, adopted],
-      backgroundColor: [C.success, C.warning, C.brand],
-      borderWidth: 0,
-      hoverOffset: 6,
-    }],
-  };
-
-  const barData = {
-    labels: ['Perros', 'Gatos', 'Otros'],
-    datasets: [{
-      label: 'Mascotas',
-      data: [dogs, cats, otherPets],
-      backgroundColor: [C.brand, C.warning, C.stone],
-      borderRadius: 6,
-      borderSkipped: false as const,
-    }],
-  };
-
   const today = new Date().toLocaleDateString('es-CO', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
+    <div className="p-6 space-y-6">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-xl font-bold text-stone-900">
-          Bienvenido, {user?.full_name ?? 'Admin'}
-        </h1>
-        <p className="text-sm text-stone-400 mt-0.5 capitalize">{today}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900">
+            Bienvenido, {user?.full_name ?? 'Admin'}
+          </h1>
+          <p className="text-sm text-muted-foreground capitalize mt-0.5">{today}</p>
+        </div>
+        <div className="hidden sm:flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm shadow-sm">
+          <Building2 className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+          <span className="font-semibold text-stone-700">{D.foundations}</span>
+          <span className="text-muted-foreground">fundaciones</span>
+        </div>
       </div>
 
-      {/* ── Error banner ───────────────────────────────────────────────── */}
-      {isError && (
-        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          No se pudieron cargar los datos. Verifica que el backend esté activo y las tablas existan en la base de datos.
-        </div>
-      )}
-
       {/* ── KPI cards ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatCard label="Total mascotas" value={total}       icon={PawPrint}     iconColor={C.stone}   iconBg={C.stoneLight}   loading={isLoading} />
-        <StatCard label="Disponibles"    value={available}   icon={CheckCircle2} iconColor={C.success} iconBg={C.successLight} loading={isLoading} />
-        <StatCard label="En proceso"     value={inProcess}   icon={Clock}        iconColor={C.warning} iconBg={C.warningLight} loading={isLoading} />
-        <StatCard label="Adoptadas"      value={adopted}     icon={Heart}        iconColor={C.brand}   iconBg={C.brandLight}   loading={isLoading} />
-        <StatCard label="Fundaciones"    value={foundations} icon={Building2}    iconColor={C.brand}   iconBg={C.brandLight}   loading={isLoading} />
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Total mascotas"
+          value={total}
+          icon={PawPrint}
+          description={`${D.available} disponibles para adopción`}
+        />
+        <StatCard
+          label="Disponibles"
+          value={D.available}
+          icon={CheckCircle2}
+          description="Listas para ser adoptadas"
+        />
+        <StatCard
+          label="En proceso"
+          value={D.inProcess}
+          icon={Clock}
+          description="Con solicitud activa"
+        />
+        <StatCard
+          label="Adoptadas"
+          value={D.adopted}
+          icon={Heart}
+          description="Han encontrado hogar"
+        />
       </div>
 
       {/* ── Charts ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ChartCard title="Estado de mascotas" subtitle="Distribución por estado actual">
-          {noStatusData ? <EmptyChart /> : (
-            <Doughnut
-              data={doughnutData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '68%',
-                plugins: {
-                  legend: {
-                    position: 'bottom',
-                    labels: {
-                      padding: 16,
-                      font: { size: 12, family: CHART_FONT },
-                      usePointStyle: true,
-                      pointStyleWidth: 8,
-                    },
-                  },
-                  tooltip: {
-                    callbacks: { label: ctx => `  ${ctx.label}: ${ctx.parsed}` },
-                  },
-                },
-              }}
-            />
-          )}
-        </ChartCard>
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
 
-        <ChartCard title="Mascotas por especie" subtitle="Total registrado en la plataforma">
-          {noSpeciesData ? <EmptyChart /> : (
-            <Bar
-              data={barData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { display: false },
-                  tooltip: {
-                    callbacks: { label: ctx => `  ${ctx.parsed.y} mascotas` },
-                  },
-                },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1, font: { size: 12, family: CHART_FONT } },
-                    grid: { color: '#f5f5f4' },
-                    border: { display: false },
-                  },
-                  x: {
-                    ticks: { font: { size: 12, family: CHART_FONT } },
-                    grid: { display: false },
-                    border: { display: false },
-                  },
-                },
-              }}
-            />
-          )}
-        </ChartCard>
+        {/* Donut — estado */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Estado de mascotas</CardTitle>
+            <CardDescription>Distribución por estado actual</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={statusConfig}
+              className="mx-auto aspect-square max-h-65"
+            >
+              <PieChart>
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel nameKey="label" />}
+                />
+                <Pie
+                  data={statusChartData}
+                  dataKey="value"
+                  nameKey="label"
+                  innerRadius="55%"
+                  outerRadius="80%"
+                  strokeWidth={0}
+                  paddingAngle={2}
+                >
+                  {statusChartData.map(entry => (
+                    <Cell key={entry.key} fill={entry.fill} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ChartContainer>
+
+            <div className="flex justify-center gap-5 mt-2">
+              {statusChartData.map(item => (
+                <div key={item.key} className="flex items-center gap-1.5">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: item.fill }}
+                  />
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                  <span className="text-xs font-semibold">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bar — especie */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Mascotas por especie</CardTitle>
+            <CardDescription>Total registrado en la plataforma</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={speciesConfig} className="h-75 w-full">
+              <BarChart
+                accessibilityLayer
+                data={speciesChartData}
+                margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+              >
+                <CartesianGrid vertical={false} stroke="#f5f5f4" />
+                <XAxis
+                  dataKey="species"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={10}
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tick={{ fontSize: 12 }}
+                />
+                <ChartTooltip
+                  cursor={{ fill: '#f5f5f4' }}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+                <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={64}>
+                  {speciesChartData.map(entry => (
+                    <Cell key={entry.species} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
