@@ -1,6 +1,6 @@
 import { AreaChart, Area, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid } from 'recharts';
 import type { LucideIcon } from 'lucide-react';
-import { PawPrint, Building2, CheckCircle2, Clock, Heart } from 'lucide-react';
+import { PawPrint, CheckCircle2, Clock, Heart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   ChartContainer,
@@ -8,7 +8,6 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart';
-import { useAuth } from '../../auth/hooks/useAuth';
 
 // ─── Static placeholder data ───────────────────────────────────────────────────
 
@@ -81,29 +80,10 @@ function StatCard({ label, value, icon: Icon, description, color, colorBg }: Sta
 // ─── AdminPage ─────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const { user } = useAuth();
-
-  const today = new Date().toLocaleDateString('es-CO', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  });
-
   return (
     <div className="p-6 space-y-6">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-stone-900">
-            Bienvenido, {user?.full_name ?? 'Admin'}
-          </h1>
-          <p className="text-sm text-stone-400 capitalize mt-0.5">{today}</p>
-        </div>
-        <div className="hidden sm:flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm">
-          <Building2 className="h-4 w-4 text-stone-400" strokeWidth={1.75} />
-          <span className="font-semibold text-stone-700">{D.foundations}</span>
-          <span className="text-stone-400">fundaciones</span>
-        </div>
-      </div>
 
       {/* ── KPI cards ──────────────────────────────────────────────────── */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
