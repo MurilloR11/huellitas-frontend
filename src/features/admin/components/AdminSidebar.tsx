@@ -8,7 +8,7 @@ import {
   ClipboardList,
   LogOut,
   PanelLeft,
-  ShieldCheck,
+  ChevronRight,
   X,
   ChevronsUpDown,
 } from 'lucide-react';
@@ -42,13 +42,21 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
-const NAV_ITEMS = [
-  { path: '/admin',             label: 'Resumen',     icon: LayoutDashboard, exact: true  },
-  { path: '/admin/fundaciones', label: 'Fundaciones', icon: Building2,       exact: false },
-  { path: '/admin/usuarios',    label: 'Usuarios',    icon: Users,           exact: false },
-  { path: '/admin/mascotas',    label: 'Mascotas',    icon: PawPrint,        exact: false },
-  { path: '/admin/solicitudes', label: 'Solicitudes', icon: ClipboardList,   exact: false },
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+type NavItem = { icon: typeof PawPrint; label: string; path: string };
+
+const GESTION_ITEMS: NavItem[] = [
+  { icon: Building2,     label: 'Fundaciones', path: '/admin/fundaciones' },
+  { icon: Users,         label: 'Usuarios',    path: '/admin/usuarios'    },
 ];
+
+const PLATAFORMA_ITEMS: NavItem[] = [
+  { icon: PawPrint,      label: 'Mascotas',    path: '/admin/mascotas'    },
+  { icon: ClipboardList, label: 'Solicitudes', path: '/admin/solicitudes' },
+];
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function getInitials(name: string): string {
   return name.split(' ').filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('');
@@ -65,6 +73,92 @@ function useIsMobile() {
   return isMobile;
 }
 
+// ─── NavSection ────────────────────────────────────────────────────────────────
+
+interface NavSectionProps {
+  label: string;
+  items: NavItem[];
+  collapsed: boolean;
+  defaultOpen?: boolean;
+}
+
+function NavSection({ label, items, collapsed, defaultOpen = true }: NavSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  if (collapsed) {
+    return (
+      <>
+        {items.map(({ icon: Icon, label: itemLabel, path }) => (
+          <SidebarMenuItem key={path}>
+            <button
+              type="button"
+              onClick={() => navigate(path)}
+              title={itemLabel}
+              aria-current={location.pathname.startsWith(path) ? 'page' : undefined}
+              className={cn(
+                'flex w-full items-center justify-center rounded-lg p-2.5',
+                'text-sidebar-foreground/70 transition-colors',
+                'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                location.pathname.startsWith(path) && 'bg-sidebar-accent text-sidebar-accent-foreground',
+              )}
+            >
+              <Icon className="w-4.5 h-4.5 shrink-0" strokeWidth={1.75} />
+            </button>
+          </SidebarMenuItem>
+        ))}
+      </>
+    );
+  }
+
+  return (
+    <SidebarMenuItem className="w-full overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex h-10 w-full items-center gap-3 overflow-hidden rounded-lg px-3 text-[13px] text-left text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+      >
+        <span className="flex-1 min-w-0 truncate font-medium">{label}</span>
+        <ChevronRight
+          className={cn(
+            'w-4 h-4 shrink-0 text-sidebar-foreground/40 transition-transform duration-200',
+            open && 'rotate-90',
+          )}
+          strokeWidth={2}
+        />
+      </button>
+
+      {open && (
+        <div className="ml-3 mt-0.5 flex flex-col gap-0.5 overflow-hidden border-l border-sidebar-border pl-3">
+          {items.map(({ icon: Icon, label: itemLabel, path }) => {
+            const active = location.pathname.startsWith(path);
+            return (
+              <button
+                key={path}
+                type="button"
+                onClick={() => navigate(path)}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex w-full overflow-hidden items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-left',
+                  'text-sidebar-foreground/70 transition-colors',
+                  'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  active && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
+                )}
+              >
+                <Icon className="w-3.75 h-3.75 shrink-0" strokeWidth={1.75} />
+                <span className="min-w-0 truncate">{itemLabel}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </SidebarMenuItem>
+  );
+}
+
+// ─── Component ─────────────────────────────────────────────────────────────────
+
 interface AdminSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
@@ -80,10 +174,6 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen = false, onMobile
   const isMobile = useIsMobile();
 
   const effectiveCollapsed = collapsed && !isMobile;
-
-  function isActive(path: string, exact: boolean) {
-    return exact ? location.pathname === path : location.pathname.startsWith(path);
-  }
 
   const displayName = user?.full_name ?? 'Admin';
   const initials = user ? getInitials(user.full_name) : '--';
@@ -116,24 +206,21 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen = false, onMobile
           maxWidth: effectiveCollapsed ? '3.5rem' : 'var(--sidebar-width)',
         }}
       >
-        {/* ── Header ─────────────────────────────────────────────────────────── */}
+        {/* ── Logo ──────────────────────────────────────────────────────────── */}
         <SidebarHeader className={cn('py-3', effectiveCollapsed ? 'px-1.5' : 'px-4')}>
           <div className="flex items-center gap-3">
             {!effectiveCollapsed && (
               <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-primary shrink-0">
-                <ShieldCheck className="w-5 h-5 text-sidebar-primary-foreground" strokeWidth={2} />
+                <PawPrint className="w-5 h-5 text-sidebar-primary-foreground" strokeWidth={2} />
               </div>
             )}
+
             {!effectiveCollapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-bold text-sidebar-foreground tracking-tight leading-none">
-                  Huellitas
-                </p>
-                <p className="text-[11px] text-sidebar-foreground/50 mt-0.5 leading-none">
-                  Panel Admin
-                </p>
-              </div>
+              <span className="text-xl font-bold text-sidebar-foreground tracking-tight leading-none flex-1">
+                Huellitas
+              </span>
             )}
+
             <Button
               variant="ghost"
               size="icon"
@@ -149,6 +236,7 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen = false, onMobile
                 className={cn('h-4 w-4 transition-transform duration-300', effectiveCollapsed && 'rotate-180')}
               />
             </Button>
+
             {isMobile && (
               <button
                 type="button"
@@ -164,49 +252,64 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen = false, onMobile
 
         <SidebarSeparator />
 
-        {/* ── Nav ────────────────────────────────────────────────────────────── */}
-        <SidebarContent
-          className={cn('py-3', effectiveCollapsed ? 'px-1.5' : 'px-2')}
-          style={{ overflow: 'hidden' }}
-        >
+        {/* ── Nav ───────────────────────────────────────────────────────────── */}
+        <SidebarContent className={cn('py-3', effectiveCollapsed ? 'px-1.5' : 'px-2')} style={{ overflow: 'hidden' }}>
           <SidebarMenu>
-            {NAV_ITEMS.map(({ path, label, icon: Icon, exact }) => {
-              const active = isActive(path, exact);
-              return (
-                <SidebarMenuItem key={path}>
-                  {effectiveCollapsed ? (
-                    <button
-                      type="button"
-                      onClick={() => navigate(path)}
-                      title={label}
-                      aria-current={active ? 'page' : undefined}
-                      className={cn(
-                        'flex w-full items-center justify-center rounded-lg p-2.5',
-                        'text-sidebar-foreground/70 transition-colors',
-                        'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                        active && 'bg-sidebar-accent text-sidebar-accent-foreground',
-                      )}
-                    >
-                      <Icon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} />
-                    </button>
-                  ) : (
-                    <SidebarMenuButton
-                      isActive={active}
-                      onClick={() => navigate(path)}
-                      aria-current={active ? 'page' : undefined}
-                      className="h-10 px-3 gap-3 rounded-lg text-[13px]"
-                    >
-                      <Icon className="!w-[18px] !h-[18px] shrink-0" strokeWidth={1.75} />
-                      <span className="truncate">{label}</span>
-                    </SidebarMenuButton>
+
+            {/* Resumen */}
+            <SidebarMenuItem>
+              {effectiveCollapsed ? (
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin')}
+                  title="Resumen"
+                  aria-current={location.pathname === '/admin' ? 'page' : undefined}
+                  className={cn(
+                    'flex w-full items-center justify-center rounded-lg p-2.5',
+                    'text-sidebar-foreground/70 transition-colors',
+                    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    location.pathname === '/admin' && 'bg-sidebar-accent text-sidebar-accent-foreground',
                   )}
-                </SidebarMenuItem>
-              );
-            })}
+                >
+                  <LayoutDashboard className="w-4.5 h-4.5 shrink-0" strokeWidth={1.75} />
+                </button>
+              ) : (
+                <SidebarMenuButton
+                  isActive={location.pathname === '/admin'}
+                  onClick={() => navigate('/admin')}
+                  aria-current={location.pathname === '/admin' ? 'page' : undefined}
+                  className="h-10 px-3 gap-3 rounded-lg text-[13px]"
+                >
+                  <LayoutDashboard className="w-4.5! h-4.5! shrink-0" strokeWidth={1.75} />
+                  <span className="truncate">Resumen</span>
+                </SidebarMenuButton>
+              )}
+            </SidebarMenuItem>
+
+            {!effectiveCollapsed && (
+              <li role="separator" aria-hidden="true" className="mx-2 my-1.5 h-px bg-sidebar-border list-none" />
+            )}
+
+            <NavSection
+              label="Gestión"
+              items={GESTION_ITEMS}
+              collapsed={effectiveCollapsed}
+            />
+
+            {!effectiveCollapsed && (
+              <li role="separator" aria-hidden="true" className="mx-2 my-1.5 h-px bg-sidebar-border list-none" />
+            )}
+
+            <NavSection
+              label="Plataforma"
+              items={PLATAFORMA_ITEMS}
+              collapsed={effectiveCollapsed}
+            />
+
           </SidebarMenu>
         </SidebarContent>
 
-        {/* ── Footer / user ──────────────────────────────────────────────────── */}
+        {/* ── User profile footer ────────────────────────────────────────────── */}
         <SidebarFooter className={cn('border-t border-sidebar-border', effectiveCollapsed ? 'p-1.5' : 'p-2')}>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -242,12 +345,8 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen = false, onMobile
                     </SidebarMenuButton>
                   )}
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  side={isMobile ? 'top' : 'right'}
-                  align="end"
-                  sideOffset={8}
-                  className="w-56"
-                >
+
+                <DropdownMenuContent side={isMobile ? 'top' : 'right'} align="end" sideOffset={8} className="w-56">
                   <DropdownMenuLabel className="p-0 font-normal">
                     <div className="flex items-center gap-2.5 px-2 py-2">
                       <div className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 select-none overflow-hidden">
