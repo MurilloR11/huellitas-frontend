@@ -176,7 +176,7 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen = false, onMobile
   const effectiveCollapsed = collapsed && !isMobile;
 
   const displayName = user?.full_name ?? 'Admin';
-  const initials = user ? getInitials(user.full_name) : '--';
+  const initials = getInitials(user?.full_name ?? '') || 'AD';
   const avatarEl = user?.avatar_url
     ? <img src={user.avatar_url} alt={displayName} className="w-full h-full object-cover" />
     : initials;
