@@ -10,7 +10,7 @@ import {
 } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import type { LucideIcon } from 'lucide-react';
-import { PawPrint, Building2, CheckCircle2, Clock, Heart } from 'lucide-react';
+import { PawPrint, Building2, CheckCircle2, Clock, Heart, AlertCircle } from 'lucide-react';
 import { petsApi } from '../../pets/services/petsApi';
 import { foundationsApi } from '../../foundations/services/foundationsApi';
 import { useAuth } from '../../auth/hooks/useAuth';
@@ -107,8 +107,9 @@ export default function AdminPage() {
     ],
   });
 
-  const isLoading = [availableQ, inProcessQ, adoptedQ, dogsQ, catsQ, otherQ, foundationsQ]
-    .some(q => q.isLoading);
+  const allQueries = [availableQ, inProcessQ, adoptedQ, dogsQ, catsQ, otherQ, foundationsQ];
+  const isLoading  = allQueries.some(q => q.isLoading);
+  const isError    = allQueries.some(q => q.isError);
 
   const available   = availableQ.data?.total   ?? 0;
   const inProcess   = inProcessQ.data?.total   ?? 0;
@@ -158,9 +159,17 @@ export default function AdminPage() {
         <p className="text-sm text-stone-400 mt-0.5 capitalize">{today}</p>
       </div>
 
+      {/* ── Error banner ───────────────────────────────────────────────── */}
+      {isError && (
+        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          No se pudieron cargar los datos. Verifica que el backend esté activo y las tablas existan en la base de datos.
+        </div>
+      )}
+
       {/* ── KPI cards ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatCard label="Total mascotas" value={total}       icon={PawPrint}    iconColor={C.stone}   iconBg={C.stoneLight}   loading={isLoading} />
+        <StatCard label="Total mascotas" value={total}       icon={PawPrint}     iconColor={C.stone}   iconBg={C.stoneLight}   loading={isLoading} />
         <StatCard label="Disponibles"    value={available}   icon={CheckCircle2} iconColor={C.success} iconBg={C.successLight} loading={isLoading} />
         <StatCard label="En proceso"     value={inProcess}   icon={Clock}        iconColor={C.warning} iconBg={C.warningLight} loading={isLoading} />
         <StatCard label="Adoptadas"      value={adopted}     icon={Heart}        iconColor={C.brand}   iconBg={C.brandLight}   loading={isLoading} />
