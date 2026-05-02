@@ -16,6 +16,7 @@ import {
   Loader2,
   X,
   KeyRound,
+  Timer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '../../../shared/constants/routes';
@@ -56,7 +57,28 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [resetToken, setResetToken] = useState('');
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [timerKey, setTimerKey] = useState(0);
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (step !== 'code') return;
+    const id = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 0) { clearInterval(id); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [step, timerKey]);
+
+  function formatTime(s: number) {
+    const m = Math.floor(s / 60).toString().padStart(2, '0');
+    const sec = (s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
+  }
+
+  const codeExpired = step === 'code' && timeLeft <= 0;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -84,6 +106,8 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
     setIsLoading(true);
     try {
       await apiClient.post('/auth/forgot-password', { email: emailVal.trim().toLowerCase() });
+      setTimeLeft(600);
+      setTimerKey(k => k + 1);
       setStep('code');
     } catch {
       setError('No se pudo enviar el código. Intenta de nuevo.');
@@ -93,6 +117,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   }
 
   async function handleVerifyOtp() {
+    if (timeLeft <= 0) { setError('El código ha expirado. Solicita uno nuevo.'); return; }
     const otp = digits.join('');
     if (otp.length < 4) { setError('Ingresa el código completo'); return; }
     setError('');
@@ -257,6 +282,28 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
                 </p>
               </div>
 
+              {/* Countdown timer */}
+              <div className="flex justify-center">
+                {codeExpired ? (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-200">
+                    <Timer className="w-3 h-3" />
+                    Código expirado
+                  </div>
+                ) : (
+                  <div className={cn(
+                    'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border',
+                    timeLeft > 120
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : timeLeft > 30
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-red-50 text-red-600 border-red-200',
+                  )}>
+                    <Timer className="w-3 h-3" />
+                    {formatTime(timeLeft)}
+                  </div>
+                )}
+              </div>
+
               {/* OTP inputs */}
               <div className="flex justify-center gap-3">
                 {digits.map((d, i) => (
@@ -267,14 +314,17 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
                     inputMode="numeric"
                     maxLength={1}
                     value={d}
+                    disabled={codeExpired}
                     onChange={e => handleDigit(i, e.target.value)}
                     onKeyDown={e => handleDigitKey(i, e)}
                     className={cn(
                       'w-14 h-14 rounded-xl border-2 text-center text-2xl font-bold text-zinc-900 caret-brand',
                       'focus:outline-none transition-colors',
-                      d
-                        ? 'border-brand bg-brand/5'
-                        : 'border-zinc-200 bg-white focus:border-brand focus:bg-brand/5',
+                      codeExpired
+                        ? 'border-zinc-200 bg-zinc-50 text-zinc-400 cursor-not-allowed'
+                        : d
+                          ? 'border-brand bg-brand/5'
+                          : 'border-zinc-200 bg-white focus:border-brand focus:bg-brand/5',
                     )}
                   />
                 ))}
@@ -287,21 +337,21 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 onClick={handleVerifyOtp}
-                disabled={isLoading}
+                disabled={isLoading || codeExpired}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verificar código'}
               </button>
 
               <p className="text-center text-xs text-zinc-400">
-                ¿No recibiste el código?{' '}
+                {codeExpired ? 'El código expiró. ' : '¿No recibiste el código? '}
                 <button
                   type="button"
                   onClick={handleSendCode}
                   disabled={isLoading}
                   className="font-medium text-brand hover:text-brand-dark transition disabled:opacity-50"
                 >
-                  Reenviar
+                  {codeExpired ? 'Solicitar uno nuevo' : 'Reenviar'}
                 </button>
               </p>
             </motion.div>
