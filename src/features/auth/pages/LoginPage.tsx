@@ -493,7 +493,8 @@ export default function LoginPage() {
       const user = await login(result.data);
 
       const firstName = user.full_name.split(' ')[0];
-      toast.success(`Bienvenido, ${firstName}`, { duration: 4000 });
+      const label = user.role === 'admin' ? `Bienvenido, ${firstName} Admin` : `Bienvenido, ${firstName}`;
+      toast.success(label, { duration: 4000 });
 
       if (user.role === 'admin') {
         navigate(ROUTES.ADMIN);
