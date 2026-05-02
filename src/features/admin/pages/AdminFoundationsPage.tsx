@@ -21,6 +21,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog';
 
@@ -128,6 +129,7 @@ function FoundationModal({
             </div>
             <div>
               <DialogTitle className="text-base text-stone-900">{foundation.name}</DialogTitle>
+              <DialogDescription className="sr-only">Detalles de la fundación</DialogDescription>
               <p className="text-xs text-stone-400 mt-0.5 flex items-center gap-1">
                 <MapPin className="w-3 h-3" />{foundation.city}
               </p>

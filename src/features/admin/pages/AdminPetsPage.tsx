@@ -21,6 +21,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog';
 
@@ -150,6 +151,7 @@ function PetModal({
             </div>
             <div className="min-w-0">
               <DialogTitle className="text-base text-stone-900 leading-snug">{pet.name}</DialogTitle>
+              <DialogDescription className="sr-only">Detalles de la mascota</DialogDescription>
               <div className="mt-1.5 flex items-center gap-2">
                 <SpeciesBadge species={pet.species} />
                 <StatusBadge status={pet.status} />

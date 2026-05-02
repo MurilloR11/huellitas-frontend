@@ -24,6 +24,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog';
 
@@ -406,6 +407,7 @@ function RequestModal({
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-3">
                 <DialogTitle className="text-base text-stone-900 font-mono">{request.code}</DialogTitle>
+                <DialogDescription className="sr-only">Detalles de la solicitud de adopción</DialogDescription>
                 <StatusBadge status={request.status} />
               </div>
               <p className="text-xs text-stone-400 mt-1 flex items-center gap-1.5">

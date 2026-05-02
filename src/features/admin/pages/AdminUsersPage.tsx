@@ -21,6 +21,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog';
 
@@ -141,6 +142,7 @@ function UserModal({
             </div>
             <div className="min-w-0">
               <DialogTitle className="text-base text-stone-900 leading-snug">{user.name}</DialogTitle>
+              <DialogDescription className="sr-only">Perfil y detalles del usuario</DialogDescription>
               <div className="mt-1.5">
                 <RoleBadge role={user.role} />
               </div>
