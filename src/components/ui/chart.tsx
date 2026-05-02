@@ -40,15 +40,60 @@ const ChartContainer = React.forwardRef<
       typeof RechartsPrimitive.ResponsiveContainer
     >["children"]
   }
->(({ id, className, children, config, ...props }, ref) => {
+>(({ id, className, children, config, ...props }, forwardedRef) => {
   const uniqueId = React.useId()
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`
+  const containerRef = React.useRef<HTMLDivElement | null>(null)
+  const [size, setSize] = React.useState<{ w: number; h: number } | null>(null)
+
+  // Measure the container ourselves instead of relying on ResponsiveContainer,
+  // which initialises its state with -1 and triggers Recharts' dimension warning
+  // on every first render (doubled in React Strict Mode → 4 warnings per page).
+  React.useLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    if (rect.width > 0 && rect.height > 0)
+      setSize({ w: rect.width, h: rect.height })
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      if (width > 0 && height > 0)
+        setSize(prev =>
+          prev?.w === width && prev?.h === height ? prev : { w: width, h: height }
+        )
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const setRef = React.useMemo(
+    () => (el: HTMLDivElement | null) => {
+      containerRef.current = el
+      if (typeof forwardedRef === "function") forwardedRef(el)
+      else if (forwardedRef) forwardedRef.current = el
+    },
+    [forwardedRef]
+  )
+
+  const chart = size
+    ? typeof children === "function"
+      ? (children as (w: number, h: number) => React.ReactElement)(
+          Math.floor(size.w),
+          Math.floor(size.h)
+        )
+      : React.isValidElement(children)
+      ? React.cloneElement(
+          children as React.ReactElement<{ width?: number; height?: number }>,
+          { width: Math.floor(size.w), height: Math.floor(size.h) }
+        )
+      : null
+    : null
 
   return (
     <ChartContext.Provider value={{ config }}>
       <div
         data-chart={chartId}
-        ref={ref}
+        ref={setRef}
         className={cn(
           "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
           className
@@ -56,9 +101,7 @@ const ChartContainer = React.forwardRef<
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        <RechartsPrimitive.ResponsiveContainer>
-          {children}
-        </RechartsPrimitive.ResponsiveContainer>
+        {chart}
       </div>
     </ChartContext.Provider>
   )
