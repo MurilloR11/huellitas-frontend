@@ -1,7 +1,28 @@
 import { useState } from 'react';
-import { Building2, Mail, MapPin, PawPrint, Check, X, Calendar } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Building2, Mail, MapPin, Search, Check, X, Calendar, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -21,56 +42,25 @@ interface AdminFoundation {
 // ─── Static data ───────────────────────────────────────────────────────────────
 
 const INITIAL: AdminFoundation[] = [
-  {
-    id: 1,
-    name: 'Patitas Felices',
-    city: 'Bogotá',
-    contact_email: 'info@patitasfelices.com',
-    active_pets_count: 0,
-    adopted_pets_count: 0,
-    created_at: '2026-04-20',
-    status: 'pending',
-  },
-  {
-    id: 2,
-    name: 'Huellas de Amor',
-    city: 'Medellín',
-    contact_email: 'contacto@huellasdeamor.com',
-    active_pets_count: 0,
-    adopted_pets_count: 0,
-    created_at: '2026-04-27',
-    status: 'pending',
-  },
-  {
-    id: 3,
-    name: 'Refugio San Francisco',
-    city: 'Cali',
-    contact_email: 'refugio@sanfrancisco.com',
-    active_pets_count: 8,
-    adopted_pets_count: 21,
-    created_at: '2026-01-10',
-    status: 'approved',
-  },
-  {
-    id: 4,
-    name: 'Animales del Valle',
-    city: 'Cali',
-    contact_email: 'info@animalesvalle.com',
-    active_pets_count: 15,
-    adopted_pets_count: 45,
-    created_at: '2026-02-05',
-    status: 'approved',
-  },
-  {
-    id: 5,
-    name: 'Patas y Colitas',
-    city: 'Barranquilla',
-    contact_email: 'contacto@patascolitas.com',
-    active_pets_count: 5,
-    adopted_pets_count: 12,
-    created_at: '2026-03-01',
-    status: 'approved',
-  },
+  { id: 1,  name: 'Patitas Felices',          city: 'Bogotá',        contact_email: 'info@patitasfelices.com',       active_pets_count: 0,  adopted_pets_count: 0,  created_at: '2026-04-20', status: 'pending'  },
+  { id: 2,  name: 'Huellas de Amor',           city: 'Medellín',      contact_email: 'contacto@huellasdeamor.com',   active_pets_count: 0,  adopted_pets_count: 0,  created_at: '2026-04-27', status: 'pending'  },
+  { id: 3,  name: 'Amigos Peludos',            city: 'Bucaramanga',   contact_email: 'hola@amigospeludos.com',       active_pets_count: 0,  adopted_pets_count: 0,  created_at: '2026-04-15', status: 'pending'  },
+  { id: 4,  name: 'Rescate Animal Caribe',     city: 'Cartagena',     contact_email: 'info@rescatecaribe.com',       active_pets_count: 0,  adopted_pets_count: 0,  created_at: '2026-04-30', status: 'pending'  },
+  { id: 5,  name: 'Hogar Peludo',              city: 'Pereira',       contact_email: 'hogarpeludo@gmail.com',        active_pets_count: 0,  adopted_pets_count: 0,  created_at: '2026-05-01', status: 'pending'  },
+  { id: 6,  name: 'Refugio San Francisco',     city: 'Cali',          contact_email: 'refugio@sanfrancisco.com',     active_pets_count: 8,  adopted_pets_count: 21, created_at: '2026-01-10', status: 'approved' },
+  { id: 7,  name: 'Animales del Valle',        city: 'Cali',          contact_email: 'info@animalesvalle.com',       active_pets_count: 15, adopted_pets_count: 45, created_at: '2026-02-05', status: 'approved' },
+  { id: 8,  name: 'Patas y Colitas',           city: 'Barranquilla',  contact_email: 'contacto@patascolitas.com',    active_pets_count: 5,  adopted_pets_count: 12, created_at: '2026-03-01', status: 'approved' },
+  { id: 9,  name: 'Fundación Vida Animal',     city: 'Bogotá',        contact_email: 'info@vidaanimal.org',          active_pets_count: 22, adopted_pets_count: 67, created_at: '2025-11-14', status: 'approved' },
+  { id: 10, name: 'Refugio Los Andes',         city: 'Manizales',     contact_email: 'losandes@refugio.com',         active_pets_count: 3,  adopted_pets_count: 9,  created_at: '2025-12-20', status: 'approved' },
+  { id: 11, name: 'Colitas Felices',           city: 'Medellín',      contact_email: 'colitas@felices.com',          active_pets_count: 11, adopted_pets_count: 33, created_at: '2025-10-05', status: 'approved' },
+  { id: 12, name: 'Rescate Antioquia',         city: 'Medellín',      contact_email: 'rescate@antioquia.org',        active_pets_count: 7,  adopted_pets_count: 18, created_at: '2026-01-22', status: 'approved' },
+  { id: 13, name: 'Animal SOS',               city: 'Bogotá',        contact_email: 'sos@animalcol.com',            active_pets_count: 19, adopted_pets_count: 54, created_at: '2025-09-30', status: 'approved' },
+  { id: 14, name: 'Huellitas del Pacífico',   city: 'Buenaventura',  contact_email: 'huellitas@pacifico.com',       active_pets_count: 4,  adopted_pets_count: 7,  created_at: '2026-02-18', status: 'approved' },
+  { id: 15, name: 'Fundación Pelaje',          city: 'Ibagué',        contact_email: 'pelaje@fundacion.com',         active_pets_count: 6,  adopted_pets_count: 14, created_at: '2026-03-09', status: 'approved' },
+  { id: 16, name: 'Amparar Animal',            city: 'Neiva',         contact_email: 'amparar@animal.org',           active_pets_count: 0,  adopted_pets_count: 5,  created_at: '2026-01-30', status: 'approved' },
+  { id: 17, name: 'Patitas del Sur',           city: 'Pasto',         contact_email: 'patitas@sur.com',              active_pets_count: 9,  adopted_pets_count: 27, created_at: '2025-12-01', status: 'approved' },
+  { id: 18, name: 'Lazos de Vida',             city: 'Villavicencio', contact_email: 'lazos@vidaanimal.com',         active_pets_count: 2,  adopted_pets_count: 6,  created_at: '2026-02-25', status: 'rejected' },
+  { id: 19, name: 'Sin Hogar No Más',          city: 'Santa Marta',   contact_email: 'sinhogar@nomas.com',           active_pets_count: 0,  adopted_pets_count: 0,  created_at: '2026-04-10', status: 'rejected' },
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -81,180 +71,353 @@ function formatDate(iso: string) {
   });
 }
 
-// ─── PendingRow ────────────────────────────────────────────────────────────────
+// ─── StatusBadge ───────────────────────────────────────────────────────────────
 
-function PendingRow({
-  foundation,
-  onApprove,
-  onReject,
-}: {
-  foundation: AdminFoundation;
-  onApprove: () => void;
-  onReject: () => void;
-}) {
+function StatusBadge({ status }: { status: Status }) {
+  if (status === 'approved') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+        Registrada
+      </span>
+    );
+  }
+  if (status === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+        Pendiente
+      </span>
+    );
+  }
   return (
-    <div className="flex items-center gap-4 px-5 py-4 border-b border-stone-100 last:border-0">
-      <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
-        <Building2 className="w-4 h-4 text-amber-600" strokeWidth={1.75} />
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-stone-800 truncate">{foundation.name}</p>
-        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-          <span className="flex items-center gap-1 text-xs text-stone-400">
-            <MapPin className="w-3 h-3" />
-            {foundation.city}
-          </span>
-          <span className="flex items-center gap-1 text-xs text-stone-400">
-            <Mail className="w-3 h-3" />
-            {foundation.contact_email}
-          </span>
-          <span className="flex items-center gap-1 text-xs text-stone-400">
-            <Calendar className="w-3 h-3" />
-            Solicitó el {formatDate(foundation.created_at)}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onReject}
-          className="h-8 px-3 text-xs border-stone-200 text-stone-500 hover:border-red-200 hover:text-red-600 hover:bg-red-50"
-        >
-          <X className="w-3.5 h-3.5 mr-1" />
-          Rechazar
-        </Button>
-        <Button
-          size="sm"
-          onClick={onApprove}
-          className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white"
-        >
-          <Check className="w-3.5 h-3.5 mr-1" />
-          Aprobar
-        </Button>
-      </div>
-    </div>
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-500 bg-stone-100 border border-stone-200 rounded-full px-2.5 py-0.5">
+      <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+      Rechazada
+    </span>
   );
 }
 
-// ─── ApprovedRow ───────────────────────────────────────────────────────────────
+// ─── FoundationModal ───────────────────────────────────────────────────────────
 
-function ApprovedRow({ foundation }: { foundation: AdminFoundation }) {
+function FoundationModal({
+  foundation,
+  open,
+  onClose,
+  onApprove,
+  onReject,
+}: {
+  foundation: AdminFoundation | null;
+  open: boolean;
+  onClose: () => void;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  if (!foundation) return null;
+
+  const fecha = new Date(foundation.created_at).toLocaleDateString('es-CO', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
+
   return (
-    <div className="flex items-center gap-4 px-5 py-4 border-b border-stone-100 last:border-0">
-      <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
-        <Building2 className="w-4 h-4 text-green-600" strokeWidth={1.75} />
-      </div>
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="max-w-sm p-0 overflow-hidden bg-white border border-stone-200 shadow-xl">
 
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-stone-800 truncate">{foundation.name}</p>
-        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-          <span className="flex items-center gap-1 text-xs text-stone-400">
-            <MapPin className="w-3 h-3" />
-            {foundation.city}
-          </span>
-          <span className="flex items-center gap-1 text-xs text-stone-400">
-            <Mail className="w-3 h-3" />
-            {foundation.contact_email}
-          </span>
+        {/* Header con fondo ámbar suave */}
+        <div className="bg-amber-50 px-6 pt-6 pb-5 border-b border-amber-100">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white border border-amber-200 flex items-center justify-center shrink-0 shadow-sm">
+              <Building2 className="w-5 h-5 text-amber-500" strokeWidth={1.75} />
+            </div>
+            <div>
+              <DialogTitle className="text-base text-stone-900">{foundation.name}</DialogTitle>
+              <p className="text-xs text-stone-400 mt-0.5 flex items-center gap-1">
+                <MapPin className="w-3 h-3" />{foundation.city}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="hidden md:flex items-center gap-5 shrink-0">
-        <div className="text-right">
-          <p className="text-sm font-bold text-stone-800 tabular-nums">{foundation.active_pets_count}</p>
-          <p className="text-xs text-stone-400 flex items-center gap-0.5 justify-end">
-            <PawPrint className="w-3 h-3" /> Activas
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-sm font-bold text-stone-800 tabular-nums">{foundation.adopted_pets_count}</p>
-          <p className="text-xs text-stone-400">Adoptadas</p>
-        </div>
-      </div>
+        {/* Cuerpo */}
+        <div className="px-6 py-5 space-y-4">
+          <div className="space-y-1">
+            <p className="text-xs text-stone-400">Email de contacto</p>
+            <p className="text-sm text-stone-700 flex items-center gap-2">
+              <Mail className="w-3.5 h-3.5 text-stone-300 shrink-0" />
+              {foundation.contact_email}
+            </p>
+          </div>
 
-      <Badge className="shrink-0 bg-green-50 text-green-700 border border-green-200 hover:bg-green-50 text-xs font-medium shadow-none">
-        Aprobada
-      </Badge>
-    </div>
+          <div className="space-y-1">
+            <p className="text-xs text-stone-400">Fecha de solicitud</p>
+            <p className="text-sm text-stone-700 flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-stone-300 shrink-0" />
+              {fecha}
+            </p>
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-stone-100 flex items-center justify-between">
+          <DialogClose asChild>
+            <Button
+              size="sm"
+              onClick={onApprove}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Check className="w-3.5 h-3.5 mr-1" />
+              Aprobar
+            </Button>
+          </DialogClose>
+          <DialogClose asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReject}
+              className="text-stone-400 hover:text-red-600 hover:bg-red-50"
+            >
+              <X className="w-3.5 h-3.5 mr-1" />
+              Rechazar
+            </Button>
+          </DialogClose>
+        </div>
+
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── ActiveBadge ───────────────────────────────────────────────────────────────
+
+function ActiveBadge({ active }: { active: boolean }) {
+  if (active) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+        Activa
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-500 bg-stone-100 border border-stone-200 rounded-full px-2.5 py-0.5">
+      <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+      Inactiva
+    </span>
   );
 }
 
 // ─── AdminFoundationsPage ──────────────────────────────────────────────────────
 
 export default function AdminFoundationsPage() {
-  const [foundations, setFoundations] = useState<AdminFoundation[]>(INITIAL);
+  const [foundations, setFoundations]   = useState<AdminFoundation[]>(INITIAL);
+  const [search, setSearch]             = useState('');
+  const [statusFilter, setStatusFilter] = useState<Status | 'all'>('approved');
+  const [selected, setSelected]         = useState<AdminFoundation | null>(null);
+  const [page, setPage]                 = useState(1);
 
-  const pending  = foundations.filter(f => f.status === 'pending');
-  const approved = foundations.filter(f => f.status === 'approved');
+  const PAGE_SIZE = 7;
+
+  const filtered = foundations.filter(f => {
+    const matchesSearch = f.name.toLowerCase().includes(search.toLowerCase()) ||
+                          f.city.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || f.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function setStatus(id: number, status: Status) {
     setFoundations(prev => prev.map(f => f.id === id ? { ...f, status } : f));
+    setSelected(null);
   }
 
   return (
-    <div className="p-6 space-y-5 max-w-4xl">
+    <div className="p-6 space-y-6 max-w-5xl">
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-xl font-bold text-stone-900">Fundaciones</h1>
-        <p className="text-sm text-stone-400 mt-0.5">
-          {approved.length} aprobadas · {pending.length} pendientes de revisión
-        </p>
+      {/* ── Filtros ────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+          <Input
+            placeholder="Buscar por nombre o ciudad..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            className="pl-9 h-9 text-sm border-stone-200 bg-white"
+          />
+        </div>
+
+        <Select
+          value={statusFilter}
+          onValueChange={v => { setStatusFilter(v as Status | 'all'); setPage(1); }}
+        >
+          <SelectTrigger className="w-48 h-9 text-sm border-stone-200">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="approved">Registradas</SelectItem>
+            <SelectItem value="pending">Pendientes</SelectItem>
+            <SelectItem value="rejected">Rechazadas</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* ── Pendientes ─────────────────────────────────────────────────── */}
-      <section>
-        <div className="flex items-center gap-2 mb-2">
-          <p className="text-sm font-semibold text-stone-700">Pendientes de aprobación</p>
-          <span className="text-xs font-semibold bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
-            {pending.length}
-          </span>
+      {/* ── Tabla ──────────────────────────────────────────────────────── */}
+      {filtered.length === 0 ? (
+        <div className="py-20 text-center">
+          <p className="text-sm text-stone-400">Sin resultados para los filtros aplicados.</p>
         </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow className="border-stone-200 hover:bg-transparent">
+              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 pl-0">
+                Nombre
+              </TableHead>
+              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden sm:table-cell">
+                Ciudad
+              </TableHead>
+              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden md:table-cell">
+                Email
+              </TableHead>
+              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden sm:table-cell">
+                Registro
+              </TableHead>
+              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9">
+                {statusFilter === 'approved' ? 'Actividad' : 'Estado'}
+              </TableHead>
+              {statusFilter !== 'approved' && (
+                <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 text-right">
+                  Acciones
+                </TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginated.map(f => (
+              <TableRow key={f.id} className="border-stone-100 hover:bg-stone-50/60">
 
-        {pending.length > 0 ? (
-          <div className="rounded-2xl border border-amber-200 bg-white overflow-hidden">
-            {pending.map(f => (
-              <PendingRow
-                key={f.id}
-                foundation={f}
-                onApprove={() => setStatus(f.id, 'approved')}
-                onReject={()  => setStatus(f.id, 'rejected')}
-              />
+                <TableCell className="pl-0 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      f.status === 'approved' ? 'bg-green-50' :
+                      f.status === 'pending'  ? 'bg-amber-50' : 'bg-stone-100'
+                    }`}>
+                      <Building2 className={`w-4 h-4 ${
+                        f.status === 'approved' ? 'text-green-600' :
+                        f.status === 'pending'  ? 'text-amber-500' : 'text-stone-400'
+                      }`} strokeWidth={1.75} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-stone-800 truncate">{f.name}</p>
+                      <p className="text-xs text-stone-400 sm:hidden flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3" />{f.city}
+                      </p>
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell className="py-4 hidden sm:table-cell">
+                  <span className="flex items-center gap-1.5 text-stone-500 text-sm">
+                    <MapPin className="w-3.5 h-3.5 text-stone-300 shrink-0" />
+                    {f.city}
+                  </span>
+                </TableCell>
+
+                <TableCell className="py-4 hidden md:table-cell">
+                  <span className="flex items-center gap-1.5 text-stone-500 text-sm">
+                    <Mail className="w-3.5 h-3.5 text-stone-300 shrink-0" />
+                    {f.contact_email}
+                  </span>
+                </TableCell>
+
+                <TableCell className="py-4 hidden sm:table-cell">
+                  <span className="flex items-center gap-1.5 text-stone-400 text-xs">
+                    <Calendar className="w-3.5 h-3.5 text-stone-300 shrink-0" />
+                    {formatDate(f.created_at)}
+                  </span>
+                </TableCell>
+
+                <TableCell className="py-4">
+                  {statusFilter === 'approved'
+                    ? <ActiveBadge active={f.active_pets_count > 0} />
+                    : <StatusBadge status={f.status} />
+                  }
+                </TableCell>
+
+                {statusFilter !== 'approved' && (
+                  <TableCell className="py-4 text-right">
+                    {f.status === 'pending' ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelected(f)}
+                        className="h-7 px-3 text-xs border-stone-200 text-stone-600 hover:bg-stone-50"
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1" />
+                        Ver
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-stone-300">—</span>
+                    )}
+                  </TableCell>
+                )}
+
+              </TableRow>
             ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-stone-200 bg-white px-5 py-8 text-center">
-            <Check className="w-7 h-7 text-green-500 mx-auto mb-2" strokeWidth={1.5} />
-            <p className="text-sm font-medium text-stone-600">Sin solicitudes pendientes</p>
-            <p className="text-xs text-stone-400 mt-0.5">Todas las fundaciones han sido revisadas.</p>
-          </div>
-        )}
-      </section>
+          </TableBody>
+        </Table>
+      )}
 
-      {/* ── Aprobadas ──────────────────────────────────────────────────── */}
-      <section>
-        <div className="flex items-center gap-2 mb-2">
-          <p className="text-sm font-semibold text-stone-700">Aprobadas</p>
-          <span className="text-xs font-semibold bg-green-100 text-green-700 rounded-full px-2 py-0.5">
-            {approved.length}
-          </span>
+      {/* ── Paginación ─────────────────────────────────────────────────── */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center pt-2">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => p - 1)}
+              disabled={page === 1}
+              className="h-8 w-8 p-0 border-stone-200 text-stone-500 disabled:opacity-40"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+              <Button
+                key={n}
+                variant={n === page ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setPage(n)}
+                className={`h-8 w-8 p-0 text-xs ${
+                  n === page
+                    ? 'bg-stone-800 hover:bg-stone-700 text-white'
+                    : 'text-stone-500 hover:bg-stone-100'
+                }`}
+              >
+                {n}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => p + 1)}
+              disabled={page === totalPages}
+              className="h-8 w-8 p-0 border-stone-200 text-stone-500 disabled:opacity-40"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
+      )}
 
-        {approved.length > 0 ? (
-          <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden">
-            {approved.map(f => (
-              <ApprovedRow key={f.id} foundation={f} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-stone-200 bg-white px-5 py-8 text-center">
-            <p className="text-sm text-stone-400">Aún no hay fundaciones aprobadas.</p>
-          </div>
-        )}
-      </section>
+      <FoundationModal
+        foundation={selected}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        onApprove={() => selected && setStatus(selected.id, 'approved')}
+        onReject={() => selected && setStatus(selected.id, 'rejected')}
+      />
 
     </div>
   );
