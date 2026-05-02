@@ -65,38 +65,37 @@ const INITIAL: AdminFoundation[] = [
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string) {
+const PAGE_SIZE = 7;
+
+function formatDate(iso: string, month: 'short' | 'long' = 'short') {
   return new Date(iso).toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'short', year: 'numeric',
+    day: 'numeric', month, year: 'numeric',
   });
+}
+
+function Pill({ dot, text, color }: { dot: string; text: string; color: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-0.5 border ${color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+      {text}
+    </span>
+  );
 }
 
 // ─── StatusBadge ───────────────────────────────────────────────────────────────
 
+const STATUS_PILL: Record<Status, { dot: string; text: string; color: string }> = {
+  approved: { dot: 'bg-green-500',  text: 'Registrada', color: 'text-green-700 bg-green-50 border-green-200'  },
+  pending:  { dot: 'bg-amber-400',  text: 'Pendiente',  color: 'text-amber-700 bg-amber-50 border-amber-200'  },
+  rejected: { dot: 'bg-stone-400',  text: 'Rechazada',  color: 'text-stone-500 bg-stone-100 border-stone-200' },
+};
+
 function StatusBadge({ status }: { status: Status }) {
-  if (status === 'approved') {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-        Registrada
-      </span>
-    );
-  }
-  if (status === 'pending') {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-        Pendiente
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-500 bg-stone-100 border border-stone-200 rounded-full px-2.5 py-0.5">
-      <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
-      Rechazada
-    </span>
-  );
+  return <Pill {...STATUS_PILL[status]} />;
 }
+
+const ICON_BG:    Record<Status, string> = { approved: 'bg-green-50',  pending: 'bg-amber-50',  rejected: 'bg-stone-100' };
+const ICON_COLOR: Record<Status, string> = { approved: 'text-green-600', pending: 'text-amber-500', rejected: 'text-stone-400' };
 
 // ─── FoundationModal ───────────────────────────────────────────────────────────
 
@@ -115,9 +114,7 @@ function FoundationModal({
 }) {
   if (!foundation) return null;
 
-  const fecha = new Date(foundation.created_at).toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  });
+  const fecha = formatDate(foundation.created_at, 'long');
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
@@ -191,20 +188,9 @@ function FoundationModal({
 // ─── ActiveBadge ───────────────────────────────────────────────────────────────
 
 function ActiveBadge({ active }: { active: boolean }) {
-  if (active) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-        Activa
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-500 bg-stone-100 border border-stone-200 rounded-full px-2.5 py-0.5">
-      <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
-      Inactiva
-    </span>
-  );
+  return active
+    ? <Pill dot="bg-green-500" text="Activa"   color="text-green-700 bg-green-50 border-green-200"  />
+    : <Pill dot="bg-stone-400" text="Inactiva" color="text-stone-500 bg-stone-100 border-stone-200" />;
 }
 
 // ─── AdminFoundationsPage ──────────────────────────────────────────────────────
@@ -215,8 +201,6 @@ export default function AdminFoundationsPage() {
   const [statusFilter, setStatusFilter] = useState<Status | 'all'>('approved');
   const [selected, setSelected]         = useState<AdminFoundation | null>(null);
   const [page, setPage]                 = useState(1);
-
-  const PAGE_SIZE = 7;
 
   const filtered = foundations.filter(f => {
     const matchesSearch = f.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -300,14 +284,8 @@ export default function AdminFoundationsPage() {
 
                 <TableCell className="pl-0 py-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      f.status === 'approved' ? 'bg-green-50' :
-                      f.status === 'pending'  ? 'bg-amber-50' : 'bg-stone-100'
-                    }`}>
-                      <Building2 className={`w-4 h-4 ${
-                        f.status === 'approved' ? 'text-green-600' :
-                        f.status === 'pending'  ? 'text-amber-500' : 'text-stone-400'
-                      }`} strokeWidth={1.75} />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${ICON_BG[f.status]}`}>
+                      <Building2 className={`w-4 h-4 ${ICON_COLOR[f.status]}`} strokeWidth={1.75} />
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-stone-800 truncate">{f.name}</p>
