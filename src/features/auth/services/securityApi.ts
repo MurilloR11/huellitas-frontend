@@ -19,4 +19,23 @@ export const securityApi = {
   async verifyBackupCode(code: string): Promise<void> {
     await apiClient.post('/auth/backup-codes/verify', { code });
   },
+
+  async generateAccessKey(): Promise<string> {
+    const { data } = await apiClient.post<{ key: string }>('/auth/access-key/generate');
+    return data.key;
+  },
+
+  async getAccessKeyStatus(): Promise<{ has_key: boolean; created_at: string | null }> {
+    const { data } = await apiClient.get<{ has_key: boolean; created_at: string | null }>('/auth/access-key/status');
+    return data;
+  },
+
+  async revokeAccessKey(): Promise<void> {
+    await apiClient.delete('/auth/access-key');
+  },
+
+  async loginWithAccessKey(user_id: string, key: string): Promise<{ hashed_token: string }> {
+    const { data } = await apiClient.post<{ hashed_token: string }>('/auth/access-key/login', { user_id, key });
+    return data;
+  },
 };

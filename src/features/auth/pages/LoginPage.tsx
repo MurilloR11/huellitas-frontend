@@ -18,6 +18,7 @@ import {
   KeyRound,
   Timer,
   Smartphone,
+  Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '../../../shared/constants/routes';
@@ -27,6 +28,7 @@ import { securityApi } from '../services/securityApi';
 import type { AuthUser } from '../types';
 import apiClient from '../../../shared/lib/apiClient';
 import { loginSchema } from '../schemas/authSchemas';
+import { supabase } from '../../../shared/lib/supabaseClient';
 
 const features = [
   {
@@ -476,7 +478,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // MFA challenge state
-  const [loginStep, setLoginStep] = useState<'form' | 'mfa'>('form');
+  const [loginStep, setLoginStep] = useState<'form' | 'mfa' | 'keyfile'>('form');
   const [mfaMode, setMfaMode] = useState<'totp' | 'backup'>('totp');
   const [mfaFactorId, setMfaFactorId] = useState('');
   const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
@@ -486,6 +488,11 @@ export default function LoginPage() {
   const mfaRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [backupCode, setBackupCode] = useState('');
+
+  // Keyfile login state
+  const [isKeyfileSubmitting, setIsKeyfileSubmitting] = useState(false);
+  const [keyfileError, setKeyfileError] = useState('');
+  const keyfileInputRef = useRef<HTMLInputElement>(null);
 
   function formatBackupCode(raw: string): string {
     const clean = raw.replace(/[^a-z0-9]/gi, '').toLowerCase().slice(0, 12);
@@ -620,6 +627,32 @@ export default function LoginPage() {
     setMfaError('');
     setBackupCode('');
     setPendingUser(null);
+  }
+
+  async function handleKeyFileLogin(file: File) {
+    setKeyfileError('');
+    setIsKeyfileSubmitting(true);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (parsed.service !== 'huellitas' || !parsed.user_id || !parsed.key) {
+        setKeyfileError('Archivo inválido. Asegúrate de usar el archivo generado por Huellitas.');
+        return;
+      }
+      const { hashed_token } = await securityApi.loginWithAccessKey(parsed.user_id, parsed.key);
+      const { data, error } = await supabase.auth.verifyOtp({ token_hash: hashed_token, type: 'magiclink' });
+      if (error || !data.session) {
+        setKeyfileError('No se pudo verificar la llave. Intenta de nuevo.');
+        return;
+      }
+      const { data: profile } = await apiClient.get<AuthUser>('/auth/me');
+      commitLogin(profile);
+      navigateAfterLogin(profile);
+    } catch {
+      setKeyfileError('Llave inválida o revocada.');
+    } finally {
+      setIsKeyfileSubmitting(false);
+    }
   }
 
   return (
@@ -805,7 +838,17 @@ export default function LoginPage() {
                 Crear una cuenta
               </Link>
 
-              <div className="mt-6 sm:mt-8 text-center">
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => { setLoginStep('keyfile'); setKeyfileError(''); }}
+                  className="text-xs text-zinc-400 hover:text-zinc-600 transition"
+                >
+                  ¿Tienes una llave de acceso?
+                </button>
+              </div>
+
+              <div className="mt-4 sm:mt-6 text-center">
                 <Link
                   to={ROUTES.HOME}
                   className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 transition"
@@ -814,6 +857,81 @@ export default function LoginPage() {
                   Volver al inicio
                 </Link>
               </div>
+            </motion.div>
+          )}
+
+          {/* ── Keyfile login ── */}
+          {loginStep === 'keyfile' && (
+            <motion.div
+              key="keyfile"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.22 }}
+              className="w-full max-w-sm my-auto"
+            >
+              <button
+                type="button"
+                onClick={() => { setLoginStep('form'); setKeyfileError(''); }}
+                className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-700 transition mb-8"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Volver
+              </button>
+
+              <div className="flex justify-center mb-6">
+                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-brand/10">
+                  <KeyRound className="w-7 h-7 text-brand" strokeWidth={1.5} />
+                </div>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 text-center">
+                Llave de acceso
+              </h2>
+              <p className="text-sm text-zinc-500 mt-1 mb-8 text-center leading-relaxed">
+                Selecciona el archivo{' '}
+                <span className="font-mono text-xs bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-700">
+                  huellitas-llave-acceso.json
+                </span>{' '}
+                que guardaste al configurar tu llave.
+              </p>
+
+              {keyfileError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-5">
+                  <p className="text-sm text-red-700">{keyfileError}</p>
+                </div>
+              )}
+
+              <input
+                id="keyfile-input"
+                ref={keyfileInputRef}
+                type="file"
+                accept=".json,application/json"
+                className="sr-only"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) handleKeyFileLogin(file);
+                  e.target.value = '';
+                }}
+              />
+
+              <label
+                htmlFor="keyfile-input"
+                className={cn(
+                  'w-full flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-4 py-10 transition group',
+                  isKeyfileSubmitting
+                    ? 'border-zinc-200 opacity-60 cursor-not-allowed pointer-events-none'
+                    : 'border-zinc-200 hover:border-brand hover:bg-brand/5 cursor-pointer',
+                )}
+              >
+                {isKeyfileSubmitting
+                  ? <Loader2 className="w-8 h-8 text-brand animate-spin" />
+                  : <Upload className="w-8 h-8 text-zinc-300 group-hover:text-brand transition" />
+                }
+                <span className="text-sm font-medium text-zinc-400 group-hover:text-brand transition">
+                  {isKeyfileSubmitting ? 'Verificando llave…' : 'Elegir archivo .json'}
+                </span>
+              </label>
             </motion.div>
           )}
 
