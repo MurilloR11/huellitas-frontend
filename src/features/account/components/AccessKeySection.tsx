@@ -6,6 +6,7 @@ import { securityApi } from '@/features/auth/services/securityApi';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useCooldown, formatCooldown } from '@/shared/hooks/useCooldown';
 
 // ─── Key modal (shown once after generating) ───────────────────────────────────
 
@@ -190,6 +191,8 @@ export function AccessKeySection() {
   const [plainKey, setPlainKey]         = useState('');
   const [showModal, setShowModal]       = useState(false);
   const [showRevoke, setShowRevoke]     = useState(false);
+  const generateCooldown = useCooldown(300);
+  const revokeCooldown   = useCooldown(30);
 
   async function loadStatus() {
     setIsLoading(true);
@@ -224,6 +227,7 @@ export function AccessKeySection() {
       URL.revokeObjectURL(url);
 
       setShowModal(true);
+      generateCooldown.start();
       await loadStatus();
     } catch {
       toast.error('No se pudo generar la llave. Inténtalo de nuevo.');
@@ -238,6 +242,7 @@ export function AccessKeySection() {
       await securityApi.revokeAccessKey();
       toast.success('Llave de acceso revocada');
       setShowRevoke(false);
+      revokeCooldown.start();
       await loadStatus();
     } catch {
       toast.error('No se pudo revocar la llave.');
@@ -308,18 +313,18 @@ export function AccessKeySection() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowRevoke(true)}
-                disabled={isGenerating}
+                disabled={isGenerating || isRevoking || revokeCooldown.isOnCooldown}
                 className="text-xs border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-300 gap-1.5"
               >
                 <Trash2 className="w-3 h-3" />
-                Revocar
+                {revokeCooldown.isOnCooldown ? formatCooldown(revokeCooldown.remaining) : 'Revocar'}
               </Button>
             )}
             <Button
               variant="outline"
               size="sm"
               onClick={handleGenerate}
-              disabled={isGenerating}
+              disabled={isGenerating || generateCooldown.isOnCooldown}
               className="text-xs border-stone-200 gap-1.5"
             >
               {isGenerating
@@ -328,7 +333,10 @@ export function AccessKeySection() {
                   ? <RefreshCw className="w-3 h-3" />
                   : <KeyRound className="w-3 h-3" />
               }
-              {hasKey ? 'Regenerar' : 'Generar'}
+              {generateCooldown.isOnCooldown
+                ? formatCooldown(generateCooldown.remaining)
+                : hasKey ? 'Regenerar' : 'Generar'
+              }
             </Button>
           </div>
         )}

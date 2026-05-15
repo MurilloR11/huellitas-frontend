@@ -6,6 +6,7 @@ import jsPDF from 'jspdf';
 import { securityApi } from '@/features/auth/services/securityApi';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useCooldown, formatCooldown } from '@/shared/hooks/useCooldown';
 
 // ─── PDF generator ─────────────────────────────────────────────────────────────
 
@@ -263,6 +264,7 @@ export function BackupCodesSection() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [codes, setCodes]               = useState<string[]>([]);
   const [showModal, setShowModal]       = useState(false);
+  const cooldown = useCooldown(60);
 
   async function loadStatus() {
     setIsLoading(true);
@@ -285,6 +287,7 @@ export function BackupCodesSection() {
         : await securityApi.generateBackupCodes();
       setCodes(result);
       setShowModal(true);
+      cooldown.start();
       await loadStatus();
     } catch {
       toast.error('No se pudieron generar los códigos. Inténtalo de nuevo.');
@@ -344,24 +347,29 @@ export function BackupCodesSection() {
             variant="outline"
             size="sm"
             onClick={() => handleGenerate(true)}
-            disabled={isGenerating}
+            disabled={isGenerating || cooldown.isOnCooldown}
             className="shrink-0 text-xs border-stone-200 gap-1.5"
           >
             {isGenerating
               ? <Loader2 className="w-3 h-3 animate-spin" />
               : <RefreshCw className="w-3 h-3" />
             }
-            Regenerar
+            {cooldown.isOnCooldown ? formatCooldown(cooldown.remaining) : 'Regenerar'}
           </Button>
         ) : (
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleGenerate(false)}
-            disabled={isGenerating}
+            disabled={isGenerating || cooldown.isOnCooldown}
             className="shrink-0 text-xs border-stone-200"
           >
-            {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Generar'}
+            {isGenerating
+              ? <Loader2 className="w-3 h-3 animate-spin" />
+              : cooldown.isOnCooldown
+                ? formatCooldown(cooldown.remaining)
+                : 'Generar'
+            }
           </Button>
         )}
       </div>

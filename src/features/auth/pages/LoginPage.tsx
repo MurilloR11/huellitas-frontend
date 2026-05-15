@@ -21,6 +21,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCooldown, formatCooldown } from '@/shared/hooks/useCooldown';
 import { ROUTES } from '../../../shared/constants/routes';
 import { useAuth } from '../hooks/useAuth';
 import { authApi } from '../services/authApi';
@@ -66,6 +67,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   const [timeLeft, setTimeLeft] = useState(0);
   const [timerKey, setTimerKey] = useState(0);
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const resendCooldown = useCooldown(60);
 
   useEffect(() => {
     if (step !== 'code') return;
@@ -114,6 +116,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
       await apiClient.post('/auth/forgot-password', { email: emailVal.trim().toLowerCase() });
       setTimeLeft(600);
       setTimerKey(k => k + 1);
+      resendCooldown.start();
       setStep('code');
     } catch {
       setError('No se pudo enviar el código. Intenta de nuevo.');
@@ -354,10 +357,13 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   onClick={handleSendCode}
-                  disabled={isLoading}
+                  disabled={isLoading || resendCooldown.isOnCooldown}
                   className="font-medium text-brand hover:text-brand-dark transition disabled:opacity-50"
                 >
-                  {codeExpired ? 'Solicitar uno nuevo' : 'Reenviar'}
+                  {resendCooldown.isOnCooldown
+                    ? `Reenviar en ${formatCooldown(resendCooldown.remaining)}`
+                    : codeExpired ? 'Solicitar uno nuevo' : 'Reenviar'
+                  }
                 </button>
               </p>
             </motion.div>
