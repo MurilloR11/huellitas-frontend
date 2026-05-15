@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MFASection } from '../components/MFASection';
+import { BackupCodesSection } from '../components/BackupCodesSection';
 import {
   ArrowLeft,
   Lock,
@@ -496,6 +497,7 @@ export default function AccountPage() {
                 <hr className="border-stone-200 dark:border-zinc-800 my-6" />
                 <p className="text-sm text-stone-400 dark:text-zinc-500 mb-4">Autenticación adicional</p>
                 <MFASection />
+                <BackupCodesSection />
               </>
             )}
 

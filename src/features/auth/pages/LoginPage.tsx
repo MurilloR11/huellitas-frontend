@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { ROUTES } from '../../../shared/constants/routes';
 import { useAuth } from '../hooks/useAuth';
 import { authApi } from '../services/authApi';
+import { securityApi } from '../services/securityApi';
 import type { AuthUser } from '../types';
 import apiClient from '../../../shared/lib/apiClient';
 import { loginSchema } from '../schemas/authSchemas';
@@ -476,12 +477,27 @@ export default function LoginPage() {
 
   // MFA challenge state
   const [loginStep, setLoginStep] = useState<'form' | 'mfa'>('form');
+  const [mfaMode, setMfaMode] = useState<'totp' | 'backup'>('totp');
   const [mfaFactorId, setMfaFactorId] = useState('');
   const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
   const [mfaDigits, setMfaDigits] = useState(['', '', '', '', '', '']);
   const [mfaError, setMfaError] = useState('');
   const [isMfaSubmitting, setIsMfaSubmitting] = useState(false);
   const mfaRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const [backupCode, setBackupCode] = useState('');
+
+  function formatBackupCode(raw: string): string {
+    const clean = raw.replace(/[^a-z0-9]/gi, '').toLowerCase().slice(0, 12);
+    return clean.match(/.{1,4}/g)?.join('-') ?? clean;
+  }
+
+  function switchMfaMode(mode: 'totp' | 'backup') {
+    setMfaMode(mode);
+    setMfaError('');
+    setMfaDigits(['', '', '', '', '', '']);
+    setBackupCode('');
+  }
 
   function navigateAfterLogin(user: AuthUser) {
     const firstName = user.full_name.split(' ')[0];
@@ -578,11 +594,31 @@ export default function LoginPage() {
     }
   }
 
+  async function handleBackupVerify() {
+    if (backupCode.length < 14) { setMfaError('Ingresa el código completo (xxxx-xxxx-xxxx)'); return; }
+    setMfaError('');
+    setIsMfaSubmitting(true);
+    try {
+      await securityApi.verifyBackupCode(backupCode);
+      if (pendingUser) {
+        commitLogin(pendingUser);
+        navigateAfterLogin(pendingUser);
+      }
+    } catch {
+      setMfaError('Código inválido o ya utilizado');
+      setBackupCode('');
+    } finally {
+      setIsMfaSubmitting(false);
+    }
+  }
+
   async function handleMFACancel() {
     await authApi.logout();
     setLoginStep('form');
+    setMfaMode('totp');
     setMfaDigits(['', '', '', '', '', '']);
     setMfaError('');
+    setBackupCode('');
     setPendingUser(null);
   }
 
@@ -801,54 +837,129 @@ export default function LoginPage() {
                 Verificación en dos pasos
               </h2>
               <p className="text-sm text-zinc-500 mt-1 mb-8 text-center leading-relaxed">
-                Abre tu app autenticadora e ingresa el código de 6 dígitos
+                {mfaMode === 'totp'
+                  ? 'Abre tu app autenticadora e ingresa el código de 6 dígitos'
+                  : 'Ingresa uno de tus códigos de respaldo de 12 caracteres'}
               </p>
 
-              <div className="flex justify-center mb-6">
-                <div className="flex gap-2">
-                  {[0, 1, 2, 3, 4, 5].map(i => (
-                    <input
-                      key={i}
-                      ref={el => { mfaRefs.current[i] = el; }}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={mfaDigits[i]}
+              <AnimatePresence mode="wait">
+                {mfaMode === 'totp' ? (
+                  <motion.div
+                    key="totp"
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -12 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <div className="flex justify-center mb-6">
+                      <div className="flex gap-2">
+                        {[0, 1, 2, 3, 4, 5].map(i => (
+                          <input
+                            key={i}
+                            ref={el => { mfaRefs.current[i] = el; }}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={mfaDigits[i]}
+                            disabled={isMfaSubmitting}
+                            onChange={e => handleMfaDigit(i, e.target.value)}
+                            onKeyDown={e => handleMfaKey(i, e)}
+                            onPaste={i === 0 ? handleMfaPaste : undefined}
+                            className={cn(
+                              'w-11 h-13 rounded-xl border-2 text-center text-xl font-bold text-zinc-900 caret-brand',
+                              'focus:outline-none transition-colors',
+                              isMfaSubmitting
+                                ? 'border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed'
+                                : mfaDigits[i]
+                                  ? 'border-brand bg-brand/5'
+                                  : 'border-zinc-200 bg-white focus:border-brand focus:bg-brand/5',
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {mfaError && (
+                      <p className="text-xs text-red-500 text-center mb-4">{mfaError}</p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleMFAVerify}
                       disabled={isMfaSubmitting}
-                      onChange={e => handleMfaDigit(i, e.target.value)}
-                      onKeyDown={e => handleMfaKey(i, e)}
-                      onPaste={i === 0 ? handleMfaPaste : undefined}
-                      className={cn(
-                        'w-11 h-13 rounded-xl border-2 text-center text-xl font-bold text-zinc-900 caret-brand',
-                        'focus:outline-none transition-colors',
-                        isMfaSubmitting
-                          ? 'border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed'
-                          : mfaDigits[i]
-                            ? 'border-brand bg-brand/5'
-                            : 'border-zinc-200 bg-white focus:border-brand focus:bg-brand/5',
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 sm:py-3 text-sm font-medium text-white hover:bg-brand-dark transition disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isMfaSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                      {isMfaSubmitting ? 'Verificando…' : 'Verificar'}
+                    </button>
 
-              {mfaError && (
-                <p className="text-xs text-red-500 text-center mb-4">{mfaError}</p>
-              )}
-
-              <button
-                type="button"
-                onClick={handleMFAVerify}
-                disabled={isMfaSubmitting}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 sm:py-3 text-sm font-medium text-white hover:bg-brand-dark transition disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isMfaSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                    <p className="text-center text-xs text-zinc-400 mt-4">
+                      ¿No tienes acceso a tu autenticador?{' '}
+                      <button
+                        type="button"
+                        onClick={() => switchMfaMode('backup')}
+                        className="font-medium text-brand hover:text-brand-dark transition"
+                      >
+                        Usar código de respaldo
+                      </button>
+                    </p>
+                  </motion.div>
                 ) : (
-                  <ShieldCheck className="w-4 h-4" />
+                  <motion.div
+                    key="backup"
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 12 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <div className="mb-6">
+                      <input
+                        type="text"
+                        value={backupCode}
+                        placeholder="xxxx-xxxx-xxxx"
+                        autoFocus
+                        disabled={isMfaSubmitting}
+                        onChange={e => setBackupCode(formatBackupCode(e.target.value))}
+                        onKeyDown={e => { if (e.key === 'Enter') handleBackupVerify(); }}
+                        className={cn(
+                          'w-full rounded-xl border-2 text-center text-base font-mono font-medium text-zinc-900 py-3 px-4 caret-brand tracking-widest',
+                          'focus:outline-none transition-colors',
+                          isMfaSubmitting
+                            ? 'border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed'
+                            : backupCode
+                              ? 'border-brand bg-brand/5'
+                              : 'border-zinc-200 bg-white focus:border-brand focus:bg-brand/5',
+                        )}
+                      />
+                    </div>
+
+                    {mfaError && (
+                      <p className="text-xs text-red-500 text-center mb-4">{mfaError}</p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleBackupVerify}
+                      disabled={isMfaSubmitting}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 sm:py-3 text-sm font-medium text-white hover:bg-brand-dark transition disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isMfaSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                      {isMfaSubmitting ? 'Verificando…' : 'Usar código de respaldo'}
+                    </button>
+
+                    <p className="text-center text-xs text-zinc-400 mt-4">
+                      ¿Tienes tu autenticador disponible?{' '}
+                      <button
+                        type="button"
+                        onClick={() => switchMfaMode('totp')}
+                        className="font-medium text-brand hover:text-brand-dark transition"
+                      >
+                        Usar código TOTP
+                      </button>
+                    </p>
+                  </motion.div>
                 )}
-                {isMfaSubmitting ? 'Verificando…' : 'Verificar'}
-              </button>
+              </AnimatePresence>
 
               <div className="mt-6 text-center">
                 <button
