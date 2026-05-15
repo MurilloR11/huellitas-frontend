@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { FoundationSidebar, type FoundationNavId } from '@/shared/ui/organisms/FoundationSidebar';
-import { ChevronRight, ChevronLeft, Menu, PawPrint, ImagePlus, Check, Calendar, Heart } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Menu, PawPrint, ImagePlus, Check, Calendar, Heart, TrendingUp, Clock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Pet, PetStatus } from '@/features/pets/types';
 
@@ -135,50 +135,103 @@ function PetCard({ pet }: { pet: Pet }) {
 // ─── Placeholder pages ─────────────────────────────────────────────────────────
 
 function OverviewPage({ onNavigate }: { onNavigate: (id: FoundationNavId) => void }) {
-  const pendingCount = STATIC_REQUESTS.filter(r => r.status === 'pending').length;
+  // ── Metrics ────────────────────────────────────────────────────────────────
+  const pending = [...STATIC_REQUESTS.filter(r => r.status === 'pending')]
+    .sort((a, b) => new Date(a.requested_at).getTime() - new Date(b.requested_at).getTime());
 
-  const pendingRequests = STATIC_REQUESTS
-    .filter(r => r.status === 'pending')
-    .sort((a, b) => new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime())
-    .slice(0, 3);
+  const adopted  = STATIC_HISTORY.filter(e => e.outcome === 'adopted');
+  const resolved = STATIC_HISTORY.length;
 
-  const recentAdoptions = STATIC_HISTORY
-    .filter(e => e.outcome === 'adopted')
-    .sort((a, b) => new Date(b.resolved_at).getTime() - new Date(a.resolved_at).getTime())
-    .slice(0, 3);
+  const successRate = resolved > 0 ? Math.round((adopted.length / resolved) * 100) : 0;
 
-  const adoptedCount = STATIC_HISTORY.filter(e => e.outcome === 'adopted').length;
+  const avgDays = adopted.length > 0
+    ? Math.round(
+        adopted.reduce((sum, e) => {
+          const ms = new Date(e.resolved_at).getTime() - new Date(e.requested_at).getTime();
+          return sum + ms / (1000 * 60 * 60 * 24);
+        }, 0) / adopted.length,
+      )
+    : 0;
+
+  // Pets with incomplete medical records (excluding already-adopted pets)
+  const healthIssues = STATIC_PETS
+    .filter(p => p.status !== 'adopted')
+    .map(p => {
+      const missing: string[] = [];
+      if (!p.clinical_record.vaccinated) missing.push('Sin vacunar');
+      if (!p.clinical_record.sterilized) missing.push('Sin esterilizar');
+      if (!p.clinical_record.dewormed)   missing.push('Sin desparasitar');
+      return { pet: p, missing };
+    })
+    .filter(e => e.missing.length > 0);
 
   return (
     <div className="px-6 sm:px-8 py-6 space-y-5">
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-4">
-          <p className="text-2xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">{STATIC_COUNTS.all}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Mascotas registradas</p>
+      {/* KPI cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">
+              Tasa de éxito
+            </p>
+            <TrendingUp className="w-4 h-4 text-emerald-500 shrink-0" strokeWidth={2} />
+          </div>
+          <p className="text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+            {successRate}<span className="text-lg font-semibold ml-0.5">%</span>
+          </p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5 leading-snug">
+            {adopted.length} de {resolved} solicitudes terminaron en adopción
+          </p>
         </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-4">
-          <p className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{STATIC_COUNTS.available}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Disponibles</p>
+
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">
+              Tiempo promedio
+            </p>
+            <Clock className="w-4 h-4 text-blue-400 shrink-0" strokeWidth={2} />
+          </div>
+          <p className="text-3xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">
+            {avgDays}<span className="text-base font-medium text-stone-400 dark:text-zinc-500 ml-1.5">días</span>
+          </p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5 leading-snug">
+            entre solicitud y adopción confirmada
+          </p>
         </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-4">
-          <p className="text-2xl font-bold tabular-nums text-amber-500">{pendingCount}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Solicitudes pendientes</p>
+
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">
+              Pendientes
+            </p>
+            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" strokeWidth={2} />
+          </div>
+          <p className="text-3xl font-bold tabular-nums text-amber-500">{pending.length}</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5 leading-snug">
+            {pending.length === 1
+              ? 'solicitud esperando respuesta'
+              : 'solicitudes esperando respuesta'}
+          </p>
         </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-4">
-          <p className="text-2xl font-bold tabular-nums text-brand">{adoptedCount}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Adopciones completadas</p>
-        </div>
+
       </div>
 
       {/* Two-column panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* Pending requests */}
+        {/* Pending requests — oldest first */}
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-5">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">Solicitudes pendientes</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">Solicitudes pendientes</span>
+              {pending.length > 0 && (
+                <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[11px] font-bold px-1.5 py-0.5 tabular-nums">
+                  {pending.length}
+                </span>
+              )}
+            </div>
             <button
               onClick={() => onNavigate('requests')}
               className="text-xs text-brand font-medium hover:underline underline-offset-2"
@@ -186,69 +239,91 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: FoundationNavId) => voi
               Ver todas
             </button>
           </div>
-          {pendingRequests.length === 0 ? (
+
+          {pending.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-              <PawPrint className="w-7 h-7 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
-              <p className="text-xs text-stone-400 dark:text-zinc-500">Sin solicitudes pendientes</p>
+              <Check className="w-7 h-7 text-emerald-400" strokeWidth={2} />
+              <p className="text-xs text-stone-400 dark:text-zinc-500">Todo al día — sin solicitudes pendientes</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {pendingRequests.map(req => (
+            <div className="space-y-2.5">
+              {pending.slice(0, 4).map(req => (
                 <div key={req.id} className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-brand-light dark:bg-brand/20 shrink-0 flex items-center justify-center">
-                    <span className="text-xs font-bold text-brand select-none">{getInitials(req.applicant.name)}</span>
+                  <div className="w-8 h-8 rounded-full bg-brand-light dark:bg-brand/20 shrink-0 flex items-center justify-center">
+                    <span className="text-[11px] font-bold text-brand select-none">{getInitials(req.applicant.name)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-stone-700 dark:text-zinc-300 truncate">
                       <span className="font-medium">{req.applicant.name}</span>
-                      <span className="text-stone-400 dark:text-zinc-500"> quiere adoptar a </span>
+                      <span className="text-stone-400 dark:text-zinc-500 mx-1">→</span>
                       <span className="font-semibold text-brand">{req.pet.name}</span>
                     </p>
-                    <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-0.5">
-                      {formatRequestDate(req.requested_at)}
-                    </p>
                   </div>
+                  <span className="text-[11px] text-stone-400 dark:text-zinc-500 shrink-0 tabular-nums whitespace-nowrap">
+                    {formatRequestDate(req.requested_at)}
+                  </span>
                 </div>
               ))}
+              {pending.length > 4 && (
+                <p className="text-xs text-stone-400 dark:text-zinc-500 pt-1">
+                  +{pending.length - 4} más
+                </p>
+              )}
             </div>
           )}
         </div>
 
-        {/* Recent adoptions */}
+        {/* Pet health panel */}
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-5">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">Adopciones recientes</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">Salud de mascotas</span>
+              {healthIssues.length > 0 && (
+                <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[11px] font-bold px-1.5 py-0.5 tabular-nums">
+                  {healthIssues.length}
+                </span>
+              )}
+            </div>
             <button
-              onClick={() => onNavigate('history')}
+              onClick={() => onNavigate('my-pets')}
               className="text-xs text-brand font-medium hover:underline underline-offset-2"
             >
-              Ver historial
+              Ver mascotas
             </button>
           </div>
-          {recentAdoptions.length === 0 ? (
+
+          {healthIssues.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-              <Heart className="w-7 h-7 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
-              <p className="text-xs text-stone-400 dark:text-zinc-500">Sin adopciones aún</p>
+              <Check className="w-7 h-7 text-emerald-400" strokeWidth={2} />
+              <p className="text-xs text-stone-400 dark:text-zinc-500">Todos los registros médicos están completos</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {recentAdoptions.map(entry => (
-                <div key={entry.id} className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/30 shrink-0 flex items-center justify-center">
-                    <Heart className="w-4 h-4 text-emerald-600 dark:text-emerald-400" strokeWidth={2} fill="currentColor" />
+            <div className="space-y-2.5">
+              {healthIssues.slice(0, 4).map(({ pet, missing }) => (
+                <div key={pet.id} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-stone-100 dark:bg-zinc-800 shrink-0 flex items-center justify-center mt-0.5">
+                    <PawPrint className="w-3.5 h-3.5 text-stone-400 dark:text-zinc-500" strokeWidth={1.5} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-stone-700 dark:text-zinc-300 truncate">
-                      <span className="font-semibold text-stone-800 dark:text-zinc-100">{entry.pet.name}</span>
-                      <span className="text-stone-400 dark:text-zinc-500"> adoptado/a por </span>
-                      <span className="font-medium">{entry.applicant.name}</span>
-                    </p>
-                    <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-0.5">
-                      {formatRequestDate(entry.resolved_at)}
-                    </p>
+                    <p className="text-sm font-medium text-stone-800 dark:text-zinc-100 truncate">{pet.name}</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {missing.map(issue => (
+                        <span
+                          key={issue}
+                          className="text-[11px] px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+                        >
+                          {issue}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
+              {healthIssues.length > 4 && (
+                <p className="text-xs text-stone-400 dark:text-zinc-500 pt-1">
+                  +{healthIssues.length - 4} más
+                </p>
+              )}
             </div>
           )}
         </div>
