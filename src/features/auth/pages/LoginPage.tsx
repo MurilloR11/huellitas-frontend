@@ -17,10 +17,13 @@ import {
   X,
   KeyRound,
   Timer,
+  Smartphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '../../../shared/constants/routes';
 import { useAuth } from '../hooks/useAuth';
+import { authApi } from '../services/authApi';
+import type { AuthUser } from '../types';
 import apiClient from '../../../shared/lib/apiClient';
 import { loginSchema } from '../schemas/authSchemas';
 
@@ -471,6 +474,30 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // MFA challenge state
+  const [loginStep, setLoginStep] = useState<'form' | 'mfa'>('form');
+  const [mfaFactorId, setMfaFactorId] = useState('');
+  const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
+  const [mfaDigits, setMfaDigits] = useState(['', '', '', '', '', '']);
+  const [mfaError, setMfaError] = useState('');
+  const [isMfaSubmitting, setIsMfaSubmitting] = useState(false);
+  const mfaRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  function navigateAfterLogin(user: AuthUser) {
+    const firstName = user.full_name.split(' ')[0];
+    const label = user.role === 'admin' ? `Bienvenido, ${firstName} Admin` : `Bienvenido, ${firstName}`;
+    toast.success(label, { duration: 4000 });
+    if (user.role === 'admin') navigate(ROUTES.ADMIN);
+    else if (user.role === 'developer') navigate(ROUTES.DEVELOPER_DASHBOARD);
+    else if (user.role === 'fundacion') {
+      if (user.status === 'pending') navigate(ROUTES.PENDING);
+      else if (user.status === 'rejected') navigate(ROUTES.REJECTED);
+      else navigate(ROUTES.FOUNDATION_DASHBOARD);
+    } else {
+      navigate('/explore');
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setServerError('');
@@ -492,26 +519,66 @@ export default function LoginPage() {
     try {
       const user = await login(result.data);
 
-      const firstName = user.full_name.split(' ')[0];
-      const label = user.role === 'admin' ? `Bienvenido, ${firstName} Admin` : `Bienvenido, ${firstName}`;
-      toast.success(label, { duration: 4000 });
-
-      if (user.role === 'admin') {
-        navigate(ROUTES.ADMIN);
-      } else if (user.role === 'developer') {
-        navigate(ROUTES.DEVELOPER_DASHBOARD);
-      } else if (user.role === 'fundacion') {
-        if (user.status === 'pending') navigate(ROUTES.PENDING);
-        else if (user.status === 'rejected') navigate(ROUTES.REJECTED);
-        else navigate(ROUTES.FOUNDATION_DASHBOARD);
-      } else {
-        navigate('/explore');
+      const mfaStatus = await authApi.getMFAStatus();
+      if (mfaStatus.required && mfaStatus.factorId) {
+        setPendingUser(user);
+        setMfaFactorId(mfaStatus.factorId);
+        setLoginStep('mfa');
+        return;
       }
+
+      navigateAfterLogin(user);
     } catch (err) {
       setServerError(err instanceof Error ? err.message : 'Error al iniciar sesión');
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleMfaDigit(i: number, val: string) {
+    if (!/^\d?$/.test(val)) return;
+    const next = [...mfaDigits];
+    next[i] = val.slice(-1);
+    setMfaDigits(next);
+    if (val && i < 5) mfaRefs.current[i + 1]?.focus();
+  }
+
+  function handleMfaKey(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Backspace' && !mfaDigits[i] && i > 0) mfaRefs.current[i - 1]?.focus();
+  }
+
+  function handleMfaPaste(e: React.ClipboardEvent) {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) {
+      setMfaDigits(pasted.split(''));
+      mfaRefs.current[5]?.focus();
+      e.preventDefault();
+    }
+  }
+
+  async function handleMFAVerify() {
+    const code = mfaDigits.join('');
+    if (code.length < 6) { setMfaError('Ingresa el código completo'); return; }
+    setMfaError('');
+    setIsMfaSubmitting(true);
+    try {
+      await authApi.completeMFAChallenge(mfaFactorId, code);
+      if (pendingUser) navigateAfterLogin(pendingUser);
+    } catch (err) {
+      setMfaError(err instanceof Error ? err.message : 'Código incorrecto');
+      setMfaDigits(['', '', '', '', '', '']);
+      mfaRefs.current[0]?.focus();
+    } finally {
+      setIsMfaSubmitting(false);
+    }
+  }
+
+  async function handleMFACancel() {
+    await authApi.logout();
+    setLoginStep('form');
+    setMfaDigits(['', '', '', '', '', '']);
+    setMfaError('');
+    setPendingUser(null);
   }
 
   return (
@@ -570,133 +637,227 @@ export default function LoginPage() {
           <span className="text-xl font-bold text-brand tracking-tight">API</span>
         </div>
 
-        <div className="w-full max-w-sm my-auto">
-          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900">
-            Bienvenido de nuevo
-          </h2>
-          <p className="text-sm text-zinc-500 mt-1 mb-8">
-            Ingresa a tu cuenta para continuar
-          </p>
+        <AnimatePresence mode="wait">
+          {/* ── Login form ── */}
+          {loginStep === 'form' && (
+            <motion.div
+              key="form"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.22 }}
+              className="w-full max-w-sm my-auto"
+            >
+              <h2 className="text-xl sm:text-2xl font-bold text-zinc-900">
+                Bienvenido de nuevo
+              </h2>
+              <p className="text-sm text-zinc-500 mt-1 mb-8">
+                Ingresa a tu cuenta para continuar
+              </p>
 
-          {serverError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-5">
-              <p className="text-sm text-red-700">{serverError}</p>
-            </div>
+              {serverError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-5">
+                  <p className="text-sm text-red-700">{serverError}</p>
+                </div>
+              )}
+
+              <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit} noValidate>
+                {/* Email */}
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="email" className="text-xs sm:text-sm font-medium text-zinc-700">
+                    Correo electrónico
+                  </label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
+                    <input
+                      id="email"
+                      type="email"
+                      placeholder="nombre@ejemplo.com"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`w-full rounded-lg border bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition ${errors.email ? 'border-red-400' : 'border-zinc-300'}`}
+                    />
+                  </div>
+                  <FieldError message={errors.email} />
+                </div>
+
+                {/* Password */}
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="password" className="text-xs sm:text-sm font-medium text-zinc-700">
+                    Contraseña
+                  </label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`w-full rounded-lg border bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition ${errors.password ? 'border-red-400' : 'border-zinc-300'}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition"
+                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+                      ) : (
+                        <Eye className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+                      )}
+                    </button>
+                  </div>
+                  <FieldError message={errors.password} />
+                  <div className="flex justify-end mt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-xs font-medium text-brand hover:text-brand-dark transition"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
+                </div>
+
+                {/* Keep session */}
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-zinc-300 text-brand accent-brand focus:ring-brand"
+                  />
+                  <span className="text-sm text-zinc-600">Mantener sesión iniciada</span>
+                </label>
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 sm:py-3 text-sm font-medium text-white hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <LogIn className="w-4 h-4" />
+                  )}
+                  {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
+                </button>
+              </form>
+
+              <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-zinc-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-3 text-xs text-zinc-500">¿No tienes cuenta?</span>
+                </div>
+              </div>
+
+              <Link
+                to={ROUTES.REGISTER}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-2 transition"
+              >
+                <UserPlus className="w-4 h-4" />
+                Crear una cuenta
+              </Link>
+
+              <div className="mt-6 sm:mt-8 text-center">
+                <Link
+                  to={ROUTES.HOME}
+                  className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 transition"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al inicio
+                </Link>
+              </div>
+            </motion.div>
           )}
 
-          <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit} noValidate>
-            {/* Email */}
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="email" className="text-xs sm:text-sm font-medium text-zinc-700">
-                Correo electrónico
-              </label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="nombre@ejemplo.com"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full rounded-lg border bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition ${errors.email ? 'border-red-400' : 'border-zinc-300'}`}
-                />
-              </div>
-              <FieldError message={errors.email} />
-            </div>
-
-            {/* Password */}
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="password" className="text-xs sm:text-sm font-medium text-zinc-700">
-                Contraseña
-              </label>
-              <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px] text-zinc-400" />
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full rounded-lg border bg-white py-2 sm:py-2.5 pl-9 sm:pl-10 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition ${errors.password ? 'border-red-400' : 'border-zinc-300'}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition"
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
-                  ) : (
-                    <Eye className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
-                  )}
-                </button>
-              </div>
-              <FieldError message={errors.password} />
-              <div className="flex justify-end mt-0.5">
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(true)}
-                  className="text-xs font-medium text-brand hover:text-brand-dark transition"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
-            </div>
-
-            {/* Keep session */}
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-zinc-300 text-brand accent-brand focus:ring-brand"
-              />
-              <span className="text-sm text-zinc-600">Mantener sesión iniciada</span>
-            </label>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 sm:py-3 text-sm font-medium text-white hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          {/* ── MFA challenge ── */}
+          {loginStep === 'mfa' && (
+            <motion.div
+              key="mfa"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.22 }}
+              className="w-full max-w-sm my-auto"
             >
-              {isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <LogIn className="w-4 h-4" />
+              <div className="flex justify-center mb-6">
+                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-brand/10">
+                  <Smartphone className="w-7 h-7 text-brand" strokeWidth={1.5} />
+                </div>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 text-center">
+                Verificación en dos pasos
+              </h2>
+              <p className="text-sm text-zinc-500 mt-1 mb-8 text-center leading-relaxed">
+                Abre tu app autenticadora e ingresa el código de 6 dígitos
+              </p>
+
+              <div className="flex justify-center mb-6">
+                <div className="flex gap-2">
+                  {[0, 1, 2, 3, 4, 5].map(i => (
+                    <input
+                      key={i}
+                      ref={el => { mfaRefs.current[i] = el; }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={mfaDigits[i]}
+                      disabled={isMfaSubmitting}
+                      onChange={e => handleMfaDigit(i, e.target.value)}
+                      onKeyDown={e => handleMfaKey(i, e)}
+                      onPaste={i === 0 ? handleMfaPaste : undefined}
+                      className={cn(
+                        'w-11 h-13 rounded-xl border-2 text-center text-xl font-bold text-zinc-900 caret-brand',
+                        'focus:outline-none transition-colors',
+                        isMfaSubmitting
+                          ? 'border-zinc-100 bg-zinc-50 text-zinc-300 cursor-not-allowed'
+                          : mfaDigits[i]
+                            ? 'border-brand bg-brand/5'
+                            : 'border-zinc-200 bg-white focus:border-brand focus:bg-brand/5',
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {mfaError && (
+                <p className="text-xs text-red-500 text-center mb-4">{mfaError}</p>
               )}
-              {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
-            </button>
-          </form>
 
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-zinc-200" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white px-3 text-xs text-zinc-500">¿No tienes cuenta?</span>
-            </div>
-          </div>
+              <button
+                type="button"
+                onClick={handleMFAVerify}
+                disabled={isMfaSubmitting}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 sm:py-3 text-sm font-medium text-white hover:bg-brand-dark transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isMfaSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ShieldCheck className="w-4 h-4" />
+                )}
+                {isMfaSubmitting ? 'Verificando…' : 'Verificar'}
+              </button>
 
-          <Link
-            to={ROUTES.REGISTER}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-2 transition"
-          >
-            <UserPlus className="w-4 h-4" />
-            Crear una cuenta
-          </Link>
-
-          <div className="mt-6 sm:mt-8 text-center">
-            <Link
-              to={ROUTES.HOME}
-              className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 transition"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Volver al inicio
-            </Link>
-          </div>
-        </div>
+              <div className="mt-6 text-center">
+                <button
+                  type="button"
+                  onClick={handleMFACancel}
+                  className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 transition"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al inicio de sesión
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
     </>

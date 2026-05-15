@@ -83,6 +83,46 @@ export const authApi = {
     await supabase.auth.signOut();
   },
 
+  async enrollMFA(): Promise<{ factorId: string; qrCode: string; secret: string }> {
+    // Ask the backend to clean up pending factors via the Supabase Admin API.
+    // The JS SDK cannot see factors created in previous sessions, so we rely on the backend.
+    await apiClient.delete('/auth/mfa/pending');
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+    if (error || !data) throw new Error(error?.message ?? 'No se pudo iniciar la activación de MFA');
+    return { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret };
+  },
+
+  async verifyMFAEnrollment(factorId: string, code: string): Promise<void> {
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
+    if (error) throw new Error('Código incorrecto. Intenta de nuevo.');
+  },
+
+  async unenrollMFA(factorId: string): Promise<void> {
+    const { error } = await supabase.auth.mfa.unenroll({ factorId });
+    if (error) throw new Error('No se pudo desactivar MFA');
+  },
+
+  async listMFAFactors(): Promise<Array<{ id: string; status: string }>> {
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error || !data) return [];
+    return data.totp ?? [];
+  },
+
+  async getMFAStatus(): Promise<{ required: boolean; factorId: string | null }> {
+    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const factor = factorsData?.totp?.find(f => f.status === 'verified') ?? null;
+      return { required: true, factorId: factor?.id ?? null };
+    }
+    return { required: false, factorId: null };
+  },
+
+  async completeMFAChallenge(factorId: string, code: string): Promise<void> {
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
+    if (error) throw new Error('Código incorrecto. Intenta de nuevo.');
+  },
+
   async me(): Promise<AuthUser | null> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
