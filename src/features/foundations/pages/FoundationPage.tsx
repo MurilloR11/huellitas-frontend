@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { FoundationSidebar, type FoundationNavId } from '@/shared/ui/organisms/FoundationSidebar';
-import { ChevronRight, Menu, PawPrint, ImagePlus } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Menu, PawPrint, ImagePlus, Check, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Pet, PetStatus } from '@/features/pets/types';
 
@@ -12,7 +12,7 @@ const BREADCRUMBS: Record<FoundationNavId, string[]> = {
   'my-pets': ['Mascotas', 'Mis mascotas'],
   'add-pet': ['Mascotas', 'Agregar mascota'],
   requests:  ['Adopciones', 'Solicitudes recibidas'],
-  schedule:  ['Adopciones', 'Agendar un encuentro'],
+  schedule:  ['Adopciones', 'Agendar encuentros'],
   history:   ['Adopciones', 'Historial'],
 };
 
@@ -865,13 +865,240 @@ function RequestsPage() {
   );
 }
 
+// ─── Schedule page data ────────────────────────────────────────────────────────
+
+interface DateSlot {
+  start: string;
+  end: string;
+}
+
+const MONTH_NAMES = [
+  'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
+];
+
+const DAY_HEADERS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+function toDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatSlotDate(key: string): string {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('es-CO', {
+    weekday: 'short', day: 'numeric', month: 'short',
+  });
+}
+
+const TIME_INPUT_CLS =
+  'h-8 px-2 rounded-lg border border-stone-200 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-800 ' +
+  'text-sm text-stone-700 dark:text-zinc-200 tabular-nums ' +
+  'focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors';
+
 function ScheduleFoundationPage() {
+  const todayRef = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
+
+  const [viewYear,  setViewYear]  = useState(todayRef.getFullYear());
+  const [viewMonth, setViewMonth] = useState(todayRef.getMonth());
+  const [selected,  setSelected]  = useState<Map<string, DateSlot>>(new Map());
+  const [saved,     setSaved]     = useState(false);
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const toggleDay = (d: Date) => {
+    if (d < todayRef) return;
+    const key = toDateKey(d);
+    setSelected(prev => {
+      const next = new Map(prev);
+      if (next.has(key)) next.delete(key);
+      else next.set(key, { start: '09:00', end: '17:00' });
+      return next;
+    });
+  };
+
+  const updateTime = (key: string, field: 'start' | 'end', value: string) => {
+    setSelected(prev => {
+      const next = new Map(prev);
+      const slot = next.get(key);
+      if (slot) next.set(key, { ...slot, [field]: value });
+      return next;
+    });
+  };
+
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  // Build calendar grid (Mon-based)
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const lastDay  = new Date(viewYear, viewMonth + 1, 0);
+  const startDow = (firstDay.getDay() + 6) % 7;
+
+  const calDays: (Date | null)[] = [];
+  for (let i = 0; i < startDow; i++) calDays.push(null);
+  for (let d = 1; d <= lastDay.getDate(); d++) calDays.push(new Date(viewYear, viewMonth, d));
+  while (calDays.length % 7 !== 0) calDays.push(null);
+
+  const numWeeks = calDays.length / 7;
+  const todayKey = toDateKey(todayRef);
+  const selectedEntries = Array.from(selected.entries()).sort(([a], [b]) => a.localeCompare(b));
+
   return (
-    <div className="px-4 sm:px-6 py-8">
-      <h1 className="text-2xl font-bold text-stone-900 dark:text-zinc-100">Agendar un encuentro</h1>
-      <p className="mt-2 text-sm text-stone-500 dark:text-zinc-400">
-        Próximamente: calendario de citas con adoptantes.
-      </p>
+    <div className="flex flex-col min-h-full p-6 sm:p-8 gap-4">
+
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
+
+        {/* ── Calendar ───────────────────────────────────────────── */}
+        <div className="flex flex-col flex-1 min-w-0 bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 p-5">
+
+          {/* Month navigation */}
+          <div className="flex items-center justify-between mb-5 shrink-0">
+            <button
+              type="button"
+              onClick={prevMonth}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" strokeWidth={2} />
+            </button>
+            <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">
+              {MONTH_NAMES[viewMonth]} {viewYear}
+            </span>
+            <button
+              type="button"
+              onClick={nextMonth}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* Day-of-week headers */}
+          <div className="grid grid-cols-7 shrink-0 mb-1">
+            {DAY_HEADERS.map(h => (
+              <div key={h} className="text-center text-[11px] font-semibold text-stone-400 dark:text-zinc-500 pb-2">
+                {h}
+              </div>
+            ))}
+          </div>
+
+          {/* Day cells */}
+          <div
+            className="grid grid-cols-7 flex-1"
+            style={{ gridTemplateRows: `repeat(${numWeeks}, 1fr)` }}
+          >
+            {calDays.map((d, i) => {
+              if (!d) return <div key={i} />;
+              const key    = toDateKey(d);
+              const isPast = d < todayRef;
+              const isToday = key === todayKey;
+              const isSel  = selected.has(key);
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  disabled={isPast}
+                  onClick={() => toggleDay(d)}
+                  className={cn(
+                    'flex items-center justify-center rounded-xl text-sm font-medium transition-all m-0.5',
+                    isPast  && 'text-stone-300 dark:text-zinc-700 cursor-not-allowed',
+                    !isPast && !isSel && 'text-stone-700 dark:text-zinc-300 hover:bg-stone-100 dark:hover:bg-zinc-800',
+                    isSel   && 'bg-brand text-white hover:bg-brand-dark shadow-sm',
+                    isToday && !isSel && 'ring-2 ring-inset ring-brand/40 text-brand font-semibold',
+                  )}
+                >
+                  {d.getDate()}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Selected dates panel ───────────────────────────────── */}
+        <div className="w-full lg:w-72 flex flex-col bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 p-5 overflow-hidden">
+          <div className="flex items-center gap-2 mb-4 shrink-0">
+            <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">Días seleccionados</span>
+            {selected.size > 0 && (
+              <span className="ml-auto text-xs tabular-nums text-stone-400 dark:text-zinc-500">{selected.size}</span>
+            )}
+          </div>
+
+          {selectedEntries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center flex-1 text-center gap-2">
+              <div className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-zinc-800 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
+              </div>
+              <p className="text-xs text-stone-400 dark:text-zinc-500">
+                Selecciona días en el calendario
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-0">
+              {selectedEntries.map(([key, slot]) => (
+                <div
+                  key={key}
+                  className="rounded-xl border border-stone-100 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-800/50 p-3"
+                >
+                  <p className="text-xs font-semibold text-stone-700 dark:text-zinc-200 capitalize mb-2">
+                    {formatSlotDate(key)}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="time"
+                      value={slot.start}
+                      onChange={e => updateTime(key, 'start', e.target.value)}
+                      className={cn(TIME_INPUT_CLS, 'flex-1 min-w-0')}
+                    />
+                    <span className="text-[10px] text-stone-300 dark:text-zinc-600 shrink-0">—</span>
+                    <input
+                      type="time"
+                      value={slot.end}
+                      onChange={e => updateTime(key, 'end', e.target.value)}
+                      className={cn(TIME_INPUT_CLS, 'flex-1 min-w-0')}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Bottom bar */}
+      <div className="flex items-center justify-between shrink-0">
+        <p className="text-xs text-stone-400 dark:text-zinc-500">
+          {selected.size === 0
+            ? 'Ningún día seleccionado'
+            : `${selected.size} ${selected.size === 1 ? 'día seleccionado' : 'días seleccionados'}`}
+        </p>
+        <div className="flex items-center gap-3">
+          {saved && (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+              Guardado
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleSave}
+            className="h-9 px-5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
+          >
+            Guardar disponibilidad
+          </button>
+        </div>
+      </div>
+
     </div>
   );
 }
