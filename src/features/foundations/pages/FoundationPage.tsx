@@ -637,13 +637,230 @@ function AddPetPage() {
   );
 }
 
+// ─── Adoption requests ────────────────────────────────────────────────────────
+
+type RequestStatus = 'pending' | 'approved' | 'rejected' | 'in_process';
+
+interface AdoptionRequest {
+  id: number;
+  pet: Pick<Pet, 'id' | 'name' | 'species' | 'breed'>;
+  applicant: { name: string; email: string };
+  requested_at: string;
+  status: RequestStatus;
+  message?: string;
+}
+
+const STATIC_REQUESTS: AdoptionRequest[] = [
+  {
+    id: 1,
+    pet: { id: 1, name: 'Luna', species: 'dog', breed: 'Labrador mestizo' },
+    applicant: { name: 'Carlos García', email: 'carlos.garcia@gmail.com' },
+    requested_at: '2024-04-10T09:15:00Z',
+    status: 'pending',
+    message: 'Tengo un jardín grande y mucha experiencia con perros. Luna estaría increíble en mi familia.',
+  },
+  {
+    id: 2,
+    pet: { id: 2, name: 'Milo', species: 'cat', breed: 'Siamés mestizo' },
+    applicant: { name: 'Valentina Torres', email: 'vale.torres@hotmail.com' },
+    requested_at: '2024-04-08T14:30:00Z',
+    status: 'pending',
+    message: 'Vivo sola en un apartamento tranquilo y he tenido gatos toda mi vida.',
+  },
+  {
+    id: 3,
+    pet: { id: 1, name: 'Luna', species: 'dog', breed: 'Labrador mestizo' },
+    applicant: { name: 'Andrés Morales', email: 'andres.morales@empresa.co' },
+    requested_at: '2024-04-07T11:00:00Z',
+    status: 'pending',
+  },
+  {
+    id: 4,
+    pet: { id: 4, name: 'Nala', species: 'cat', breed: 'Doméstico' },
+    applicant: { name: 'María Rodríguez', email: 'maria.r@gmail.com' },
+    requested_at: '2024-04-05T16:45:00Z',
+    status: 'approved',
+    message: 'Tenemos dos niños pequeños y buscamos una mascota tranquila para la familia.',
+  },
+  {
+    id: 5,
+    pet: { id: 2, name: 'Milo', species: 'cat', breed: 'Siamés mestizo' },
+    applicant: { name: 'Diego Herrera', email: 'dherrera@correo.com' },
+    requested_at: '2024-04-03T10:20:00Z',
+    status: 'rejected',
+    message: 'Quiero adoptar a Milo para mi apartamento pequeño en el centro.',
+  },
+  {
+    id: 6,
+    pet: { id: 3, name: 'Rocky', species: 'dog', breed: 'Pastor Alemán' },
+    applicant: { name: 'Sofía Jiménez', email: 'sofia.j@email.co' },
+    requested_at: '2024-03-28T09:00:00Z',
+    status: 'in_process',
+    message: 'Casa con patio grande. He tenido pastores alemanes antes y sé lo que requieren.',
+  },
+  {
+    id: 7,
+    pet: { id: 4, name: 'Nala', species: 'cat', breed: 'Doméstico' },
+    applicant: { name: 'Julián Ospina', email: 'julian.o@gmail.com' },
+    requested_at: '2024-03-25T13:30:00Z',
+    status: 'rejected',
+  },
+];
+
+const REQUEST_STATUS_CONFIG: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
+  pending:    { label: 'Pendiente',  badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',         dot: 'bg-amber-500'   },
+  approved:   { label: 'Aprobada',   badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  rejected:   { label: 'Rechazada',  badge: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',                dot: 'bg-red-400'     },
+  in_process: { label: 'En proceso', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',            dot: 'bg-blue-500'    },
+};
+
+const REQUEST_FILTER_OPTIONS: { id: RequestStatus | 'all'; label: string }[] = [
+  { id: 'all',        label: 'Todas'      },
+  { id: 'pending',    label: 'Pendientes' },
+  { id: 'in_process', label: 'En proceso' },
+  { id: 'approved',   label: 'Aprobadas'  },
+  { id: 'rejected',   label: 'Rechazadas' },
+];
+
+function formatRequestDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('es-CO', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+}
+
+function getInitials(name: string): string {
+  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
 function RequestsPage() {
+  const [requests, setRequests] = useState<AdoptionRequest[]>(STATIC_REQUESTS);
+  const [filter, setFilter]     = useState<RequestStatus | 'all'>('all');
+
+  const counts = {
+    all:        requests.length,
+    pending:    requests.filter(r => r.status === 'pending').length,
+    approved:   requests.filter(r => r.status === 'approved').length,
+    in_process: requests.filter(r => r.status === 'in_process').length,
+    rejected:   requests.filter(r => r.status === 'rejected').length,
+  };
+
+  const filtered = filter === 'all' ? requests : requests.filter(r => r.status === filter);
+
+  const approve = (id: number) =>
+    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' as RequestStatus } : r));
+  const reject  = (id: number) =>
+    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' as RequestStatus } : r));
+
   return (
-    <div className="px-4 sm:px-6 py-8">
-      <h1 className="text-2xl font-bold text-stone-900 dark:text-zinc-100">Solicitudes recibidas</h1>
-      <p className="mt-2 text-sm text-stone-500 dark:text-zinc-400">
-        Próximamente: solicitudes de adopción pendientes de revisión.
-      </p>
+    <div className="px-6 sm:px-8 py-6">
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {REQUEST_FILTER_OPTIONS.map(opt => (
+          <button
+            key={opt.id}
+            onClick={() => setFilter(opt.id)}
+            className={cn(
+              'h-8 px-3 rounded-lg text-sm font-medium transition-colors',
+              filter === opt.id
+                ? 'bg-brand text-white'
+                : 'bg-stone-100 dark:bg-zinc-800 text-stone-600 dark:text-zinc-400 hover:bg-brand-light hover:text-brand dark:hover:bg-zinc-700',
+            )}
+          >
+            {opt.label}
+            <span className={cn(
+              'ml-1.5 text-xs tabular-nums',
+              filter === opt.id ? 'text-white/70' : 'text-stone-400 dark:text-zinc-500',
+            )}>
+              {counts[opt.id]}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* List */}
+      {filtered.length > 0 ? (
+        <div className="space-y-3">
+          {filtered.map(req => {
+            const cfg = REQUEST_STATUS_CONFIG[req.status];
+            return (
+              <div
+                key={req.id}
+                className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-4"
+              >
+                <div className="flex items-start gap-4">
+
+                  {/* Applicant avatar */}
+                  <div className="w-10 h-10 rounded-full bg-brand-light dark:bg-brand/20 shrink-0 flex items-center justify-center mt-0.5">
+                    <span className="text-xs font-bold text-brand select-none">{getInitials(req.applicant.name)}</span>
+                  </div>
+
+                  {/* Main info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">{req.applicant.name}</span>
+                      <span className="text-xs text-stone-400 dark:text-zinc-500">quiere adoptar a</span>
+                      <span className="text-sm font-semibold text-brand">{req.pet.name}</span>
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-zinc-800 text-stone-500 dark:text-zinc-400">
+                        {SPECIES_LABEL[req.pet.species]}
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">
+                      {req.applicant.email} · {formatRequestDate(req.requested_at)}
+                    </p>
+                    {req.message && (
+                      <p className="text-xs text-stone-500 dark:text-zinc-400 mt-2 line-clamp-1 italic">
+                        "{req.message}"
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Status + Actions */}
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    <span className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium',
+                      cfg.badge,
+                    )}>
+                      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', cfg.dot)} />
+                      {cfg.label}
+                    </span>
+                    {req.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => approve(req.id)}
+                          className="h-8 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+                        >
+                          Aprobar
+                        </button>
+                        <button
+                          onClick={() => reject(req.id)}
+                          className="h-8 px-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                        >
+                          Rechazar
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-stone-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+            <PawPrint className="w-7 h-7 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
+          </div>
+          <p className="text-sm font-medium text-stone-700 dark:text-zinc-300">Sin solicitudes</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1">
+            {filter === 'all'
+              ? 'Aún no has recibido solicitudes de adopción.'
+              : 'No hay solicitudes con este estado.'}
+          </p>
+        </div>
+      )}
+
     </div>
   );
 }
