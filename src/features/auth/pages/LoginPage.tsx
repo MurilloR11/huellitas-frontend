@@ -464,7 +464,7 @@ function FieldError({ message }: { message?: string }) {
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, commitLogin } = useAuth();
 
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -527,6 +527,8 @@ export default function LoginPage() {
         return;
       }
 
+      // No MFA — safe to commit the user to context now.
+      commitLogin(user);
       navigateAfterLogin(user);
     } catch (err) {
       setServerError(err instanceof Error ? err.message : 'Error al iniciar sesión');
@@ -563,7 +565,10 @@ export default function LoginPage() {
     setIsMfaSubmitting(true);
     try {
       await authApi.completeMFAChallenge(mfaFactorId, code);
-      if (pendingUser) navigateAfterLogin(pendingUser);
+      if (pendingUser) {
+        commitLogin(pendingUser);
+        navigateAfterLogin(pendingUser);
+      }
     } catch (err) {
       setMfaError(err instanceof Error ? err.message : 'Código incorrecto');
       setMfaDigits(['', '', '', '', '', '']);

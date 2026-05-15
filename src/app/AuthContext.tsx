@@ -10,6 +10,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<AuthUser>;
+  commitLogin: (profile: AuthUser) => void;
   logout: () => Promise<void>;
 }
 
@@ -63,9 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(payload: LoginPayload): Promise<AuthUser> {
-    const profile = await authApi.login(payload);
+    // Only authenticates with Supabase — does NOT set user in context.
+    // Call commitLogin() after any required MFA step completes.
+    return authApi.login(payload);
+  }
+
+  function commitLogin(profile: AuthUser): void {
     setUser(profile);
-    return profile;
   }
 
   async function logout(): Promise<void> {
@@ -74,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: user !== null, isLoading, login, logout }}
+      value={{ user, isAuthenticated: user !== null, isLoading, login, commitLogin, logout }}
     >
       {children}
     </AuthContext.Provider>
