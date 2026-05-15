@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { FoundationSidebar, type FoundationNavId } from '@/shared/ui/organisms/FoundationSidebar';
-import { ChevronRight, ChevronLeft, Menu, PawPrint, ImagePlus, Check, Calendar } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Menu, PawPrint, ImagePlus, Check, Calendar, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Pet, PetStatus } from '@/features/pets/types';
 
@@ -1103,13 +1103,239 @@ function ScheduleFoundationPage() {
   );
 }
 
+// ─── History page data ────────────────────────────────────────────────────────
+
+interface HistoryEntry {
+  id: number;
+  pet: Pick<Pet, 'id' | 'name' | 'species' | 'breed'>;
+  applicant: { name: string; email: string };
+  requested_at: string;
+  resolved_at: string;
+  outcome: 'adopted' | 'rejected';
+  message?: string;
+}
+
+const STATIC_HISTORY: HistoryEntry[] = [
+  {
+    id: 1,
+    pet: { id: 10, name: 'Bruno', species: 'dog', breed: 'Golden Retriever' },
+    applicant: { name: 'Felipe Castillo', email: 'f.castillo@empresa.co' },
+    requested_at: '2023-06-01T09:00:00Z',
+    resolved_at: '2023-06-20T14:00:00Z',
+    outcome: 'adopted',
+    message: 'Familia con niños, casa grande. Bruno sería perfecto para nosotros.',
+  },
+  {
+    id: 2,
+    pet: { id: 9, name: 'Tina', species: 'cat', breed: 'Angora mestiza' },
+    applicant: { name: 'Natalia Gómez', email: 'nati.g@email.co' },
+    requested_at: '2023-07-10T11:00:00Z',
+    resolved_at: '2023-07-25T09:00:00Z',
+    outcome: 'adopted',
+    message: 'Vivo en una casa con jardín y ya tengo otro gato. Busco una compañera para él.',
+  },
+  {
+    id: 3,
+    pet: { id: 5, name: 'Max', species: 'dog', breed: 'Beagle' },
+    applicant: { name: 'Laura Pinto', email: 'laura.pinto@gmail.com' },
+    requested_at: '2023-07-20T10:00:00Z',
+    resolved_at: '2023-08-05T14:00:00Z',
+    outcome: 'adopted',
+    message: 'Tengo un jardín enorme y mis hijos aman los perros.',
+  },
+  {
+    id: 4,
+    pet: { id: 7, name: 'Lola', species: 'dog', breed: 'Shih Tzu' },
+    applicant: { name: 'Roberto Vargas', email: 'rvargas@hotmail.com' },
+    requested_at: '2023-10-12T08:30:00Z',
+    resolved_at: '2023-10-28T15:00:00Z',
+    outcome: 'adopted',
+  },
+  {
+    id: 5,
+    pet: { id: 8, name: 'Paco', species: 'dog', breed: 'Dálmata mestizo' },
+    applicant: { name: 'Camila Restrepo', email: 'c.restrepo@gmail.com' },
+    requested_at: '2023-11-01T09:00:00Z',
+    resolved_at: '2023-11-15T10:30:00Z',
+    outcome: 'rejected',
+    message: 'Mi edificio no permite mascotas grandes pero igual intenté.',
+  },
+  {
+    id: 6,
+    pet: { id: 4, name: 'Nala', species: 'cat', breed: 'Doméstico' },
+    applicant: { name: 'Julián Ospina', email: 'julian.o@gmail.com' },
+    requested_at: '2024-03-25T13:30:00Z',
+    resolved_at: '2024-03-29T11:00:00Z',
+    outcome: 'rejected',
+  },
+  {
+    id: 7,
+    pet: { id: 2, name: 'Milo', species: 'cat', breed: 'Siamés mestizo' },
+    applicant: { name: 'Diego Herrera', email: 'dherrera@correo.com' },
+    requested_at: '2024-04-03T10:20:00Z',
+    resolved_at: '2024-04-09T09:00:00Z',
+    outcome: 'rejected',
+    message: 'Quiero adoptar a Milo para mi apartamento pequeño en el centro.',
+  },
+  {
+    id: 8,
+    pet: { id: 4, name: 'Nala', species: 'cat', breed: 'Doméstico' },
+    applicant: { name: 'María Rodríguez', email: 'maria.r@gmail.com' },
+    requested_at: '2024-04-05T16:45:00Z',
+    resolved_at: '2024-04-18T11:00:00Z',
+    outcome: 'adopted',
+    message: 'Tenemos dos niños pequeños y buscamos una mascota tranquila para la familia.',
+  },
+];
+
+const HISTORY_FILTER_OPTIONS: { id: 'all' | 'adopted' | 'rejected'; label: string }[] = [
+  { id: 'all',      label: 'Todas'      },
+  { id: 'adopted',  label: 'Adoptadas'  },
+  { id: 'rejected', label: 'Rechazadas' },
+];
+
 function HistoryPage() {
+  const [filter, setFilter] = useState<'all' | 'adopted' | 'rejected'>('all');
+
+  const stats = {
+    total:    STATIC_HISTORY.length,
+    adopted:  STATIC_HISTORY.filter(e => e.outcome === 'adopted').length,
+    rejected: STATIC_HISTORY.filter(e => e.outcome === 'rejected').length,
+  };
+
+  const filtered = filter === 'all'
+    ? STATIC_HISTORY
+    : STATIC_HISTORY.filter(e => e.outcome === filter);
+
+  const sorted = [...filtered].sort(
+    (a, b) => new Date(b.resolved_at).getTime() - new Date(a.resolved_at).getTime(),
+  );
+
   return (
-    <div className="px-4 sm:px-6 py-8">
-      <h1 className="text-2xl font-bold text-stone-900 dark:text-zinc-100">Historial</h1>
-      <p className="mt-2 text-sm text-stone-500 dark:text-zinc-400">
-        Próximamente: historial de adopciones completadas.
-      </p>
+    <div className="px-6 sm:px-8 py-6">
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-3.5">
+          <p className="text-2xl font-bold text-stone-900 dark:text-zinc-100 tabular-nums">{stats.total}</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Total procesadas</p>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-3.5">
+          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.adopted}</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Adoptadas</p>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-3.5">
+          <p className="text-2xl font-bold text-red-500 dark:text-red-400 tabular-nums">{stats.rejected}</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Rechazadas</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {HISTORY_FILTER_OPTIONS.map(opt => {
+          const count = opt.id === 'all' ? stats.total : opt.id === 'adopted' ? stats.adopted : stats.rejected;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => setFilter(opt.id)}
+              className={cn(
+                'h-8 px-3 rounded-lg text-sm font-medium transition-colors',
+                filter === opt.id
+                  ? 'bg-brand text-white'
+                  : 'bg-stone-100 dark:bg-zinc-800 text-stone-600 dark:text-zinc-400 hover:bg-brand-light hover:text-brand dark:hover:bg-zinc-700',
+              )}
+            >
+              {opt.label}
+              <span className={cn(
+                'ml-1.5 text-xs tabular-nums',
+                filter === opt.id ? 'text-white/70' : 'text-stone-400 dark:text-zinc-500',
+              )}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* List */}
+      {sorted.length > 0 ? (
+        <div className="space-y-3">
+          {sorted.map(entry => (
+            <div
+              key={entry.id}
+              className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-4"
+            >
+              <div className="flex items-start gap-4">
+
+                {/* Outcome icon */}
+                <div className={cn(
+                  'w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-0.5',
+                  entry.outcome === 'adopted'
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30'
+                    : 'bg-red-100 dark:bg-red-900/20',
+                )}>
+                  {entry.outcome === 'adopted'
+                    ? <Heart className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" strokeWidth={2} fill="currentColor" />
+                    : <PawPrint className="w-4.5 h-4.5 text-red-400 dark:text-red-400" strokeWidth={1.5} />
+                  }
+                </div>
+
+                {/* Main info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">{entry.pet.name}</span>
+                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-zinc-800 text-stone-500 dark:text-zinc-400">
+                      {SPECIES_LABEL[entry.pet.species]}
+                    </span>
+                    {entry.pet.breed && (
+                      <span className="text-xs text-stone-400 dark:text-zinc-500 truncate">· {entry.pet.breed}</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-stone-500 dark:text-zinc-400 mt-0.5">
+                    {entry.applicant.name}
+                    <span className="text-stone-300 dark:text-zinc-600 mx-1">·</span>
+                    {entry.applicant.email}
+                  </p>
+                  {entry.message && (
+                    <p className="text-xs text-stone-400 dark:text-zinc-500 mt-2 italic line-clamp-1">
+                      "{entry.message}"
+                    </p>
+                  )}
+                  <p className="text-[11px] text-stone-300 dark:text-zinc-600 mt-1.5">
+                    Resuelta el {formatRequestDate(entry.resolved_at)}
+                  </p>
+                </div>
+
+                {/* Status badge */}
+                <span className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium shrink-0',
+                  entry.outcome === 'adopted'
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+                )}>
+                  <span className={cn(
+                    'w-1.5 h-1.5 rounded-full shrink-0',
+                    entry.outcome === 'adopted' ? 'bg-emerald-500' : 'bg-red-400',
+                  )} />
+                  {entry.outcome === 'adopted' ? 'Adoptada' : 'Rechazada'}
+                </span>
+
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-stone-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+            <PawPrint className="w-7 h-7 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
+          </div>
+          <p className="text-sm font-medium text-stone-700 dark:text-zinc-300">Sin registros</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1">
+            No hay adopciones {filter === 'adopted' ? 'completadas' : 'rechazadas'} aún.
+          </p>
+        </div>
+      )}
+
     </div>
   );
 }
