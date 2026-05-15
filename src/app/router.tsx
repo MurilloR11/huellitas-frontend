@@ -18,6 +18,7 @@ import AdminFoundationsPage from '../features/admin/pages/AdminFoundationsPage';
 import AdminUsersPage from '../features/admin/pages/AdminUsersPage';
 import AdminPetsPage from '../features/admin/pages/AdminPetsPage';
 import AdminAdoptionsPage from '../features/admin/pages/AdminAdoptionsPage';
+import FoundationPage from '../features/foundations/pages/FoundationPage';
 
 const PetsList = () => <div className="p-8">Mascotas en adopción</div>;
 const PetDetail = () => <div className="p-8">Detalle de mascota</div>;
@@ -25,7 +26,6 @@ const FoundationsList = () => <div className="p-8">Fundaciones</div>;
 const FoundationDetail = () => <div className="p-8">Detalle de fundación</div>;
 const AdoptionRequest = () => <div className="p-8">Solicitar adopción</div>;
 const MyAdoptions = () => <div className="p-8">Mis adopciones</div>;
-const FoundationDashboard = () => <div className="p-8">Dashboard Fundación</div>;
 const DeveloperPage = () => <div className="p-8">Panel Developer</div>;
 const NotFound = () => <div className="p-8 text-red-500">404 — Página no encontrada</div>;
 
@@ -108,7 +108,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/foundation/dashboard',
-    element: <ProtectedRoute roles={['fundacion']}><FoundationDashboard /></ProtectedRoute>,
+    element: <ProtectedRoute roles={['fundacion']}><FoundationPage /></ProtectedRoute>,
   },
   {
     path: '/admin',
