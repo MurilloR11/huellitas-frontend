@@ -110,13 +110,10 @@ export const authApi = {
   },
 
   async getMFAStatus(): Promise<{ required: boolean; factorId: string | null }> {
-    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
-      // listFactors() uses cached session state and misses server-side factors;
-      // ask the backend (admin API) for the authoritative factor ID.
-      const { data } = await apiClient.get<{ id: string | null }>('/auth/mfa/factor');
-      return { required: true, factorId: data?.id ?? null };
-    }
+    // Use the backend admin API directly — getAuthenticatorAssuranceLevel() parses
+    // the JWT and misses factors enrolled in previous sessions.
+    const { data } = await apiClient.get<{ id: string | null }>('/auth/mfa/factor');
+    if (data?.id) return { required: true, factorId: data.id };
     return { required: false, factorId: null };
   },
 
