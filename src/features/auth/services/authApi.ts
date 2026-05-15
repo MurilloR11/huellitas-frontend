@@ -103,17 +103,19 @@ export const authApi = {
   },
 
   async listMFAFactors(): Promise<Array<{ id: string; status: string }>> {
-    const { data, error } = await supabase.auth.mfa.listFactors();
-    if (error || !data) return [];
-    return data.totp ?? [];
+    // Use the backend admin API for reliable server-side factor data.
+    const { data } = await apiClient.get<{ id: string | null }>('/auth/mfa/factor');
+    if (!data?.id) return [];
+    return [{ id: data.id, status: 'verified' }];
   },
 
   async getMFAStatus(): Promise<{ required: boolean; factorId: string | null }> {
     const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
-      const { data: factorsData } = await supabase.auth.mfa.listFactors();
-      const factor = factorsData?.totp?.find(f => f.status === 'verified') ?? null;
-      return { required: true, factorId: factor?.id ?? null };
+      // listFactors() uses cached session state and misses server-side factors;
+      // ask the backend (admin API) for the authoritative factor ID.
+      const { data } = await apiClient.get<{ id: string | null }>('/auth/mfa/factor');
+      return { required: true, factorId: data?.id ?? null };
     }
     return { required: false, factorId: null };
   },
