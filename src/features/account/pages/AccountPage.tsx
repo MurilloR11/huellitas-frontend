@@ -40,6 +40,26 @@ function getInitials(name: string): string {
   return name.split(' ').filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('');
 }
 
+function maskPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return raw;
+  const showFrom = Math.max(0, digits.length - 2);
+  let idx = 0;
+  return raw.replace(/\d/g, (d) => idx++ >= showFrom ? d : '•');
+}
+
+function maskEmail(raw: string): string {
+  const [local, domain] = raw.split('@');
+  if (!domain || !local) return raw;
+  return `${local[0]}${'•'.repeat(Math.max(2, local.length - 1))}@${domain}`;
+}
+
+function applyMask(value: string, type: string): string {
+  if (type === 'tel')   return maskPhone(value);
+  if (type === 'email') return maskEmail(value);
+  return `${value[0]}${'•'.repeat(Math.max(2, value.length - 1))}`;
+}
+
 // ─── FieldRow ─────────────────────────────────────────────────────────────────
 
 function FieldRow({
@@ -48,15 +68,18 @@ function FieldRow({
   onSave,
   placeholder,
   type = 'text',
+  masked = false,
 }: {
   label: string;
   value: string;
   onSave?: (v: string) => void;
   placeholder?: string;
   type?: string;
+  masked?: boolean;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
+  const [editing,  setEditing]  = useState(false);
+  const [draft,    setDraft]    = useState(value);
+  const [revealed, setRevealed] = useState(false);
 
   function handleSave() {
     onSave?.(draft);
@@ -104,7 +127,21 @@ function FieldRow({
             </button>
           </div>
         ) : value ? (
-          <p className="text-sm font-medium text-stone-900 mt-0.5 truncate">{value}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <p className="text-sm font-medium text-stone-900 dark:text-zinc-100 truncate">
+              {masked && !revealed ? applyMask(value, type) : value}
+            </p>
+            {masked && (
+              <button
+                type="button"
+                onClick={() => setRevealed(v => !v)}
+                className="shrink-0 text-stone-400 hover:text-stone-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+                aria-label={revealed ? 'Ocultar' : 'Revelar'}
+              >
+                {revealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            )}
+          </div>
         ) : (
           <p className="text-sm text-stone-400 mt-0.5">{placeholder ?? '—'}</p>
         )}
@@ -365,12 +402,15 @@ export default function AccountPage() {
                 <FieldRow
                   label="Correo electrónico"
                   value={user?.email ?? ''}
+                  type="email"
+                  masked
                 />
                 <FieldRow
                   label="Teléfono"
                   value={phone}
                   placeholder="+57 300 000 0000"
                   type="tel"
+                  masked
                   onSave={v => { setPhone(v); toast.success('Teléfono actualizado'); }}
                 />
                 <FieldRow
