@@ -19,6 +19,7 @@ import AdminUsersPage from '../features/admin/pages/AdminUsersPage';
 import AdminPetsPage from '../features/admin/pages/AdminPetsPage';
 import AdminAdoptionsPage from '../features/admin/pages/AdminAdoptionsPage';
 import FoundationPage from '../features/foundations/pages/FoundationPage';
+import DeveloperPage from '../features/developer/pages/DeveloperPage';
 
 const PetsList = () => <div className="p-8">Mascotas en adopción</div>;
 const PetDetail = () => <div className="p-8">Detalle de mascota</div>;
@@ -26,7 +27,6 @@ const FoundationsList = () => <div className="p-8">Fundaciones</div>;
 const FoundationDetail = () => <div className="p-8">Detalle de fundación</div>;
 const AdoptionRequest = () => <div className="p-8">Solicitar adopción</div>;
 const MyAdoptions = () => <div className="p-8">Mis adopciones</div>;
-const DeveloperPage = () => <div className="p-8">Panel Developer</div>;
 const NotFound = () => <div className="p-8 text-red-500">404 — Página no encontrada</div>;
 
 const Spinner = () => (
