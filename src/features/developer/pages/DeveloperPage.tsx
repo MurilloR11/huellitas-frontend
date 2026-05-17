@@ -29,7 +29,7 @@ const BREADCRUMBS: Record<DevNavId, string[]> = {
   overview:  [],
   'api-keys': ['API Keys'],
   'api-docs': ['Documentación'],
-  stats:     ['Estadísticas'],
+  stats:     ['Errores', 'Registro'],
 };
 
 // ─── Static data ───────────────────────────────────────────────────────────────
@@ -67,6 +67,29 @@ const STATIC_USAGE: DailyUsage[] = [
   { date: '16 May', calls: 490,  errors: 2  },
 ];
 
+interface ErrorLog {
+  id: string;
+  status: number;
+  method: 'GET' | 'POST';
+  path: string;
+  keyName: string;
+  ts: string;
+  message: string;
+}
+
+const STATIC_ERRORS: ErrorLog[] = [
+  { id: 'e1', status: 404, method: 'GET', path: '/api/pets/xyz999',          keyName: 'App principal',    ts: '16 May, 18:47', message: 'Pet not found'             },
+  { id: 'e2', status: 429, method: 'GET', path: '/api/pets?species=dog',     keyName: 'Bot de Telegram',  ts: '16 May, 14:22', message: 'Rate limit exceeded'       },
+  { id: 'e3', status: 404, method: 'GET', path: '/api/foundations/f99',      keyName: 'App principal',    ts: '15 May, 11:03', message: 'Foundation not found'      },
+  { id: 'e4', status: 500, method: 'GET', path: '/api/pets',                 keyName: 'App principal',    ts: '14 May, 09:51', message: 'Internal server error'     },
+  { id: 'e5', status: 404, method: 'GET', path: '/api/pets/abc000',          keyName: 'Script de prueba', ts: '13 May, 22:30', message: 'Pet not found'             },
+  { id: 'e6', status: 404, method: 'GET', path: '/api/pets/abc001',          keyName: 'Script de prueba', ts: '13 May, 22:29', message: 'Pet not found'             },
+  { id: 'e7', status: 429, method: 'GET', path: '/api/foundations',          keyName: 'Bot de Telegram',  ts: '12 May, 16:14', message: 'Rate limit exceeded'       },
+  { id: 'e8', status: 500, method: 'GET', path: '/api/pets?city=Medellin',   keyName: 'App principal',    ts: '12 May, 08:05', message: 'Upstream timeout'          },
+  { id: 'e9', status: 404, method: 'GET', path: '/api/pets/old-id-33',       keyName: 'App principal',    ts: '10 May, 19:17', message: 'Pet not found'             },
+  { id: 'e10',status: 404, method: 'GET', path: '/api/foundations/old-22',   keyName: 'App principal',    ts: '10 May, 19:16', message: 'Foundation not found'      },
+];
+
 // ─── Overview ──────────────────────────────────────────────────────────────────
 
 function OverviewPage({ onNavigate }: { onNavigate: (id: DevNavId) => void }) {
@@ -74,98 +97,177 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: DevNavId) => void }) {
   const activeKeys  = STATIC_KEYS.filter(k => k.active).length;
   const todayCalls  = STATIC_USAGE[STATIC_USAGE.length - 1].calls;
   const todayErrors = STATIC_USAGE[STATIC_USAGE.length - 1].errors;
+  const maxCalls    = Math.max(...STATIC_USAGE.map(d => d.calls));
 
   return (
-    <div className="px-6 sm:px-8 py-6 space-y-5">
+    <div className="px-6 sm:px-8 py-7 space-y-4">
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">Llamadas hoy</p>
-            <Zap className="w-4 h-4 text-blue-400 shrink-0" strokeWidth={2} />
-          </div>
-          <p className="text-3xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">{todayCalls.toLocaleString()}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5">peticiones en las últimas 24h</p>
-        </div>
+      {/* ── KPI bento asimétrico ─────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-[2fr_1fr_1fr_1fr] gap-3">
 
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">Total acumulado</p>
-            <TrendingUp className="w-4 h-4 text-emerald-500 shrink-0" strokeWidth={2} />
+        {/* Hero — llamadas hoy (2× ancho en desktop) */}
+        <div className="col-span-2 md:col-span-1 relative overflow-hidden bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 px-6 pt-5 pb-4">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-mono font-bold tracking-[0.12em] text-stone-400 dark:text-zinc-500 uppercase">
+              Llamadas hoy
+            </p>
+            <Zap className="w-3.5 h-3.5 text-blue-400 shrink-0" strokeWidth={2} />
           </div>
-          <p className="text-3xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">{totalCalls.toLocaleString()}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5">peticiones históricas</p>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">Keys activas</p>
-            <ShieldCheck className="w-4 h-4 text-violet-400 shrink-0" strokeWidth={2} />
-          </div>
-          <p className="text-3xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">{activeKeys}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5">de {STATIC_KEYS.length} keys totales</p>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">Errores hoy</p>
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" strokeWidth={2} />
-          </div>
-          <p className={cn('text-3xl font-bold tabular-nums', todayErrors > 0 ? 'text-red-500' : 'text-stone-900 dark:text-zinc-100')}>
-            {todayErrors}
+          <p className="text-5xl font-bold tracking-tight tabular-nums text-stone-900 dark:text-zinc-100 mt-2">
+            {todayCalls.toLocaleString()}
           </p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5">respuestas 4xx / 5xx</p>
+          <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-1.5">peticiones en las últimas 24h</p>
+
+          {/* Mini sparkline */}
+          <div className="flex items-end gap-0.5 mt-4 h-9">
+            {STATIC_USAGE.map((day) => (
+              <div
+                key={day.date}
+                className="flex-1 rounded-sm bg-brand/20 dark:bg-brand/15 hover:bg-brand/45 transition-colors duration-200"
+                style={{ height: `${(day.calls / maxCalls) * 100}%` }}
+                title={`${day.date}: ${day.calls}`}
+              />
+            ))}
+          </div>
+
+          {/* Decorative radial */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-blue-50 dark:bg-blue-950/20 pointer-events-none" />
+        </div>
+
+        {/* Total acumulado */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 px-5 py-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-mono font-bold tracking-[0.12em] text-stone-400 dark:text-zinc-500 uppercase">Total</p>
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-500 shrink-0" strokeWidth={2} />
+          </div>
+          <div className="mt-4">
+            <p className="text-2xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">{totalCalls.toLocaleString()}</p>
+            <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-1">históricas</p>
+          </div>
+        </div>
+
+        {/* Keys activas */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 px-5 py-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-mono font-bold tracking-[0.12em] text-stone-400 dark:text-zinc-500 uppercase">Keys</p>
+            <ShieldCheck className="w-3.5 h-3.5 text-violet-400 shrink-0" strokeWidth={2} />
+          </div>
+          <div className="mt-4">
+            <p className="text-2xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">
+              {activeKeys}
+              <span className="text-base font-normal text-stone-300 dark:text-zinc-600">/{STATIC_KEYS.length}</span>
+            </p>
+            <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-1">activas</p>
+          </div>
+        </div>
+
+        {/* Errores hoy */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 px-5 py-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-mono font-bold tracking-[0.12em] text-stone-400 dark:text-zinc-500 uppercase">Errores</p>
+            <AlertCircle className={cn('w-3.5 h-3.5 shrink-0', todayErrors > 0 ? 'text-red-400' : 'text-stone-200 dark:text-zinc-700')} strokeWidth={2} />
+          </div>
+          <div className="mt-4">
+            <p className={cn('text-2xl font-bold tabular-nums', todayErrors > 0 ? 'text-red-500' : 'text-stone-900 dark:text-zinc-100')}>
+              {todayErrors}
+            </p>
+            <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-1">hoy · 4xx / 5xx</p>
+          </div>
         </div>
       </div>
 
-      {/* Quick start */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-5">
-        <p className="text-sm font-semibold text-stone-800 dark:text-zinc-100 mb-3">Inicio rápido</p>
-        <div className="space-y-2">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-white text-[10px] font-bold">1</span>
-            <p className="text-sm text-stone-600 dark:text-zinc-400">
-              Genera una <button onClick={() => onNavigate('api-keys')} className="text-brand font-medium hover:underline underline-offset-2">API Key</button> desde el panel de keys.
-            </p>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-white text-[10px] font-bold">2</span>
-            <p className="text-sm text-stone-600 dark:text-zinc-400">
-              Incluye el header <code className="text-xs bg-stone-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded font-mono">X-API-Key: hll_sk_...</code> en cada petición.
-            </p>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-white text-[10px] font-bold">3</span>
-            <p className="text-sm text-stone-600 dark:text-zinc-400">
-              Consulta la <button onClick={() => onNavigate('api-docs')} className="text-brand font-medium hover:underline underline-offset-2">documentación</button> para ver todos los endpoints disponibles.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* ── Fila inferior: inicio rápido + keys ──────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-4">
 
-      {/* Recent keys */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold text-stone-800 dark:text-zinc-100">Mis API Keys</p>
-          <button onClick={() => onNavigate('api-keys')} className="text-xs text-brand font-medium hover:underline underline-offset-2">
-            Gestionar
-          </button>
-        </div>
-        <div className="space-y-2.5">
-          {STATIC_KEYS.map(key => (
-            <div key={key.id} className="flex items-center gap-3">
-              <span className={cn('w-2 h-2 rounded-full shrink-0', key.active ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-zinc-600')} />
-              <span className="text-sm text-stone-700 dark:text-zinc-300 flex-1 truncate">{key.name}</span>
-              <span className="text-xs font-mono text-stone-400 dark:text-zinc-500 shrink-0">{key.prefix}•••</span>
-              <span className="text-xs tabular-nums text-stone-400 dark:text-zinc-500 shrink-0 hidden sm:block">
-                {key.callsTotal.toLocaleString()} calls
-              </span>
+        {/* Inicio rápido */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 px-6 py-6">
+          <p className="text-[10px] font-mono font-bold tracking-[0.12em] text-stone-400 dark:text-zinc-500 uppercase mb-6">
+            Inicio rápido
+          </p>
+          <div className="relative pl-9">
+            <div className="absolute left-3 top-1 bottom-1 w-px bg-stone-100 dark:bg-zinc-800" />
+            <div className="space-y-6">
+              {[
+                {
+                  n: '1',
+                  content: (
+                    <>
+                      Genera una{' '}
+                      <button onClick={() => onNavigate('api-keys')} className="text-brand font-semibold hover:underline underline-offset-2">
+                        API Key
+                      </button>{' '}
+                      desde el panel de keys.
+                    </>
+                  ),
+                },
+                {
+                  n: '2',
+                  content: (
+                    <div>
+                      <span className="text-stone-600 dark:text-zinc-400">Incluye el header en cada petición:</span>
+                      <code className="block mt-2 text-[11px] font-mono text-brand bg-brand-light dark:bg-brand/10 px-3 py-2 rounded-lg border border-brand-border dark:border-brand/20">
+                        X-API-Key: hll_sk_...
+                      </code>
+                    </div>
+                  ),
+                },
+                {
+                  n: '3',
+                  content: (
+                    <>
+                      Consulta la{' '}
+                      <button onClick={() => onNavigate('api-docs')} className="text-brand font-semibold hover:underline underline-offset-2">
+                        documentación
+                      </button>{' '}
+                      para explorar todos los endpoints.
+                    </>
+                  ),
+                },
+              ].map(({ n, content }) => (
+                <div key={n} className="relative flex gap-4">
+                  <span className="absolute -left-9 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white text-[10px] font-bold shrink-0">
+                    {n}
+                  </span>
+                  <p className="text-sm text-stone-600 dark:text-zinc-400 leading-relaxed">{content}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
-      </div>
 
+        {/* Mis API Keys */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 px-6 py-6">
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-[10px] font-mono font-bold tracking-[0.12em] text-stone-400 dark:text-zinc-500 uppercase">
+              Mis API Keys
+            </p>
+            <button
+              onClick={() => onNavigate('api-keys')}
+              className="text-[11px] text-brand font-semibold hover:underline underline-offset-2 transition-opacity"
+            >
+              Gestionar
+            </button>
+          </div>
+          <div className="space-y-4">
+            {STATIC_KEYS.map(key => (
+              <div key={key.id} className="flex items-center gap-3 group">
+                <span className={cn(
+                  'w-1.5 h-1.5 rounded-full shrink-0 transition-transform duration-150 group-hover:scale-[1.6]',
+                  key.active ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-zinc-600',
+                )} />
+                <span className="text-sm text-stone-700 dark:text-zinc-300 flex-1 truncate">{key.name}</span>
+                <div className="text-right shrink-0">
+                  <span className="block text-[11px] font-mono text-stone-300 dark:text-zinc-600">{key.prefix}•••</span>
+                  <span className="block text-[10px] tabular-nums text-stone-400 dark:text-zinc-500">
+                    {key.callsTotal.toLocaleString()} calls
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
@@ -424,85 +526,106 @@ function ApiDocsPage() {
 
 // ─── Stats ─────────────────────────────────────────────────────────────────────
 
+function statusMeta(code: number): { label: string; bg: string; text: string } {
+  if (code === 429) return { label: '429', bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400' };
+  if (code >= 500)  return { label: String(code), bg: 'bg-red-100 dark:bg-red-900/30',    text: 'text-red-700 dark:text-red-400'   };
+  return               { label: String(code), bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400' };
+}
+
 function StatsPage() {
-  const maxCalls = Math.max(...STATIC_USAGE.map(d => d.calls));
-  const totalCalls  = STATIC_USAGE.reduce((s, d) => s + d.calls, 0);
-  const totalErrors = STATIC_USAGE.reduce((s, d) => s + d.errors, 0);
-  const avgCalls    = Math.round(totalCalls / STATIC_USAGE.length);
+  const totalErrors  = STATIC_ERRORS.length;
+  const totalCalls   = STATIC_USAGE.reduce((s, d) => s + d.calls, 0);
+  const errorRate    = ((totalErrors / totalCalls) * 100).toFixed(1);
+  const errors404    = STATIC_ERRORS.filter(e => e.status === 404).length;
+  const errors429    = STATIC_ERRORS.filter(e => e.status === 429).length;
+  const errors5xx    = STATIC_ERRORS.filter(e => e.status >= 500).length;
 
   return (
-    <div className="px-6 sm:px-8 py-6 space-y-5">
+    <div className="px-6 sm:px-8 py-6 space-y-4">
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
-          <p className="text-2xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">{totalCalls.toLocaleString()}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">llamadas — 7 días</p>
-        </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
-          <p className="text-2xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">{avgCalls.toLocaleString()}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">promedio diario</p>
-        </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
-          <p className={cn('text-2xl font-bold tabular-nums', totalErrors > 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400')}>
-            {totalErrors}
+      <div className="grid grid-cols-2 md:grid-cols-[2fr_1fr_1fr] gap-3">
+
+        {/* Hero: tasa de error */}
+        <div className="col-span-2 md:col-span-1 bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 px-6 pt-5 pb-5">
+          <p className="text-[10px] font-mono font-bold tracking-[0.12em] text-stone-400 dark:text-zinc-500 uppercase mb-2">
+            Tasa de error — 7 días
           </p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">errores — 7 días</p>
-        </div>
-      </div>
-
-      {/* Bar chart */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-5">
-        <p className="text-sm font-semibold text-stone-800 dark:text-zinc-100 mb-4">Llamadas por día</p>
-        <div className="flex items-end gap-2 h-36">
-          {STATIC_USAGE.map(day => {
-            const heightPct = (day.calls / maxCalls) * 100;
-            return (
-              <div key={day.date} className="flex-1 flex flex-col items-center gap-1.5 group">
-                <span className="text-[10px] tabular-nums text-stone-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {day.calls}
-                </span>
+          <p className={cn('text-5xl font-bold tracking-tight tabular-nums', totalErrors > 0 ? 'text-red-500 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400')}>
+            {errorRate}%
+          </p>
+          <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-1.5">
+            {totalErrors} errores de {totalCalls.toLocaleString()} llamadas
+          </p>
+          {/* Mini bar: proporción errores por día */}
+          <div className="flex items-end gap-0.5 mt-4 h-8">
+            {STATIC_USAGE.map(day => (
+              <div key={day.date} className="flex-1 flex flex-col justify-end gap-px">
                 <div
-                  className="w-full rounded-t-md bg-brand/20 dark:bg-brand/30 group-hover:bg-brand/40 transition-colors relative"
-                  style={{ height: `${heightPct}%` }}
-                >
-                  {day.errors > 0 && (
-                    <div
-                      className="absolute bottom-0 left-0 right-0 rounded-t-md bg-red-400/60 dark:bg-red-500/40"
-                      style={{ height: `${(day.errors / day.calls) * 100}%` }}
-                    />
-                  )}
-                </div>
-                <span className="text-[10px] text-stone-300 dark:text-zinc-600 whitespace-nowrap">{day.date.split(' ')[0]}</span>
+                  className="w-full rounded-sm bg-red-400/70 dark:bg-red-500/50 transition-all"
+                  style={{ height: day.errors > 0 ? `${Math.max((day.errors / 5) * 100, 20)}%` : '8%' }}
+                  title={`${day.date}: ${day.errors} errores`}
+                />
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-stone-100 dark:border-zinc-800">
-          <span className="flex items-center gap-1.5 text-xs text-stone-400 dark:text-zinc-500">
-            <span className="w-2.5 h-2.5 rounded-sm bg-brand/30 shrink-0" />Llamadas
-          </span>
-          <span className="flex items-center gap-1.5 text-xs text-stone-400 dark:text-zinc-500">
-            <span className="w-2.5 h-2.5 rounded-sm bg-red-400/60 shrink-0" />Errores
-          </span>
+
+        {/* Total errores */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 px-5 pt-4 pb-4 flex flex-col justify-between">
+          <p className="text-[10px] font-mono font-bold tracking-[0.12em] text-stone-400 dark:text-zinc-500 uppercase">Total errores</p>
+          <div>
+            <p className="text-3xl font-bold tabular-nums text-red-500 dark:text-red-400">{totalErrors}</p>
+            <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-0.5">últimos 7 días</p>
+          </div>
+        </div>
+
+        {/* Distribución */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 px-5 pt-4 pb-4 flex flex-col justify-between">
+          <p className="text-[10px] font-mono font-bold tracking-[0.12em] text-stone-400 dark:text-zinc-500 uppercase">Por código</p>
+          <div className="space-y-1.5 mt-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-mono text-orange-600 dark:text-orange-400">404</span>
+              <span className="text-[11px] font-mono tabular-nums text-stone-500 dark:text-zinc-400">{errors404}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400">429</span>
+              <span className="text-[11px] font-mono tabular-nums text-stone-500 dark:text-zinc-400">{errors429}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-mono text-red-600 dark:text-red-400">5xx</span>
+              <span className="text-[11px] font-mono tabular-nums text-stone-500 dark:text-zinc-400">{errors5xx}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Per-key usage */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-5">
-        <p className="text-sm font-semibold text-stone-800 dark:text-zinc-100 mb-4">Uso por API Key</p>
-        <div className="space-y-3">
-          {STATIC_KEYS.map(key => {
-            const maxKey = Math.max(...STATIC_KEYS.map(k => k.callsTotal));
-            const pct = (key.callsTotal / maxKey) * 100;
+      {/* Log de errores recientes */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 overflow-hidden">
+        <div className="px-5 pt-5 pb-3 border-b border-stone-100 dark:border-zinc-800">
+          <p className="text-sm font-semibold text-stone-800 dark:text-zinc-100">Errores recientes</p>
+          <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-0.5">Últimas {STATIC_ERRORS.length} peticiones con error</p>
+        </div>
+        <div className="divide-y divide-stone-100 dark:divide-zinc-800">
+          {STATIC_ERRORS.map(err => {
+            const meta = statusMeta(err.status);
             return (
-              <div key={key.id} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-stone-700 dark:text-zinc-300">{key.name}</span>
-                  <span className="text-xs tabular-nums font-mono text-stone-400 dark:text-zinc-500">{key.callsTotal.toLocaleString()}</span>
+              <div key={err.id} className="group flex items-start gap-3 px-5 py-3 hover:bg-stone-50 dark:hover:bg-zinc-800/50 transition-colors">
+                {/* Status badge */}
+                <span className={cn('shrink-0 mt-0.5 inline-block rounded-md px-2 py-0.5 text-[11px] font-mono font-bold', meta.bg, meta.text)}>
+                  {meta.label}
+                </span>
+                {/* Path + key */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-mono text-stone-700 dark:text-zinc-300 truncate">
+                    <span className="text-stone-400 dark:text-zinc-500">{err.method} </span>{err.path}
+                  </p>
+                  <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-0.5">{err.message}</p>
                 </div>
-                <div className="h-1.5 rounded-full bg-stone-100 dark:bg-zinc-800 overflow-hidden">
-                  <div className="h-full rounded-full bg-brand/50 dark:bg-brand/40" style={{ width: `${pct}%` }} />
+                {/* Key + timestamp */}
+                <div className="shrink-0 text-right hidden sm:block">
+                  <p className="text-[11px] text-stone-500 dark:text-zinc-400">{err.keyName}</p>
+                  <p className="text-[10px] text-stone-300 dark:text-zinc-600 mt-0.5 font-mono">{err.ts}</p>
                 </div>
               </div>
             );

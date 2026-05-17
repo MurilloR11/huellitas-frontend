@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   KeyRound,
   BookOpen,
-  BarChart3,
+  AlertCircle,
   ChevronsUpDown,
   UserRound,
   Bell,
@@ -55,7 +55,7 @@ const API_ITEMS: { id: DevNavId; icon: typeof Code2; label: string }[] = [
 ];
 
 const ANALYTICS_ITEMS: { id: DevNavId; icon: typeof Code2; label: string }[] = [
-  { id: 'stats', icon: BarChart3, label: 'Estadísticas' },
+  { id: 'stats', icon: AlertCircle, label: 'Registro' },
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -313,7 +313,7 @@ export function DeveloperSidebar({
             )}
 
             <NavSection
-              label="Análisis"
+              label="Errores"
               items={ANALYTICS_ITEMS}
               activeNav={activeNav}
               onSelect={handleNavChange}
