@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import SwaggerUI from 'swagger-ui-react';
+import 'swagger-ui-react/swagger-ui.css';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { DeveloperSidebar, type DevNavId } from '@/shared/ui/organisms/DeveloperSidebar';
 import {
@@ -18,6 +20,8 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { huellitasApiSpec } from '../openapi-spec';
+import '../swagger-overrides.css';
 
 // ─── Breadcrumb map ────────────────────────────────────────────────────────────
 
@@ -46,114 +50,6 @@ const STATIC_KEYS: ApiKey[] = [
   { id: '3', name: 'Script de prueba', prefix: 'hll_sk_C0m3',  createdAt: '2026-03-22', lastUsed: null,         callsTotal: 47,    active: false },
 ];
 
-type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
-
-interface Endpoint {
-  method: HttpMethod;
-  path: string;
-  description: string;
-  auth: boolean;
-  params?: string;
-  responseExample: string;
-}
-
-const PUBLIC_ENDPOINTS: Endpoint[] = [
-  {
-    method: 'GET',
-    path: '/api/pets',
-    description: 'Listar mascotas disponibles para adopción.',
-    auth: false,
-    params: 'species, age_min, age_max, city, size, page, limit',
-    responseExample: `[
-  {
-    "id": "abc123",
-    "name": "Luna",
-    "species": "dog",
-    "age_months": 14,
-    "city": "Bogotá",
-    "foundation_id": "f01",
-    "photos": ["https://..."],
-    "status": "available"
-  }
-]`,
-  },
-  {
-    method: 'GET',
-    path: '/api/pets/:id',
-    description: 'Obtener el detalle completo de una mascota.',
-    auth: false,
-    responseExample: `{
-  "id": "abc123",
-  "name": "Luna",
-  "species": "dog",
-  "breed": "Mestiza",
-  "age_months": 14,
-  "weight_kg": 8.5,
-  "vaccinated": true,
-  "sterilized": true,
-  "description": "Muy cariñosa y juguetona.",
-  "city": "Bogotá",
-  "foundation": { "id": "f01", "name": "Huellitas Bogotá" },
-  "photos": ["https://..."],
-  "status": "available"
-}`,
-  },
-  {
-    method: 'GET',
-    path: '/api/foundations',
-    description: 'Listar fundaciones y refugios activos.',
-    auth: false,
-    params: 'city, page, limit',
-    responseExample: `[
-  {
-    "id": "f01",
-    "name": "Huellitas Bogotá",
-    "city": "Bogotá",
-    "pets_count": 12,
-    "contact_email": "info@huellitasbogota.com"
-  }
-]`,
-  },
-  {
-    method: 'GET',
-    path: '/api/foundations/:id',
-    description: 'Detalle de una fundación y sus mascotas disponibles.',
-    auth: false,
-    responseExample: `{
-  "id": "f01",
-  "name": "Huellitas Bogotá",
-  "city": "Bogotá",
-  "description": "Refugio sin ánimo de lucro...",
-  "contact_email": "info@huellitasbogota.com",
-  "pets": [...]
-}`,
-  },
-  {
-    method: 'POST',
-    path: '/api/adoptions/requests',
-    description: 'Enviar una solicitud de adopción para una mascota.',
-    auth: true,
-    params: 'pet_id (body), message (body)',
-    responseExample: `{
-  "id": "req789",
-  "pet_id": "abc123",
-  "status": "pending",
-  "created_at": "2026-05-16T12:00:00Z"
-}`,
-  },
-  {
-    method: 'GET',
-    path: '/api/adoptions/requests/:id',
-    description: 'Consultar el estado de una solicitud de adopción.',
-    auth: true,
-    responseExample: `{
-  "id": "req789",
-  "pet_id": "abc123",
-  "status": "approved",
-  "reviewed_at": "2026-05-17T09:00:00Z"
-}`,
-  },
-];
 
 interface DailyUsage {
   date: string;
@@ -170,15 +66,6 @@ const STATIC_USAGE: DailyUsage[] = [
   { date: '15 May', calls: 710,  errors: 0  },
   { date: '16 May', calls: 490,  errors: 2  },
 ];
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-
-const METHOD_CONFIG: Record<HttpMethod, string> = {
-  GET:    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  POST:   'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  PATCH:  'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-  DELETE: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-};
 
 // ─── Overview ──────────────────────────────────────────────────────────────────
 
@@ -453,69 +340,82 @@ function ApiKeysPage() {
 // ─── API Docs ──────────────────────────────────────────────────────────────────
 
 function ApiDocsPage() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  useEffect(() => {
+    const wrapper = document.querySelector('.swagger-wrapper');
+    if (!wrapper) return;
+
+    function applyTranslations() {
+      // Modal title
+      wrapper!.querySelectorAll('.modal-ux-header h4').forEach((el) => {
+        if (el.textContent === 'Available authorizations') el.textContent = 'Autorizar acceso';
+      });
+      // Modal buttons
+      wrapper!.querySelectorAll('.auth-btn-wrapper .btn').forEach((el) => {
+        const t = el.textContent?.trim();
+        if (t === 'Authorize') el.textContent = 'Autorizar';
+        else if (t === 'Close') el.textContent = 'Cerrar';
+        else if (t === 'Logout') el.textContent = 'Desconectar';
+      });
+      // "Value:" label
+      wrapper!.querySelectorAll('.modal-ux-content label').forEach((el) => {
+        if (el.textContent?.trim() === 'Value:') el.textContent = 'Valor:';
+      });
+      // Name: / In: info lines
+      wrapper!.querySelectorAll('.auth-container p').forEach((el) => {
+        const t = el.textContent ?? '';
+        if (t.startsWith('Name:')) el.textContent = t.replace('Name:', 'Nombre:');
+        if (t.startsWith('In:')) el.textContent = t.replace('In:', 'En:');
+      });
+      // Scheme-container "Authorize" button span
+      wrapper!.querySelectorAll('.scheme-container .btn.authorize span').forEach((el) => {
+        if (el.textContent?.trim() === 'Authorize') el.textContent = 'Autorizar';
+      });
+    }
+
+    const observer = new MutationObserver(applyTranslations);
+    observer.observe(wrapper, { childList: true, subtree: true });
+    applyTranslations();
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="px-6 sm:px-8 py-6 space-y-4">
+    <div className="flex flex-col">
 
-      {/* Base URL */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4 space-y-2">
-        <p className="text-sm font-semibold text-stone-800 dark:text-zinc-100">Base URL</p>
-        <code className="block text-xs font-mono text-brand bg-brand-light dark:bg-brand/10 rounded px-3 py-2">
-          https://api.huellitas.co/v1
-        </code>
-        <p className="text-xs text-stone-400 dark:text-zinc-500">
-          Los endpoints marcados con <span className="font-mono text-stone-600 dark:text-zinc-300">Auth requerida</span> necesitan el header{' '}
-          <span className="font-mono text-stone-600 dark:text-zinc-300">X-API-Key</span>.
-          Los endpoints públicos pueden consultarse sin autenticación.
-        </p>
+      {/* Header strip — asymmetric, no card */}
+      <div className="px-6 sm:px-10 pt-7 pb-5">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+
+          <div className="space-y-1">
+            <p className="text-[10px] font-mono font-bold tracking-widest text-brand uppercase">
+              API Reference
+            </p>
+            <h2 className="text-xl font-bold tracking-tight text-stone-900 dark:text-zinc-100">
+              Documentación
+            </h2>
+            <p className="text-xs text-stone-400 dark:text-zinc-500">
+              API de solo lectura · v1.0.0
+            </p>
+          </div>
+
+          <code className="flex items-center gap-1.5 text-[11px] font-mono text-stone-500 dark:text-zinc-400 bg-stone-100 dark:bg-zinc-800/80 px-2.5 py-1.5 rounded-md select-all self-end mb-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            api.huellitas.co/v1
+          </code>
+
+        </div>
       </div>
 
-      {/* Endpoint list */}
-      <div className="space-y-2">
-        {PUBLIC_ENDPOINTS.map((ep, i) => (
-          <div key={i} className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setOpenIndex(openIndex === i ? null : i)}
-              className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-stone-50 dark:hover:bg-zinc-800/50 transition-colors"
-            >
-              <span className={cn('inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-bold font-mono w-13 justify-center shrink-0', METHOD_CONFIG[ep.method])}>
-                {ep.method}
-              </span>
-              <span className="flex-1 text-xs font-mono text-stone-800 dark:text-zinc-200 truncate">{ep.path}</span>
-              {ep.auth && (
-                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 shrink-0 hidden sm:block">
-                  Auth requerida
-                </span>
-              )}
-              <ChevronRight
-                className={cn('w-4 h-4 text-stone-300 dark:text-zinc-600 shrink-0 transition-transform duration-200', openIndex === i && 'rotate-90')}
-                strokeWidth={2}
-              />
-            </button>
+      <div className="border-t border-stone-100 dark:border-zinc-800/60 mx-6 sm:mx-10" />
 
-            {openIndex === i && (
-              <div className="border-t border-stone-100 dark:border-zinc-800 px-5 py-4 space-y-3">
-                <p className="text-sm text-stone-600 dark:text-zinc-400">{ep.description}</p>
-
-                {ep.params && (
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">Parámetros</p>
-                    <p className="text-xs font-mono text-stone-500 dark:text-zinc-400">{ep.params}</p>
-                  </div>
-                )}
-
-                <div className="space-y-1">
-                  <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">Ejemplo de respuesta</p>
-                  <pre className="text-xs font-mono text-stone-600 dark:text-zinc-400 bg-stone-50 dark:bg-zinc-800/60 rounded-lg px-4 py-3 overflow-x-auto leading-relaxed">
-                    {ep.responseExample}
-                  </pre>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+      {/* Swagger UI */}
+      <div className="swagger-wrapper px-4 sm:px-8 pt-2 pb-8 overflow-x-auto">
+        <SwaggerUI
+          spec={huellitasApiSpec}
+          docExpansion="list"
+          defaultModelsExpandDepth={-1}
+          tryItOutEnabled={false}
+          displayRequestDuration={false}
+        />
       </div>
 
     </div>
