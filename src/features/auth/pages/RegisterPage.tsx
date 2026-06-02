@@ -492,11 +492,11 @@ export default function RegisterPage() {
                 />
                 <span className="text-sm text-zinc-600">
                   Acepto los{' '}
-                  <Link to="#" className="text-brand hover:text-brand-dark underline">
+                  <Link to="/terminos" target="_blank" className="text-brand hover:text-brand-dark underline">
                     términos de uso
                   </Link>{' '}
                   y la{' '}
-                  <Link to="#" className="text-brand hover:text-brand-dark underline">
+                  <Link to="/privacidad" target="_blank" className="text-brand hover:text-brand-dark underline">
                     política de privacidad
                   </Link>
                 </span>

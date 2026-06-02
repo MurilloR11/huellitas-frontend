@@ -692,9 +692,9 @@ function ResolvedPhase({
         <div className="flex items-center justify-between gap-4 pt-4 border-t border-stone-100 dark:border-zinc-800">
           <p className="text-xs text-stone-400 dark:text-zinc-500 leading-relaxed">
             Al enviar aceptas nuestra{' '}
-            <button type="button" className="underline underline-offset-2 hover:text-stone-600 dark:hover:text-zinc-300 transition-colors">
+            <Link to="/privacidad" target="_blank" className="underline underline-offset-2 hover:text-stone-600 dark:hover:text-zinc-300 transition-colors">
               política de privacidad
-            </button>
+            </Link>
             .
           </p>
           <Button

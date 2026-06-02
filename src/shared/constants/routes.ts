@@ -15,4 +15,6 @@ export const ROUTES = {
   PENDING: '/pending',
   REJECTED: '/rejected',
   ACCOUNT: '/account',
+  TERMS: '/terminos',
+  PRIVACY: '/privacidad',
 } as const;

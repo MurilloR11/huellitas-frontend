@@ -22,6 +22,8 @@ import FoundationPage from '../features/foundations/pages/FoundationPage';
 import DeveloperPage from '../features/developer/pages/DeveloperPage';
 import ApplyPage from '../features/adoptions/pages/ApplyPage';
 import MyAdoptionsPage from '../features/adoptions/pages/MyAdoptionsPage';
+import TermsPage from '../features/legal/pages/TermsPage';
+import PrivacyPage from '../features/legal/pages/PrivacyPage';
 
 const PetsList = () => <div className="p-8">Mascotas en adopción</div>;
 const PetDetail = () => <div className="p-8">Detalle de mascota</div>;
@@ -142,5 +144,7 @@ export const router = createBrowserRouter([
     path: '/account',
     element: <ProtectedRoute roles={['ciudadano']}><AccountPage /></ProtectedRoute>,
   },
+  { path: '/terminos', element: <TermsPage /> },
+  { path: '/privacidad', element: <PrivacyPage /> },
   { path: '*', element: <NotFound /> },
 ]);
