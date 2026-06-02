@@ -1,280 +1,153 @@
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 import {
-  Search,
   PawPrint,
   AlertCircle,
   Check,
-  Clock,
-  Building2,
   MessageSquare,
   ArrowRight,
   ClipboardList,
   CalendarDays,
+  CalendarCheck,
   TrendingUp,
-  MapPin,
-  Phone,
-  Mail,
+  Search,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useRealtimeTable } from '../../../shared/hooks/useRealtimeTable';
+import { adoptionsApi } from '../services/adoptionsApi';
+import type { AdoptionRequest, AdoptionStatus, VisitSchedule } from '../types';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type Phase = 'idle' | 'loading' | 'found' | 'not_found';
-type RequestStatus = 'recibida' | 'en_revision' | 'aprobada' | 'rechazada' | 'completada';
 type StepState = 'completed' | 'current' | 'upcoming';
 
 interface TimelineStep {
-  id: RequestStatus;
+  id: AdoptionStatus;
   label: string;
-  date?: string;
   description: string;
   state: StepState;
-}
-
-interface MockRequest {
-  requestNumber: string;
-  animal: {
-    name: string;
-    species: string;
-    breed: string;
-    age: string;
-    photo: string;
-    shelter: string;
-  };
-  currentStatus: RequestStatus;
-  updatedAt: string;
-  timeline: TimelineStep[];
-  shelterMessage: {
-    shelter: string;
-    text: string;
-    date: string;
-  };
-  nextStep: string;
 }
 
 // ─── Status configuration ──────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<
-  RequestStatus,
-  { label: string; description: string; bg: string; fg: string; border: string }
+  AdoptionStatus,
+  { label: string; description: string; nextStep: string; bg: string; fg: string; border: string }
 > = {
-  recibida: {
+  pending: {
     label: 'Recibida',
-    description:
-      'Tu solicitud llegó correctamente y está en la cola de revisión del refugio.',
+    description: 'Tu solicitud llegó correctamente y está en la cola de revisión de la fundación.',
+    nextStep: 'Estamos procesando tu solicitud. Te notificaremos en un plazo de 3 a 5 días hábiles con el resultado.',
     bg: '#f5f5f4',
     fg: '#57534e',
     border: '#d6d3d1',
   },
-  en_revision: {
+  reviewing: {
     label: 'En revisión',
-    description:
-      'El equipo del refugio está evaluando tu solicitud y verificando la información proporcionada.',
+    description: 'El equipo de la fundación está evaluando tu solicitud y verificando la información proporcionada.',
+    nextStep: 'Estamos revisando tu solicitud. Te enviaremos una notificación con el resultado en los próximos días.',
     bg: '#fef3c7',
     fg: '#92400e',
     border: '#fde68a',
   },
-  aprobada: {
+  approved: {
     label: 'Aprobada',
-    description:
-      '¡Felicidades! Tu solicitud fue aprobada. El refugio se pondrá en contacto contigo pronto.',
+    description: '¡Felicidades! Tu solicitud fue aprobada. La fundación se pondrá en contacto contigo pronto.',
+    nextStep: 'La fundación se comunicará contigo para coordinar el encuentro con el animal y los siguientes pasos del proceso.',
     bg: '#dcfce7',
     fg: '#166534',
     border: '#bbf7d0',
   },
-  rechazada: {
+  rejected: {
     label: 'No aprobada',
-    description:
-      'En esta ocasión tu solicitud no pudo ser aprobada. Puedes contactar al refugio para más detalles.',
+    description: 'En esta ocasión tu solicitud no pudo ser aprobada. Puedes contactar a la fundación para más detalles.',
+    nextStep: 'Puedes explorar otros animales en adopción y enviar una nueva solicitud cuando te sientas listo.',
     bg: '#fee2e2',
     fg: '#991b1b',
     border: '#fecaca',
   },
-  completada: {
+  completed: {
     label: 'Completada',
-    description:
-      '¡La adopción se completó exitosamente! Gracias por darle un hogar a este animal.',
+    description: '¡La adopción se completó exitosamente! Gracias por darle un hogar a este animal.',
+    nextStep: '¡Bienvenido a la familia adoptante! Recuerda registrar a tu nueva mascota con un veterinario.',
     bg: '#fdf3ee',
     fg: '#e85d26',
     border: '#f0c9b4',
   },
 };
 
-// ─── Mock data ─────────────────────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
-const MOCK_REQUEST: MockRequest = {
-  requestNumber: 'SOL-2024-0312',
-  animal: {
-    name: 'Luna',
-    species: 'Gata',
-    breed: 'Doméstica mixta',
-    age: '2 años',
-    photo: 'https://loremflickr.com/400/300/cat,tabby/all?lock=42',
-    shelter: 'Refugio Huellitas Ibagué',
-  },
-  currentStatus: 'en_revision',
-  updatedAt: '12 de marzo de 2024, 10:30 a.m.',
-  timeline: [
-    {
-      id: 'recibida',
-      label: 'Recibida',
-      date: '10 de marzo de 2024',
-      description: 'Tu solicitud fue recibida y registrada correctamente en nuestro sistema.',
-      state: 'completed',
-    },
-    {
-      id: 'en_revision',
-      label: 'En revisión',
-      date: '11 de marzo de 2024',
-      description:
-        'El equipo del refugio está revisando tu información, perfil y documentos adjuntos.',
-      state: 'current',
-    },
-    {
-      id: 'aprobada',
-      label: 'Aprobada',
-      description:
-        'La solicitud es aprobada y se agenda el encuentro con el animal en el refugio.',
-      state: 'upcoming',
-    },
-    {
-      id: 'completada',
-      label: 'Completada',
-      description:
-        'El proceso de adopción concluye y el animal llega a su nuevo hogar contigo.',
-      state: 'upcoming',
-    },
-  ],
-  shelterMessage: {
-    shelter: 'Refugio Huellitas Ibagué',
-    text: 'Hola, hemos recibido tu solicitud para adoptar a Luna. Estamos revisando la información que nos proporcionaste y nos comunicaremos contigo en los próximos días con el resultado. ¡Gracias por considerar la adopción responsable!',
-    date: '12 de marzo de 2024',
-  },
-  nextStep:
-    'Estamos revisando tu solicitud. Te enviaremos un correo a la dirección registrada en un plazo de 3 a 5 días hábiles con el resultado del proceso.',
-};
-
-// ─── Lookup Card ───────────────────────────────────────────────────────────────
-
-function LookupCard({
-  phase,
-  requestNumber,
-  onChange,
-  onSubmit,
-}: {
-  phase: Phase;
-  requestNumber: string;
-  onChange: (v: string) => void;
-  onSubmit: () => void;
-}) {
-  return (
-    <div className="w-full max-w-md">
-      <div className="flex flex-col items-center text-center mb-8">
-        <div
-          className="flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
-          style={{ background: 'var(--color-brand-light)' }}
-        >
-          <ClipboardList
-            className="w-7 h-7"
-            style={{ color: 'var(--color-brand)' }}
-            strokeWidth={1.75}
-          />
-        </div>
-        <h1 className="text-2xl font-bold text-stone-900 dark:text-zinc-100 mb-2">
-          Estado de mi solicitud
-        </h1>
-        <p className="text-sm text-stone-500 dark:text-zinc-400 leading-relaxed max-w-sm">
-          Consulta el avance de tu proceso de adopción ingresando el número que recibiste
-          al completar tu solicitud.
-        </p>
-      </div>
-
-      <div className="bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
-        <Label
-          htmlFor="request-number"
-          className="text-xs font-semibold text-stone-500 dark:text-zinc-400 uppercase tracking-wide mb-2 block"
-        >
-          Número de solicitud
-        </Label>
-        <div className="flex gap-2">
-          <Input
-            id="request-number"
-            value={requestNumber}
-            onChange={e => onChange(e.target.value.toUpperCase())}
-            placeholder="Ej. SOL-2024-0312"
-            className="font-mono tracking-widest text-stone-800 dark:text-zinc-100 placeholder:font-sans placeholder:tracking-normal"
-            onKeyDown={e => e.key === 'Enter' && onSubmit()}
-          />
-          <Button
-            onClick={onSubmit}
-            disabled={!requestNumber.trim()}
-            className="shrink-0 gap-1.5 text-white hover:opacity-90"
-            style={{ background: 'var(--color-brand)' }}
-          >
-            <Search className="w-4 h-4" />
-            <span>Buscar</span>
-          </Button>
-        </div>
-
-        {phase === 'not_found' && (
-          <div className="flex items-start gap-2 mt-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" strokeWidth={1.75} />
-            <p className="text-xs text-red-600 dark:text-red-400 leading-snug">
-              No encontramos una solicitud con ese número. Verifica e intenta de nuevo.
-            </p>
-          </div>
-        )}
-      </div>
-
-      <p className="text-center text-xs text-stone-400 dark:text-zinc-500 mt-4">
-        Ingresa el número que recibiste al completar tu solicitud
-      </p>
-    </div>
-  );
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-CO', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
-// ─── Animal Card (left sidebar) ─────────────────────────────────────────────────
+function buildTimeline(status: AdoptionStatus): TimelineStep[] {
+  if (status === 'rejected') {
+    const steps: Omit<TimelineStep, 'state'>[] = [
+      { id: 'pending',   label: 'Recibida',     description: 'Tu solicitud fue recibida y registrada correctamente.' },
+      { id: 'reviewing', label: 'En revisión',  description: 'El equipo de la fundación revisó tu información.' },
+      { id: 'rejected',  label: 'No aprobada',  description: 'En esta ocasión la solicitud no pudo ser aprobada.' },
+    ];
+    return steps.map((s, i) => ({
+      ...s,
+      state: (i < steps.length - 1 ? 'completed' : 'current') as StepState,
+    }));
+  }
 
-function AnimalCard({ request }: { request: MockRequest }) {
+  const steps: Omit<TimelineStep, 'state'>[] = [
+    { id: 'pending',   label: 'Recibida',    description: 'Tu solicitud fue recibida y registrada correctamente.' },
+    { id: 'reviewing', label: 'En revisión', description: 'El equipo de la fundación está revisando tu información.' },
+    { id: 'approved',  label: 'Aprobada',    description: 'La solicitud fue aprobada; se coordinará el encuentro con el animal.' },
+    { id: 'completed', label: 'Completada',  description: 'El proceso de adopción concluyó exitosamente.' },
+  ];
+  const ORDER: AdoptionStatus[] = ['pending', 'reviewing', 'approved', 'completed'];
+  const currentIdx = ORDER.indexOf(status);
+  return steps.map((s, i) => ({
+    ...s,
+    state: (i < currentIdx ? 'completed' : i === currentIdx ? 'current' : 'upcoming') as StepState,
+  }));
+}
+
+// ─── Animal Card ───────────────────────────────────────────────────────────────
+
+function AnimalCard({ request }: { request: AdoptionRequest }) {
   return (
     <div className="bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
-      <img
-        src={request.animal.photo}
-        alt={`${request.animal.name} — ${request.animal.breed}`}
-        className="w-full h-44 object-cover"
-      />
+      <div className="w-full h-44 bg-stone-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
+        {request.pet_photo ? (
+          <img
+            src={request.pet_photo}
+            alt={request.pet_name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <PawPrint className="w-12 h-12 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
+        )}
+      </div>
       <div className="p-4 space-y-3">
         <div>
           <h2 className="text-lg font-bold text-stone-900 dark:text-zinc-100 leading-tight">
-            {request.animal.name}
+            {request.pet_name}
           </h2>
-          <p className="text-sm text-stone-500 dark:text-zinc-400">{request.animal.breed}</p>
+          <p className="text-sm text-stone-400 dark:text-zinc-500 mt-0.5">
+            Solicitud #{request.id}
+          </p>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-stone-100 dark:bg-zinc-800 text-xs text-stone-600 dark:text-zinc-300 font-medium">
-            <PawPrint className="w-3.5 h-3.5" strokeWidth={1.75} />
-            {request.animal.species}
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-stone-100 dark:bg-zinc-800 text-xs text-stone-600 dark:text-zinc-300 font-medium">
-            <Clock className="w-3.5 h-3.5" strokeWidth={1.75} />
-            {request.animal.age}
-          </span>
-        </div>
-
         <div className="flex items-center gap-2 pt-2 border-t border-stone-100 dark:border-zinc-800">
-          <Building2 className="w-4 h-4 text-stone-400 shrink-0" strokeWidth={1.75} />
-          <span className="text-xs text-stone-500 dark:text-zinc-400 truncate">
-            {request.animal.shelter}
-          </span>
-        </div>
-
-        <div>
-          <span className="px-2 py-0.5 rounded bg-stone-100 dark:bg-zinc-800 font-mono text-xs text-stone-400 dark:text-zinc-500 tracking-widest">
-            {request.requestNumber}
+          <CalendarDays className="w-4 h-4 text-stone-400 shrink-0" strokeWidth={1.75} />
+          <span className="text-xs text-stone-500 dark:text-zinc-400">
+            {formatDate(request.created_at)}
           </span>
         </div>
       </div>
@@ -284,8 +157,8 @@ function AnimalCard({ request }: { request: MockRequest }) {
 
 // ─── Status Banner ─────────────────────────────────────────────────────────────
 
-function StatusBanner({ request }: { request: MockRequest }) {
-  const config = STATUS_CONFIG[request.currentStatus];
+function StatusBanner({ request }: { request: AdoptionRequest }) {
+  const config = STATUS_CONFIG[request.status];
   return (
     <div
       className="rounded-2xl border p-5"
@@ -313,7 +186,7 @@ function StatusBanner({ request }: { request: MockRequest }) {
           strokeWidth={1.75}
         />
         <p className="text-xs" style={{ color: config.fg, opacity: 0.7 }}>
-          Última actualización: {request.updatedAt}
+          Última actualización: {formatDate(request.updated_at)}
         </p>
       </div>
     </div>
@@ -333,13 +206,11 @@ function VerticalTimeline({ steps }: { steps: TimelineStep[] }) {
       <div>
         {steps.map((step, i) => (
           <div key={step.id} className="flex gap-4">
-            {/* Indicator column */}
             <div className="flex flex-col items-center">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 z-10"
                 style={{
-                  borderColor:
-                    step.state !== 'upcoming' ? 'var(--color-brand)' : '#e5e7eb',
+                  borderColor: step.state !== 'upcoming' ? 'var(--color-brand)' : '#e5e7eb',
                   background:
                     step.state === 'completed'
                       ? 'var(--color-brand)'
@@ -363,7 +234,7 @@ function VerticalTimeline({ steps }: { steps: TimelineStep[] }) {
               </div>
               {i < steps.length - 1 && (
                 <div
-                  className="w-0.5 flex-1 my-1 min-h-[1.5rem]"
+                  className="w-0.5 flex-1 my-1 min-h-6"
                   style={{
                     background: i < currentIndex ? 'var(--color-brand)' : '#e5e7eb',
                   }}
@@ -371,7 +242,6 @@ function VerticalTimeline({ steps }: { steps: TimelineStep[] }) {
               )}
             </div>
 
-            {/* Content */}
             <div className={`flex-1 ${i < steps.length - 1 ? 'pb-5' : 'pb-0'}`}>
               <div className="flex items-center gap-2 mb-0.5">
                 <span
@@ -392,11 +262,6 @@ function VerticalTimeline({ steps }: { steps: TimelineStep[] }) {
                   </span>
                 )}
               </div>
-              {step.date && (
-                <p className="text-[11px] text-stone-400 dark:text-zinc-500 mb-1">
-                  {step.date}
-                </p>
-              )}
               <p
                 className={`text-xs leading-relaxed ${
                   step.state !== 'upcoming'
@@ -414,9 +279,10 @@ function VerticalTimeline({ steps }: { steps: TimelineStep[] }) {
   );
 }
 
-// ─── Shelter Message Card ──────────────────────────────────────────────────────
+// ─── Adopter Message Card ──────────────────────────────────────────────────────
 
-function ShelterMessageCard({ message }: { message: MockRequest['shelterMessage'] }) {
+function AdopterMessageCard({ message }: { message: string }) {
+  if (!message.trim()) return null;
   return (
     <div className="bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
       <div className="flex items-center gap-3 pb-4 border-b border-stone-100 dark:border-zinc-800 mb-4">
@@ -430,22 +296,11 @@ function ShelterMessageCard({ message }: { message: MockRequest['shelterMessage'
             strokeWidth={1.75}
           />
         </div>
-        <div>
-          <h3 className="text-sm font-bold text-stone-900 dark:text-zinc-100">
-            Mensaje del refugio
-          </h3>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">{message.date}</p>
-        </div>
+        <h3 className="text-sm font-bold text-stone-900 dark:text-zinc-100">
+          Tu mensaje al refugio
+        </h3>
       </div>
-
-      <p className="text-sm text-stone-600 dark:text-zinc-300 leading-relaxed">{message.text}</p>
-
-      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-stone-100 dark:border-zinc-800">
-        <Building2 className="w-3.5 h-3.5 text-stone-400 shrink-0" strokeWidth={1.75} />
-        <span className="text-xs text-stone-400 dark:text-zinc-500 font-medium">
-          {message.shelter}
-        </span>
-      </div>
+      <p className="text-sm text-stone-600 dark:text-zinc-300 leading-relaxed">{message}</p>
     </div>
   );
 }
@@ -475,7 +330,7 @@ function NextStepCard({ text }: { text: string }) {
   );
 }
 
-// ─── While You Wait Card (sidebar) ────────────────────────────────────────────
+// ─── While You Wait Card ──────────────────────────────────────────────────────
 
 const WAIT_TIPS = [
   'Prepara el espacio donde vivirá el animal: cama, comedero y bebedero.',
@@ -515,46 +370,100 @@ function WhileYouWaitCard() {
   );
 }
 
-// ─── Shelter Contact Card (sidebar) ────────────────────────────────────────────
+// ─── Code Entry Phase ──────────────────────────────────────────────────────────
 
-function ShelterContactCard({ shelter }: { shelter: string }) {
+const _TRACKING_PREFIX = 'SOL-';
+
+function parseTrackingCode(code: string): number | null {
+  const upper = code.trim().toUpperCase();
+  if (!upper.startsWith(_TRACKING_PREFIX)) return null;
+  const numeric = upper.slice(_TRACKING_PREFIX.length);
+  if (!numeric || !/^\d+$/.test(numeric)) return null;
+  return parseInt(numeric, 10);
+}
+
+function CodeEntryPhase({ onFoundId }: { onFoundId: (id: number) => void }) {
+  const queryClient = useQueryClient();
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const adoptionId = parseTrackingCode(code);
+    if (adoptionId === null) {
+      setError('El código debe tener el formato SOL-00000.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const request = await adoptionsApi.getById(adoptionId);
+      queryClient.setQueryData(['adoption', adoptionId], request);
+      onFoundId(adoptionId);
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        setError('No encontramos ninguna solicitud con ese código. Verifica que sea correcto.');
+      } else {
+        setError('Error al consultar la solicitud. Verifica tu conexión e intenta de nuevo.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div
-      className="rounded-2xl border p-4 space-y-3"
-      style={{
-        background: 'var(--color-brand-light)',
-        borderColor: 'var(--color-brand-border, #e8d8c8)',
-      }}
-    >
-      <div className="flex items-center gap-2">
-        <Building2
-          className="w-4 h-4 shrink-0"
+    <div className="flex flex-col items-center justify-center min-h-[480px] px-6 py-16 text-center">
+      <div
+        className="flex items-center justify-center w-16 h-16 rounded-2xl mb-6"
+        style={{ background: 'var(--color-brand-light)' }}
+      >
+        <ClipboardList
+          className="w-8 h-8"
           style={{ color: 'var(--color-brand)' }}
           strokeWidth={1.75}
         />
-        <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100 leading-snug">
-          {shelter}
-        </span>
       </div>
 
-      <ul className="space-y-1.5">
-        <li className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-zinc-400">
-          <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
-          Calle 42 # 5-28, Ibagué
-        </li>
-        <li className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-zinc-400">
-          <Phone className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
-          +57 315 234 5678
-        </li>
-        <li className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-zinc-400">
-          <Mail className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
-          contacto@huellitas.org
-        </li>
-      </ul>
-
-      <p className="text-xs text-stone-500 dark:text-zinc-400 leading-relaxed">
-        ¿Tienes preguntas sobre tu solicitud? Contáctanos directamente.
+      <h1 className="text-xl font-bold text-stone-900 dark:text-zinc-100">
+        Consulta tu solicitud
+      </h1>
+      <p className="text-sm text-stone-500 dark:text-zinc-400 mt-2 max-w-sm leading-relaxed">
+        Ingresa el código de seguimiento que recibiste al enviar tu solicitud de adopción.
       </p>
+
+      <form onSubmit={handleSearch} className="w-full max-w-sm mt-8 space-y-3">
+        <div className="flex gap-2">
+          <Input
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            placeholder="SOL-00000"
+            className="font-mono tracking-widest uppercase"
+            disabled={loading}
+            autoFocus
+          />
+          <Button
+            type="submit"
+            disabled={loading || !code.trim()}
+            className="shrink-0 px-4 gap-2 text-white"
+            style={{ background: 'var(--color-brand)' }}
+          >
+            {loading
+              ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+              : <Search className="w-4 h-4" strokeWidth={2} />
+            }
+            Buscar
+          </Button>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-left">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" strokeWidth={1.75} />
+            <p className="text-xs text-red-600 dark:text-red-400 leading-snug">{error}</p>
+          </div>
+        )}
+      </form>
+
     </div>
   );
 }
@@ -569,18 +478,14 @@ function LoadingSkeleton() {
           <Skeleton className="w-full h-44" />
           <div className="p-4 space-y-3">
             <div className="space-y-1.5">
-              <Skeleton className="h-5 w-20" />
-              <Skeleton className="h-4 w-36" />
-            </div>
-            <div className="flex gap-2">
-              <Skeleton className="h-6 w-14 rounded-full" />
-              <Skeleton className="h-6 w-18 rounded-full" />
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-4 w-28" />
             </div>
             <Skeleton className="h-px w-full" />
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-5 w-28 rounded" />
+            <Skeleton className="h-4 w-36" />
           </div>
         </div>
+        <Skeleton className="h-28 rounded-2xl" />
       </div>
 
       <div className="flex-1 px-6 py-6 space-y-6">
@@ -599,14 +504,104 @@ function LoadingSkeleton() {
               </div>
               <div className="flex-1 space-y-1.5 pb-3">
                 <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-32" />
                 <Skeleton className="h-3 w-56" />
               </div>
             </div>
           ))}
         </div>
-        <Skeleton className="h-36 rounded-2xl" />
+        <Skeleton className="h-24 rounded-2xl" />
         <Skeleton className="h-20 rounded-2xl" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Not Found State ───────────────────────────────────────────────────────────
+
+function NotFoundState() {
+  return (
+    <div className="flex flex-col items-center justify-center px-6 py-24 text-center gap-4">
+      <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-950/30">
+        <AlertCircle className="w-7 h-7 text-red-400" strokeWidth={1.75} />
+      </div>
+      <div>
+        <h2 className="text-lg font-bold text-stone-900 dark:text-zinc-100">
+          Solicitud no encontrada
+        </h2>
+        <p className="text-sm text-stone-500 dark:text-zinc-400 mt-1 max-w-xs leading-relaxed">
+          No pudimos encontrar esta solicitud. Puede que no exista o no tengas acceso a ella.
+        </p>
+      </div>
+      <Link
+        to="/my-adoptions"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-stone-200 dark:border-zinc-700 text-stone-700 dark:text-zinc-300 hover:bg-stone-50 dark:hover:bg-zinc-800 transition-colors"
+      >
+        <ClipboardList className="w-4 h-4" strokeWidth={1.75} />
+        Mis solicitudes
+      </Link>
+    </div>
+  );
+}
+
+// ─── Visit Schedule Panel ─────────────────────────────────────────────────────
+
+const VISIT_STATUS_LABEL: Record<string, string> = {
+  pending:   'Pendiente',
+  confirmed: 'Confirmada',
+  completed: 'Completada',
+  cancelled: 'Cancelada',
+};
+
+function formatVisitDatetime(iso: string): string {
+  const DAYS_ES   = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const d = new Date(iso);
+  const dayName = DAYS_ES[d.getDay()];
+  const month   = MONTHS_ES[d.getMonth()];
+  const hours   = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const period  = hours >= 12 ? 'PM' : 'AM';
+  const h12     = hours % 12 || 12;
+  return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)}, ${d.getDate()} de ${month} de ${d.getFullYear()} · ${h12}:${minutes} ${period}`;
+}
+
+function VisitSchedulePanel({ visit }: { visit: VisitSchedule }) {
+  return (
+    <div
+      className="rounded-2xl border p-5"
+      style={{ background: '#FEF0EB', borderColor: 'var(--color-brand-border, #f0c9b4)' }}
+    >
+      <div
+        className="flex items-center gap-3 pb-4 border-b mb-4"
+        style={{ borderColor: 'var(--color-brand-border, #f0c9b4)' }}
+      >
+        <div
+          className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
+          style={{ background: 'var(--color-brand)' }}
+        >
+          <CalendarCheck className="w-4 h-4 text-white" strokeWidth={2} />
+        </div>
+        <h3 className="text-sm font-bold text-stone-800">Encuentro programado</h3>
+      </div>
+      <div className="space-y-2.5">
+        <div className="flex justify-between items-start gap-4">
+          <span className="text-xs text-stone-500 shrink-0">Fecha y hora</span>
+          <span className="text-xs font-semibold text-stone-800 text-right">
+            {formatVisitDatetime(visit.scheduled_at)}
+          </span>
+        </div>
+        <div className="flex justify-between items-start gap-4">
+          <span className="text-xs text-stone-500 shrink-0">Estado</span>
+          <span className="text-xs font-semibold text-stone-800 text-right">
+            {VISIT_STATUS_LABEL[visit.status] ?? visit.status}
+          </span>
+        </div>
+        {visit.location && (
+          <div className="flex justify-between items-start gap-4">
+            <span className="text-xs text-stone-500 shrink-0">Lugar</span>
+            <span className="text-xs font-semibold text-stone-800 text-right">{visit.location}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -614,34 +609,59 @@ function LoadingSkeleton() {
 
 // ─── Found Phase ───────────────────────────────────────────────────────────────
 
-function FoundPhase({ request }: { request: MockRequest }) {
+function FoundPhase({ request, isRefetching }: { request: AdoptionRequest; isRefetching: boolean }) {
+  const navigate = useNavigate();
+  const timeline = buildTimeline(request.status);
+  const nextStep = STATUS_CONFIG[request.status].nextStep;
+  const hasVisit = !!request.visit_schedule;
+
   return (
     <div className="flex flex-col md:flex-row">
       <aside className="w-full md:w-[320px] shrink-0 md:sticky md:top-0 md:self-start md:max-h-screen overflow-y-auto border-b md:border-b-0 md:border-r border-stone-200 dark:border-zinc-800 px-5 py-6 space-y-4">
         <AnimalCard request={request} />
         <WhileYouWaitCard />
-        <ShelterContactCard shelter={request.animal.shelter} />
       </aside>
 
       <div className="flex-1 px-6 py-6 space-y-6">
-        <div>
-          <h1 className="text-xl font-bold text-stone-900 dark:text-zinc-100">
-            Estado de tu solicitud
-          </h1>
-          <p className="text-sm text-stone-500 dark:text-zinc-400 mt-1">
-            Aquí puedes seguir el avance de tu proceso de adopción.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-stone-900 dark:text-zinc-100">
+              Estado de tu solicitud
+            </h1>
+            <p className="text-sm text-stone-500 dark:text-zinc-400 mt-1">
+              Aquí puedes seguir el avance de tu proceso de adopción.
+            </p>
+          </div>
+          {isRefetching && (
+            <RefreshCw
+              className="w-4 h-4 text-stone-400 dark:text-zinc-500 shrink-0 mt-1 animate-spin"
+              strokeWidth={1.75}
+            />
+          )}
         </div>
 
         <StatusBanner request={request} />
 
+        {request.visit_schedule && (
+          <VisitSchedulePanel visit={request.visit_schedule} />
+        )}
+
         <div className="bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
-          <VerticalTimeline steps={request.timeline} />
+          <VerticalTimeline steps={timeline} />
         </div>
 
-        <ShelterMessageCard message={request.shelterMessage} />
-
-        <NextStepCard text={request.nextStep} />
+        <AdopterMessageCard message={request.message} />
+        <NextStepCard text={nextStep} />
+        {request.status === 'approved' && !hasVisit && (
+          <button
+            onClick={() => navigate('/explore', { state: { navId: 'schedule' } })}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            style={{ background: 'var(--color-brand)' }}
+          >
+            <CalendarDays className="w-4 h-4" strokeWidth={2} />
+            Agendar mi encuentro
+          </button>
+        )}
       </div>
     </div>
   );
@@ -649,38 +669,26 @@ function FoundPhase({ request }: { request: MockRequest }) {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
-export default function StatusPage() {
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [requestNumber, setRequestNumber] = useState('');
-  const [request, setRequest] = useState<MockRequest | null>(null);
+export default function StatusPage({
+  adoptionId,
+  onFoundId,
+}: {
+  adoptionId?: number;
+  onFoundId?: (id: number) => void;
+}) {
+  const hasValidId = adoptionId !== undefined && adoptionId > 0;
 
-  function handleLookup() {
-    if (!requestNumber.trim()) return;
-    setPhase('loading');
-    setTimeout(() => {
-      if (requestNumber.trim() === 'SOL-2024-0312') {
-        setRequest(MOCK_REQUEST);
-        setPhase('found');
-      } else {
-        setPhase('not_found');
-      }
-    }, 1200);
-  }
+  const { data: request, isLoading, isError, isFetching } = useQuery({
+    queryKey: ['adoption', adoptionId],
+    queryFn: () => adoptionsApi.getById(adoptionId!),
+    enabled: hasValidId,
+  });
 
-  if (phase === 'idle' || phase === 'not_found') {
-    return (
-      <div className="flex items-center justify-center px-6 py-24">
-        <LookupCard
-          phase={phase}
-          requestNumber={requestNumber}
-          onChange={setRequestNumber}
-          onSubmit={handleLookup}
-        />
-      </div>
-    );
-  }
+  useRealtimeTable('adoption_requests', [['adoption', adoptionId], ['my-adoptions']], hasValidId);
+  useRealtimeTable('visit_schedules', [['adoption', adoptionId]], hasValidId);
 
-  if (phase === 'loading') return <LoadingSkeleton />;
-
-  return <FoundPhase request={request!} />;
+  if (!hasValidId) return <CodeEntryPhase onFoundId={onFoundId ?? (() => {})} />;
+  if (isLoading) return <LoadingSkeleton />;
+  if (isError || !request) return <NotFoundState />;
+  return <FoundPhase request={request} isRefetching={isFetching && !isLoading} />;
 }

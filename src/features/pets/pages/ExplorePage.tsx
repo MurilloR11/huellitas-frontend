@@ -1,10 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { CitizenSidebar, type NavId } from '@/shared/ui/organisms/CitizenSidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, X, Tag, Cake, Maximize2, ChevronLeft, ChevronRight, PawPrint, Copy, Check, Menu } from 'lucide-react';
+import { Search, X, Tag, Cake, Maximize2, ChevronLeft, ChevronRight, PawPrint, Copy, Check, Menu, AlertCircle, RefreshCw, MapPin, Building2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -18,13 +20,16 @@ import ApplyPage from '@/features/adoptions/pages/ApplyPage';
 import StatusPage from '@/features/adoptions/pages/StatusPage';
 import SchedulePage from '@/features/adoptions/pages/SchedulePage';
 import ContactPage from '@/features/adoptions/pages/ContactPage';
+import { petsApi } from '@/features/pets/services/petsApi';
+import { useRealtimeTable } from '@/shared/hooks/useRealtimeTable';
+import type { Pet, PetSpecies, PetSize } from '@/features/pets/types';
 
 // ─── Domain types ──────────────────────────────────────────────────────────────
 
 type Species = 'Dog' | 'Cat' | 'Rabbit' | 'Other';
 type AgeRange = 'Puppy' | 'Young' | 'Adult' | 'Senior';
 type AnimalSize = 'Small' | 'Medium' | 'Large';
-type AdoptionStatus = 'Available' | 'Pending' | 'Reserved';
+type AdoptionStatus = 'Available' | 'Pending' | 'Adopted';
 
 interface Animal {
   id: string;
@@ -36,8 +41,16 @@ interface Animal {
   size: AnimalSize;
   status: AdoptionStatus;
   photo: string;
-  goodWithKids: boolean;
-  goodWithPets: boolean;
+  photos: string[];
+  description?: string;
+  clinicalRecord?: {
+    vaccinated: boolean;
+    sterilized: boolean;
+    dewormed: boolean;
+    microchipped: boolean;
+  };
+  foundationName?: string;
+  city?: string;
 }
 
 // ─── Breadcrumb map ────────────────────────────────────────────────────────────
@@ -51,166 +64,56 @@ const BREADCRUMBS: Record<NavId, string[]> = {
   contact:      ['Recursos', 'Contactar a un agente'],
 };
 
-// ─── Mock catalog ──────────────────────────────────────────────────────────────
+// ─── Pet mapping helpers ────────────────────────────────────────────────────────
 
-const ANIMALS: Animal[] = [
-  {
-    id: '1',
-    name: 'Buddy',
-    species: 'Dog',
-    breed: 'Golden Retriever',
-    age: '3 años',
-    ageRange: 'Adult',
-    size: 'Large',
-    status: 'Available',
-    photo: 'https://loremflickr.com/400/300/golden,retriever,dog/all?lock=1',
-    goodWithKids: true,
-    goodWithPets: true,
-  },
-  {
-    id: '2',
-    name: 'Luna',
-    species: 'Cat',
-    breed: 'Siamese',
-    age: '2 años',
-    ageRange: 'Young',
-    size: 'Small',
-    status: 'Available',
-    photo: 'https://loremflickr.com/400/300/siamese,cat/all?lock=2',
-    goodWithKids: true,
-    goodWithPets: false,
-  },
-  {
-    id: '3',
-    name: 'Mango',
-    species: 'Dog',
-    breed: 'Labrador Mix',
-    age: '5 meses',
-    ageRange: 'Puppy',
-    size: 'Medium',
-    status: 'Pending',
-    photo: 'https://loremflickr.com/400/300/labrador,puppy/all?lock=3',
-    goodWithKids: true,
-    goodWithPets: true,
-  },
-  {
-    id: '4',
-    name: 'Cleo',
-    species: 'Cat',
-    breed: 'Persa',
-    age: '9 años',
-    ageRange: 'Senior',
-    size: 'Small',
-    status: 'Reserved',
-    photo: 'https://loremflickr.com/400/300/persian,cat/all?lock=4',
-    goodWithKids: false,
-    goodWithPets: false,
-  },
-  {
-    id: '5',
-    name: 'Rex',
-    species: 'Dog',
-    breed: 'Pastor Alemán',
-    age: '4 años',
-    ageRange: 'Adult',
-    size: 'Large',
-    status: 'Available',
-    photo: 'https://loremflickr.com/400/300/german,shepherd,dog/all?lock=5',
-    goodWithKids: true,
-    goodWithPets: false,
-  },
-  {
-    id: '6',
-    name: 'Pip',
-    species: 'Rabbit',
-    breed: 'Holland Lop',
-    age: '1 año',
-    ageRange: 'Young',
-    size: 'Small',
-    status: 'Available',
-    photo: 'https://loremflickr.com/400/300/rabbit,bunny/all?lock=6',
-    goodWithKids: true,
-    goodWithPets: true,
-  },
-  {
-    id: '7',
-    name: 'Bella',
-    species: 'Dog',
-    breed: 'Beagle',
-    age: '18 meses',
-    ageRange: 'Young',
-    size: 'Medium',
-    status: 'Available',
-    photo: 'https://loremflickr.com/400/300/beagle,dog/all?lock=7',
-    goodWithKids: true,
-    goodWithPets: true,
-  },
-  {
-    id: '8',
-    name: 'Shadow',
-    species: 'Cat',
-    breed: 'Doméstico',
-    age: '5 años',
-    ageRange: 'Adult',
-    size: 'Medium',
-    status: 'Pending',
-    photo: 'https://loremflickr.com/400/300/black,cat/all?lock=8',
-    goodWithKids: false,
-    goodWithPets: true,
-  },
-  {
-    id: '9',
-    name: 'Cosmo',
-    species: 'Dog',
-    breed: 'Pastor Australiano',
-    age: '8 meses',
-    ageRange: 'Puppy',
-    size: 'Medium',
-    status: 'Available',
-    photo: 'https://loremflickr.com/400/300/australian,shepherd,dog/all?lock=9',
-    goodWithKids: true,
-    goodWithPets: true,
-  },
-  {
-    id: '10',
-    name: 'Willow',
-    species: 'Cat',
-    breed: 'Maine Coon',
-    age: '7 años',
-    ageRange: 'Senior',
-    size: 'Large',
-    status: 'Reserved',
-    photo: 'https://loremflickr.com/400/300/maine,coon,cat/all?lock=10',
-    goodWithKids: true,
-    goodWithPets: false,
-  },
-  {
-    id: '11',
-    name: 'Daisy',
-    species: 'Dog',
-    breed: 'Dachshund',
-    age: '6 años',
-    ageRange: 'Adult',
-    size: 'Small',
-    status: 'Available',
-    photo: 'https://loremflickr.com/400/300/dachshund,dog/all?lock=11',
-    goodWithKids: true,
-    goodWithPets: true,
-  },
-  {
-    id: '12',
-    name: 'Ash',
-    species: 'Rabbit',
-    breed: 'Gigante de Flandes',
-    age: '2 años',
-    ageRange: 'Young',
-    size: 'Large',
-    status: 'Available',
-    photo: 'https://loremflickr.com/400/300/rabbit,flemish/all?lock=12',
-    goodWithKids: false,
-    goodWithPets: true,
-  },
-];
+const SPECIES_MAP: Record<string, Species> = {
+  dog: 'Dog', cat: 'Cat', rabbit: 'Rabbit', other: 'Other',
+};
+
+const SIZE_MAP: Record<string, AnimalSize> = {
+  small: 'Small', medium: 'Medium', large: 'Large',
+};
+
+function getAgeRange(months: number): AgeRange {
+  if (months < 6) return 'Puppy';
+  if (months < 24) return 'Young';
+  if (months < 96) return 'Adult';
+  return 'Senior';
+}
+
+function formatAge(months: number): string {
+  if (months < 1) return 'Menos de 1 mes';
+  if (months < 12) return `${months} ${months === 1 ? 'mes' : 'meses'}`;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  if (rem === 0) return `${years} ${years === 1 ? 'año' : 'años'}`;
+  return `${years} ${years === 1 ? 'año' : 'años'} y ${rem} ${rem === 1 ? 'mes' : 'meses'}`;
+}
+
+function mapStatus(s: string): AdoptionStatus {
+  if (s === 'available') return 'Available';
+  if (s === 'in_process') return 'Pending';
+  return 'Adopted';
+}
+
+function mapPet(pet: Pet): Animal {
+  return {
+    id: String(pet.id),
+    name: pet.name,
+    species: SPECIES_MAP[pet.species] ?? 'Other',
+    breed: pet.breed ?? 'Desconocida',
+    age: formatAge(pet.age_months),
+    ageRange: getAgeRange(pet.age_months),
+    size: SIZE_MAP[pet.size] ?? 'Medium',
+    status: mapStatus(pet.status),
+    photo: pet.photos[0] ?? '',
+    photos: pet.photos,
+    description: pet.description || undefined,
+    clinicalRecord: pet.clinical_record,
+    foundationName: pet.foundation_name,
+    city: pet.city,
+  };
+}
 
 // ─── Display label maps ────────────────────────────────────────────────────────
 
@@ -219,7 +122,7 @@ const SIZE_LABELS: Record<AnimalSize | 'All', string> = {
 };
 
 const STATUS_LABELS: Record<AdoptionStatus, string> = {
-  Available: 'Disponible', Pending: 'En proceso', Reserved: 'Reservado',
+  Available: 'Disponible', Pending: 'En proceso', Adopted: 'Adoptado',
 };
 
 const SPECIES_LABELS: Record<Species, string> = {
@@ -308,26 +211,30 @@ function TraitPill({ ok, label }: { ok: boolean; label: string }) {
 
 // ─── Photo carousel ────────────────────────────────────────────────────────────
 
-function getAnimalPhotos(basePhoto: string): string[] {
-  const match = basePhoto.match(/lock=(\d+)/);
-  const lock = match ? parseInt(match[1]) : 1;
-  return [
-    basePhoto,
-    basePhoto.replace(`lock=${lock}`, `lock=${lock + 50}`),
-    basePhoto.replace(`lock=${lock}`, `lock=${lock + 100}`),
-  ];
-}
-
 function PhotoCarousel({ photos, name }: { photos: string[]; name: string }) {
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [imgErrored, setImgErrored] = useState(false);
 
-  const go = (next: number, dir: number) => { setDirection(dir); setCurrent(next); };
+  const go = (next: number, dir: number) => { setDirection(dir); setCurrent(next); setImgErrored(false); };
   const prev = () => go((current - 1 + photos.length) % photos.length, -1);
   const next = () => go((current + 1) % photos.length, 1);
 
+  if (photos.length === 0) {
+    return (
+      <div className="relative w-full h-full bg-stone-100 dark:bg-zinc-800 flex items-center justify-center">
+        <PawPrint className="w-16 h-16 text-stone-300 dark:text-zinc-600" strokeWidth={1} />
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full h-full overflow-hidden bg-stone-100 dark:bg-zinc-800">
+      {imgErrored ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <PawPrint className="w-16 h-16 text-stone-300 dark:text-zinc-600" strokeWidth={1} />
+        </div>
+      ) : (
       <AnimatePresence mode="popLayout" custom={direction} initial={false}>
         <motion.img
           key={current}
@@ -344,46 +251,50 @@ function PhotoCarousel({ photos, name }: { photos: string[]; name: string }) {
           animate="center"
           exit="exit"
           transition={{ duration: 0.28, ease: 'easeInOut' }}
+          onError={() => setImgErrored(true)}
         />
       </AnimatePresence>
+      )}
 
-      {/* Arrows */}
-      <button
-        onClick={prev}
-        aria-label="Foto anterior"
-        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors"
-      >
-        <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
-      </button>
-      <button
-        onClick={next}
-        aria-label="Foto siguiente"
-        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors"
-      >
-        <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
-      </button>
-
-      {/* Dots */}
-      <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
-        {photos.map((_, i) => (
+      {photos.length > 1 && (
+        <>
           <button
-            key={i}
-            onClick={() => go(i, i > current ? 1 : -1)}
-            aria-label={`Foto ${i + 1}`}
-            className={cn(
-              'h-1.5 rounded-full bg-white transition-all duration-200',
-              i === current ? 'w-4 opacity-100' : 'w-1.5 opacity-50',
-            )}
-          />
-        ))}
-      </div>
+            onClick={prev}
+            aria-label="Foto anterior"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
+          </button>
+          <button
+            onClick={next}
+            aria-label="Foto siguiente"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
+          </button>
+
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+            {photos.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => go(i, i > current ? 1 : -1)}
+                aria-label={`Foto ${i + 1}`}
+                className={cn(
+                  'h-1.5 rounded-full bg-white transition-all duration-200',
+                  i === current ? 'w-4 opacity-100' : 'w-1.5 opacity-50',
+                )}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 // ─── Animal Modal ──────────────────────────────────────────────────────────────
 
-function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void }) {
+function AnimalModal({ animal, onClose, onApply }: { animal: Animal; onClose: () => void; onApply: () => void }) {
   const statusVariant =
     animal.status === 'Available' ? 'available' : animal.status === 'Pending' ? 'pending' : 'reserved';
   const code = `HLL-${animal.id.padStart(5, '0')}`;
@@ -400,6 +311,8 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  const cr = animal.clinicalRecord;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6">
@@ -423,8 +336,8 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
         style={{ maxHeight: '92vh' }}
       >
         {/* Left — carousel */}
-        <div className="w-full sm:w-[44%] shrink-0 relative min-h-[240px] sm:min-h-[360px]">
-          <PhotoCarousel photos={getAnimalPhotos(animal.photo)} name={animal.name} />
+        <div className="w-full sm:w-[44%] shrink-0 relative min-h-60 sm:min-h-90">
+          <PhotoCarousel photos={animal.photos} name={animal.name} />
         </div>
 
         {/* Right — info */}
@@ -447,7 +360,7 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
           </div>
 
           {/* Scrollable body */}
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-5 min-h-0">
             <div className="flex items-center gap-3 flex-wrap">
               <Badge
                 variant={statusVariant}
@@ -497,23 +410,89 @@ function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void 
                 label="Tamaño"
                 value={SIZE_LABELS[animal.size]}
               />
+              {animal.foundationName && (
+                <InfoRow
+                  icon={<Building2 className="w-4 h-4" strokeWidth={1.5} />}
+                  label="Fundación"
+                  value={animal.foundationName}
+                />
+              )}
+              {animal.city && (
+                <InfoRow
+                  icon={<MapPin className="w-4 h-4" strokeWidth={1.5} />}
+                  label="Ciudad"
+                  value={animal.city}
+                />
+              )}
             </div>
 
-            {/* Compatibility */}
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 dark:text-zinc-500 mb-2.5">
-                Compatibilidad
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <TraitPill ok={animal.goodWithKids} label="Bueno con niños" />
-                <TraitPill ok={animal.goodWithPets} label="Bueno con mascotas" />
+            {/* Description */}
+            {animal.description && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 dark:text-zinc-500 mb-2">
+                  Descripción
+                </p>
+                <p className="text-sm text-stone-700 dark:text-zinc-300 leading-relaxed">
+                  {animal.description}
+                </p>
               </div>
-            </div>
+            )}
+
+            {/* Clinical record */}
+            {cr && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 dark:text-zinc-500 mb-2.5">
+                  Historial clínico
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <TraitPill ok={cr.vaccinated}  label="Vacunado"      />
+                  <TraitPill ok={cr.sterilized}  label="Esterilizado"  />
+                  <TraitPill ok={cr.dewormed}    label="Desparasitado" />
+                  <TraitPill ok={cr.microchipped} label="Microchip"    />
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Footer — apply CTA */}
+          {animal.status === 'Available' && (
+            <div className="shrink-0 px-4 sm:px-6 py-4 border-t border-stone-100 dark:border-zinc-800">
+              <button
+                onClick={onApply}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
+                style={{ background: 'var(--color-brand)' }}
+              >
+                <PawPrint className="w-4 h-4" strokeWidth={2} />
+                Solicitar adopción
+              </button>
+            </div>
+          )}
 
         </div>
       </motion.div>
     </div>
+  );
+}
+
+// ─── Pet photo (with broken-URL fallback) ─────────────────────────────────────
+
+function PetPhoto({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [errored, setErrored] = useState(false);
+  if (!src || errored) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <PawPrint className="w-12 h-12 text-stone-300 dark:text-zinc-600" strokeWidth={1} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      onError={() => setErrored(true)}
+    />
   );
 }
 
@@ -538,11 +517,10 @@ function AnimalCard({ animal, onView }: { animal: Animal; onView: () => void }) 
     >
       {/* Image */}
       <div className="card-image bg-stone-100 dark:bg-zinc-800 shrink-0">
-        <img
+        <PetPhoto
           src={animal.photo}
           alt={`${animal.name} — ${animal.breed}`}
           className="transition-transform duration-300 group-hover:scale-105"
-          loading="lazy"
         />
       </div>
 
@@ -605,21 +583,15 @@ function EmptyState({ onClear }: { onClear: () => void }) {
       className="flex flex-col items-center justify-center py-24 text-center"
       role="status"
       aria-live="polite"
-      aria-label="Ningún animal coincide con los filtros actuales"
     >
       <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-muted dark:bg-zinc-800 mb-5">
-        <Search
-          className="w-6 h-6 text-muted-foreground dark:text-zinc-500"
-          aria-hidden="true"
-          strokeWidth={1.5}
-        />
+        <Search className="w-6 h-6 text-muted-foreground dark:text-zinc-500" strokeWidth={1.5} />
       </div>
       <h3 className="text-sm font-semibold text-stone-900 dark:text-zinc-100 mb-1">
         Ningún animal coincide con tus filtros
       </h3>
-      <p className="text-xs text-muted-foreground dark:text-zinc-400 max-w-[280px] mb-6 leading-relaxed">
-        Intenta ajustar o limpiar los filtros para descubrir más animales disponibles
-        para adopción.
+      <p className="text-xs text-muted-foreground dark:text-zinc-400 max-w-70 mb-6 leading-relaxed">
+        Intenta ajustar o limpiar los filtros para descubrir más animales disponibles para adopción.
       </p>
       <Button
         variant="outline"
@@ -627,8 +599,55 @@ function EmptyState({ onClear }: { onClear: () => void }) {
         onClick={onClear}
         className="border-stone-200 dark:border-zinc-700 text-stone-700 dark:text-zinc-300 text-xs hover:bg-muted dark:hover:bg-zinc-800"
       >
-        <X className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />
+        <X className="w-3.5 h-3.5 mr-1.5" />
         Limpiar filtros
+      </Button>
+    </div>
+  );
+}
+
+// ─── Loading skeleton ──────────────────────────────────────────────────────────
+
+function PetsSkeleton() {
+  return (
+    <ul className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-label="Cargando animales">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <li key={i} className="rounded-2xl overflow-hidden border border-stone-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 animate-pulse">
+          <div className="h-48 bg-stone-100 dark:bg-zinc-800" />
+          <div className="p-4 space-y-3">
+            <div className="flex justify-between gap-2">
+              <div className="h-4 bg-stone-100 dark:bg-zinc-800 rounded w-1/2" />
+              <div className="h-4 bg-stone-100 dark:bg-zinc-800 rounded w-16" />
+            </div>
+            <div className="h-3 bg-stone-100 dark:bg-zinc-800 rounded w-2/3" />
+            <div className="h-3 bg-stone-100 dark:bg-zinc-800 rounded w-3/4" />
+            <div className="h-8 bg-stone-100 dark:bg-zinc-800 rounded mt-2" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ─── Error state ───────────────────────────────────────────────────────────────
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center" role="alert">
+      <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-950/30 mb-5">
+        <AlertCircle className="w-6 h-6 text-red-400" strokeWidth={1.5} />
+      </div>
+      <h3 className="text-sm font-semibold text-stone-900 dark:text-zinc-100 mb-1">
+        No pudimos cargar los animales
+      </h3>
+      <p className="text-xs text-muted-foreground dark:text-zinc-400 max-w-70 mb-6 leading-relaxed">
+        Ocurrió un error al conectar con el servidor. Verifica tu conexión e intenta de nuevo.
+      </p>
+      <Button variant="outline" size="sm" onClick={onRetry}
+        className="border-stone-200 dark:border-zinc-700 text-stone-700 dark:text-zinc-300 text-xs"
+      >
+        <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+        Intentar de nuevo
       </Button>
     </div>
   );
@@ -637,12 +656,16 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ExplorePage() {
-  const [activeNav, setActiveNav] = useState<NavId>('browse');
+  const location = useLocation();
+  const _locState = location.state as { navId?: NavId; adoptionId?: number } | null;
+  const [activeNav, setActiveNav] = useState<NavId>(_locState?.navId ?? 'browse');
+  const [trackAdoptionId, setTrackAdoptionId] = useState<number | undefined>(_locState?.adoptionId);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
 
+  // Lock page scroll
   useEffect(() => {
     const html = document.documentElement;
     const prev = html.style.overflow;
@@ -650,24 +673,52 @@ export default function ExplorePage() {
     return () => { html.style.overflow = prev; };
   }, []);
 
+  // Build query params from filters (species + size go to the API; ageRange is client-side)
+  const petParams = useMemo(() => {
+    const params: Record<string, string | number> = { per_page: 100, status: 'available' };
+    if (filters.species !== 'All') params.species = filters.species.toLowerCase() as PetSpecies;
+    if (filters.size !== 'All') params.size = filters.size.toLowerCase() as PetSize;
+    return params;
+  }, [filters.species, filters.size]);
+
+  const {
+    data: petsData,
+    isLoading: loading,
+    isError: error,
+    refetch,
+  } = useQuery({
+    queryKey: ['pets', filters.species, filters.size],
+    queryFn: () => petsApi.list(petParams),
+    enabled: activeNav === 'browse',
+  });
+
+  useRealtimeTable('pets', [['pets']]);
+
+  const animals = useMemo(() => (petsData?.data ?? []).map(mapPet), [petsData]);
+
+  // ageRange is filtered in memory
   const filtered = useMemo(
-    () =>
-      ANIMALS.filter(a => {
-        if (filters.species !== 'All' && a.species !== filters.species) return false;
-        if (filters.ageRange !== 'All' && a.ageRange !== filters.ageRange) return false;
-        if (filters.size !== 'All' && a.size !== filters.size) return false;
-        return true;
-      }),
-    [filters],
+    () => animals.filter(a =>
+      filters.ageRange === 'All' || a.ageRange === filters.ageRange
+    ),
+    [animals, filters.ageRange],
   );
 
-  const clearFilters = () => setFilters(INITIAL_FILTERS);
+  const clearFilters = useCallback(() => setFilters(INITIAL_FILTERS), []);
+  const handleRetry = useCallback(() => refetch(), [refetch]);
 
   return (
     <>
     <AnimatePresence>
       {selectedAnimal && (
-        <AnimalModal animal={selectedAnimal} onClose={() => setSelectedAnimal(null)} />
+        <AnimalModal
+          animal={selectedAnimal}
+          onClose={() => setSelectedAnimal(null)}
+          onApply={() => {
+            setSelectedAnimal(null);
+            setActiveNav('apply');
+          }}
+        />
       )}
     </AnimatePresence>
     <SidebarProvider className="h-screen overflow-hidden">
@@ -689,7 +740,7 @@ export default function ExplorePage() {
               <li className="font-semibold text-stone-400 dark:text-zinc-500">Huellitas</li>
               {BREADCRUMBS[activeNav].map((crumb, i, arr) => (
                 <li key={crumb} className="flex items-center gap-1">
-                  <ChevronRight className="w-3.5 h-3.5 text-stone-300 dark:text-zinc-600 shrink-0" aria-hidden="true" />
+                  <ChevronRight className="w-3.5 h-3.5 text-stone-300 dark:text-zinc-600 shrink-0" />
                   <span className={i === arr.length - 1
                     ? 'font-semibold text-stone-800 dark:text-zinc-100'
                     : 'text-stone-400 dark:text-zinc-500'
@@ -708,19 +759,15 @@ export default function ExplorePage() {
           {activeNav === 'requirements' && (
             <RequirementsPage onContinue={() => setActiveNav('apply')} />
           )}
-
           {activeNav === 'apply' && <ApplyPage />}
-
-          {activeNav === 'track' && <StatusPage />}
-
-          {activeNav === 'schedule' && <SchedulePage />}
-
+          {activeNav === 'track' && <StatusPage adoptionId={trackAdoptionId} onFoundId={setTrackAdoptionId} />}
+          {activeNav === 'schedule' && <SchedulePage onNavChange={setActiveNav} />}
           {activeNav === 'contact' && <ContactPage />}
 
           {/* Browse view */}
           {activeNav === 'browse' && (
             <>
-              {/* Filter bar — card style matching reference */}
+              {/* Filter bar */}
               <section className="px-4 sm:px-6 py-4" aria-label="Filtrar animales">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 bg-white dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 rounded-xl px-5 py-4">
 
@@ -767,7 +814,11 @@ export default function ExplorePage() {
 
               {/* Catalog grid */}
               <main className="px-4 sm:px-6 pb-4 sm:pb-6" id="main-content">
-                {filtered.length === 0 ? (
+                {loading ? (
+                  <PetsSkeleton />
+                ) : error ? (
+                  <ErrorState onRetry={handleRetry} />
+                ) : filtered.length === 0 ? (
                   <EmptyState onClear={clearFilters} />
                 ) : (
                   <ul

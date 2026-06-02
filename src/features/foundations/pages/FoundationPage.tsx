@@ -1,9 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { FoundationSidebar, type FoundationNavId } from '@/shared/ui/organisms/FoundationSidebar';
-import { ChevronRight, ChevronLeft, Menu, PawPrint, ImagePlus, Check, Calendar, Heart, TrendingUp, Clock, AlertCircle } from 'lucide-react';
+import {
+  ChevronRight, ChevronLeft, Menu, PawPrint, ImagePlus, Check,
+  Calendar, Heart, TrendingUp, Clock, AlertCircle, RefreshCw, Loader2,
+} from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { Pet, PetStatus } from '@/features/pets/types';
+import type { FoundationAdoption, FoundationAdoptionStatus, CreatePetPayload } from '@/features/foundations/types';
+import { useRealtimeTable } from '@/shared/hooks/useRealtimeTable';
+import { foundationsApi } from '../services/foundationsApi';
+import { petsApi } from '@/features/pets/services/petsApi';
+import { adoptionsApi } from '@/features/adoptions/services/adoptionsApi';
 
 // ─── Breadcrumb map ────────────────────────────────────────────────────────────
 
@@ -16,65 +27,7 @@ const BREADCRUMBS: Record<FoundationNavId, string[]> = {
   history:   ['Adopciones', 'Historial'],
 };
 
-// ─── Static data (replace with API call later) ────────────────────────────────
-
-const STATIC_PETS: Pet[] = [
-  {
-    id: 1, name: 'Luna', species: 'dog', breed: 'Labrador mestizo',
-    age_months: 18, gender: 'female', size: 'large',
-    description: 'Luna es una perra cariñosa y juguetona que busca una familia activa.',
-    photos: [], status: 'available', foundation_id: 1, foundation_name: '',
-    city: 'Bogotá', created_at: '2024-01-15T00:00:00Z',
-    clinical_record: { vaccinated: true, sterilized: true, dewormed: true, microchipped: false },
-  },
-  {
-    id: 2, name: 'Milo', species: 'cat', breed: 'Siamés mestizo',
-    age_months: 8, gender: 'male', size: 'small',
-    description: 'Milo es un gatito juguetón y sociable, ideal para apartamentos.',
-    photos: [], status: 'available', foundation_id: 1, foundation_name: '',
-    city: 'Bogotá', created_at: '2024-02-01T00:00:00Z',
-    clinical_record: { vaccinated: true, sterilized: false, dewormed: true, microchipped: false },
-  },
-  {
-    id: 3, name: 'Rocky', species: 'dog', breed: 'Pastor Alemán',
-    age_months: 36, gender: 'male', size: 'large',
-    description: 'Rocky es un perro leal y protector que necesita espacio para correr.',
-    photos: [], status: 'in_process', foundation_id: 1, foundation_name: '',
-    city: 'Bogotá', created_at: '2023-11-20T00:00:00Z',
-    clinical_record: { vaccinated: true, sterilized: true, dewormed: true, microchipped: true },
-  },
-  {
-    id: 4, name: 'Nala', species: 'cat', breed: 'Doméstico',
-    age_months: 5, gender: 'female', size: 'small',
-    description: 'Nala es una gatita tranquila que se lleva bien con niños.',
-    photos: [], status: 'available', foundation_id: 1, foundation_name: '',
-    city: 'Bogotá', created_at: '2024-03-10T00:00:00Z',
-    clinical_record: { vaccinated: false, sterilized: false, dewormed: true, microchipped: false },
-  },
-  {
-    id: 5, name: 'Max', species: 'dog', breed: 'Beagle',
-    age_months: 24, gender: 'male', size: 'medium',
-    description: 'Max encontró su hogar para siempre.',
-    photos: [], status: 'adopted', foundation_id: 1, foundation_name: '',
-    city: 'Bogotá', created_at: '2023-08-05T00:00:00Z',
-    clinical_record: { vaccinated: true, sterilized: true, dewormed: true, microchipped: true },
-  },
-  {
-    id: 6, name: 'Cleo', species: 'dog', breed: 'Poodle mestizo',
-    age_months: 12, gender: 'female', size: 'small',
-    description: 'Cleo está en proceso de adopción con una familia muy especial.',
-    photos: [], status: 'in_process', foundation_id: 1, foundation_name: '',
-    city: 'Bogotá', created_at: '2024-01-28T00:00:00Z',
-    clinical_record: { vaccinated: true, sterilized: false, dewormed: true, microchipped: false },
-  },
-];
-
-const STATIC_COUNTS = {
-  all:        STATIC_PETS.length,
-  available:  STATIC_PETS.filter(p => p.status === 'available').length,
-  in_process: STATIC_PETS.filter(p => p.status === 'in_process').length,
-  adopted:    STATIC_PETS.filter(p => p.status === 'adopted').length,
-};
+// ─── Shared config ─────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<PetStatus, { label: string; badge: string; dot: string }> = {
   available:  { label: 'Disponible', badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
@@ -82,7 +35,7 @@ const STATUS_CONFIG: Record<PetStatus, { label: string; badge: string; dot: stri
   adopted:    { label: 'Adoptado',   badge: 'bg-stone-100 text-stone-500 dark:bg-zinc-800 dark:text-zinc-400',          dot: 'bg-stone-400'   },
 };
 
-const SPECIES_LABEL: Record<Pet['species'], string> = { dog: 'Perro', cat: 'Gato', other: 'Otro' };
+const SPECIES_LABEL: Record<Pet['species'], string> = { dog: 'Perro', cat: 'Gato', rabbit: 'Conejo', other: 'Otro' };
 const GENDER_LABEL:  Record<Pet['gender'],  string> = { male: 'Macho', female: 'Hembra' };
 const SIZE_LABEL:    Record<Pet['size'],    string> = { small: 'Pequeño', medium: 'Mediano', large: 'Grande' };
 
@@ -94,18 +47,99 @@ function formatAge(months: number): string {
   return `${y} a. ${m} m.`;
 }
 
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('es-CO', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+}
+
+function getInitials(name: string): string {
+  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+// ─── Shared empty/error states ─────────────────────────────────────────────────
+
+function SectionError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+      <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/30">
+        <RefreshCw className="w-6 h-6 text-red-400" strokeWidth={1.75} />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-stone-700 dark:text-zinc-300">Error al cargar</p>
+        <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Verifica tu conexión e intenta de nuevo.</p>
+      </div>
+      <button
+        onClick={onRetry}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-stone-200 dark:border-zinc-700 text-stone-600 dark:text-zinc-400 hover:bg-stone-50 dark:hover:bg-zinc-800 transition-colors"
+      >
+        <RefreshCw className="w-4 h-4" strokeWidth={2} />
+        Reintentar
+      </button>
+    </div>
+  );
+}
+
 // ─── Pet card ──────────────────────────────────────────────────────────────────
+
+const MAX_PHOTOS = 5;
 
 function PetCard({ pet }: { pet: Pet }) {
   const cfg = STATUS_CONFIG[pet.status];
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => petsApi.uploadPhoto(pet.id, file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['foundation-pets'] }),
+  });
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files || uploadMutation.isPending) return;
+    const remaining = MAX_PHOTOS - pet.photos.length;
+    if (remaining <= 0) return;
+    const file = Array.from(files).find(f => f.type.startsWith('image/'));
+    if (file) uploadMutation.mutate(file);
+  };
+
+  const canAddMore = pet.photos.length < MAX_PHOTOS;
+
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 overflow-hidden hover:shadow-md transition-shadow">
-      <div className="relative h-40 bg-stone-100 dark:bg-zinc-800 flex items-center justify-center">
+      <div className="relative h-40 bg-stone-100 dark:bg-zinc-800 flex items-center justify-center group/img">
         {pet.photos.length > 0 ? (
           <img src={pet.photos[0]} alt={pet.name} className="w-full h-full object-cover" />
         ) : (
           <PawPrint className="w-12 h-12 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
         )}
+
+        {canAddMore && (
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploadMutation.isPending}
+            aria-label="Subir foto"
+            className={cn(
+              'absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all',
+              'bg-black/50 backdrop-blur-sm text-white hover:bg-black/70',
+              pet.photos.length === 0 && 'opacity-100',
+              pet.photos.length > 0 && 'opacity-0 group-hover/img:opacity-100',
+            )}
+          >
+            {uploadMutation.isPending
+              ? <Loader2 className="w-3 h-3 animate-spin" />
+              : <ImagePlus className="w-3 h-3" strokeWidth={2} />}
+            {pet.photos.length === 0 ? 'Subir foto' : 'Añadir'}
+          </button>
+        )}
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}
+        />
+
         <span className={cn(
           'absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
           cfg.badge,
@@ -132,29 +166,36 @@ function PetCard({ pet }: { pet: Pet }) {
   );
 }
 
-// ─── Placeholder pages ─────────────────────────────────────────────────────────
+// ─── Overview page ─────────────────────────────────────────────────────────────
 
-function OverviewPage({ onNavigate }: { onNavigate: (id: FoundationNavId) => void }) {
-  // ── Metrics ────────────────────────────────────────────────────────────────
-  const pending = [...STATIC_REQUESTS.filter(r => r.status === 'pending')]
-    .sort((a, b) => new Date(a.requested_at).getTime() - new Date(b.requested_at).getTime());
-
-  const adopted  = STATIC_HISTORY.filter(e => e.outcome === 'adopted');
-  const resolved = STATIC_HISTORY.length;
-
-  const successRate = resolved > 0 ? Math.round((adopted.length / resolved) * 100) : 0;
-
+function OverviewPage({
+  onNavigate,
+  pets,
+  adoptions,
+  petsLoading,
+  adoptionsLoading,
+}: {
+  onNavigate: (id: FoundationNavId) => void;
+  pets: Pet[];
+  adoptions: FoundationAdoption[];
+  petsLoading: boolean;
+  adoptionsLoading: boolean;
+}) {
+  const pending  = adoptions.filter(r => r.status === 'pending')
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  const resolved  = adoptions.filter(r => r.status === 'completed' || r.status === 'rejected');
+  const adopted   = adoptions.filter(r => r.status === 'completed');
+  const successRate = resolved.length > 0 ? Math.round((adopted.length / resolved.length) * 100) : 0;
   const avgDays = adopted.length > 0
     ? Math.round(
-        adopted.reduce((sum, e) => {
-          const ms = new Date(e.resolved_at).getTime() - new Date(e.requested_at).getTime();
+        adopted.reduce((sum, a) => {
+          const ms = new Date(a.updated_at).getTime() - new Date(a.created_at).getTime();
           return sum + ms / (1000 * 60 * 60 * 24);
         }, 0) / adopted.length,
       )
     : 0;
 
-  // Pets with incomplete medical records (excluding already-adopted pets)
-  const healthIssues = STATIC_PETS
+  const healthIssues = pets
     .filter(p => p.status !== 'adopted')
     .map(p => {
       const missing: string[] = [];
@@ -170,58 +211,58 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: FoundationNavId) => voi
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">
-              Tasa de éxito
-            </p>
+            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">Tasa de éxito</p>
             <TrendingUp className="w-4 h-4 text-emerald-500 shrink-0" strokeWidth={2} />
           </div>
-          <p className="text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
-            {successRate}<span className="text-lg font-semibold ml-0.5">%</span>
-          </p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5 leading-snug">
-            {adopted.length} de {resolved} solicitudes terminaron en adopción
-          </p>
+          {adoptionsLoading ? <Skeleton className="h-8 w-20" /> : (
+            <>
+              <p className="text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                {successRate}<span className="text-lg font-semibold ml-0.5">%</span>
+              </p>
+              <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5 leading-snug">
+                {adopted.length} de {resolved.length} solicitudes terminaron en adopción
+              </p>
+            </>
+          )}
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">
-              Tiempo promedio
-            </p>
+            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">Tiempo promedio</p>
             <Clock className="w-4 h-4 text-blue-400 shrink-0" strokeWidth={2} />
           </div>
-          <p className="text-3xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">
-            {avgDays}<span className="text-base font-medium text-stone-400 dark:text-zinc-500 ml-1.5">días</span>
-          </p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5 leading-snug">
-            entre solicitud y adopción confirmada
-          </p>
+          {adoptionsLoading ? <Skeleton className="h-8 w-20" /> : (
+            <>
+              <p className="text-3xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">
+                {avgDays}<span className="text-base font-medium text-stone-400 dark:text-zinc-500 ml-1.5">días</span>
+              </p>
+              <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5 leading-snug">entre solicitud y adopción confirmada</p>
+            </>
+          )}
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-5 py-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">
-              Pendientes
-            </p>
+            <p className="text-[11px] font-semibold text-stone-400 dark:text-zinc-500 uppercase tracking-wider">Pendientes</p>
             <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" strokeWidth={2} />
           </div>
-          <p className="text-3xl font-bold tabular-nums text-amber-500">{pending.length}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5 leading-snug">
-            {pending.length === 1
-              ? 'solicitud esperando respuesta'
-              : 'solicitudes esperando respuesta'}
-          </p>
+          {adoptionsLoading ? <Skeleton className="h-8 w-16" /> : (
+            <>
+              <p className="text-3xl font-bold tabular-nums text-amber-500">{pending.length}</p>
+              <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1.5 leading-snug">
+                {pending.length === 1 ? 'solicitud esperando respuesta' : 'solicitudes esperando respuesta'}
+              </p>
+            </>
+          )}
         </div>
-
       </div>
 
       {/* Two-column panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* Pending requests — oldest first */}
+        {/* Pending requests */}
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -232,15 +273,12 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: FoundationNavId) => voi
                 </span>
               )}
             </div>
-            <button
-              onClick={() => onNavigate('requests')}
-              className="text-xs text-brand font-medium hover:underline underline-offset-2"
-            >
-              Ver todas
-            </button>
+            <button onClick={() => onNavigate('requests')} className="text-xs text-brand font-medium hover:underline underline-offset-2">Ver todas</button>
           </div>
 
-          {pending.length === 0 ? (
+          {adoptionsLoading ? (
+            <div className="space-y-2.5">{[0,1,2].map(i => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}</div>
+          ) : pending.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
               <Check className="w-7 h-7 text-emerald-400" strokeWidth={2} />
               <p className="text-xs text-stone-400 dark:text-zinc-500">Todo al día — sin solicitudes pendientes</p>
@@ -250,24 +288,22 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: FoundationNavId) => voi
               {pending.slice(0, 4).map(req => (
                 <div key={req.id} className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-light dark:bg-brand/20 shrink-0 flex items-center justify-center">
-                    <span className="text-[11px] font-bold text-brand select-none">{getInitials(req.applicant.name)}</span>
+                    <span className="text-[11px] font-bold text-brand select-none">{getInitials(req.adopter_name || 'U')}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-stone-700 dark:text-zinc-300 truncate">
-                      <span className="font-medium">{req.applicant.name}</span>
+                      <span className="font-medium">{req.adopter_name || 'Adoptante'}</span>
                       <span className="text-stone-400 dark:text-zinc-500 mx-1">→</span>
-                      <span className="font-semibold text-brand">{req.pet.name}</span>
+                      <span className="font-semibold text-brand">{req.pet_name}</span>
                     </p>
                   </div>
                   <span className="text-[11px] text-stone-400 dark:text-zinc-500 shrink-0 tabular-nums whitespace-nowrap">
-                    {formatRequestDate(req.requested_at)}
+                    {formatDate(req.created_at)}
                   </span>
                 </div>
               ))}
               {pending.length > 4 && (
-                <p className="text-xs text-stone-400 dark:text-zinc-500 pt-1">
-                  +{pending.length - 4} más
-                </p>
+                <p className="text-xs text-stone-400 dark:text-zinc-500 pt-1">+{pending.length - 4} más</p>
               )}
             </div>
           )}
@@ -284,15 +320,12 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: FoundationNavId) => voi
                 </span>
               )}
             </div>
-            <button
-              onClick={() => onNavigate('my-pets')}
-              className="text-xs text-brand font-medium hover:underline underline-offset-2"
-            >
-              Ver mascotas
-            </button>
+            <button onClick={() => onNavigate('my-pets')} className="text-xs text-brand font-medium hover:underline underline-offset-2">Ver mascotas</button>
           </div>
 
-          {healthIssues.length === 0 ? (
+          {petsLoading ? (
+            <div className="space-y-2.5">{[0,1,2].map(i => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}</div>
+          ) : healthIssues.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
               <Check className="w-7 h-7 text-emerald-400" strokeWidth={2} />
               <p className="text-xs text-stone-400 dark:text-zinc-500">Todos los registros médicos están completos</p>
@@ -308,21 +341,14 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: FoundationNavId) => voi
                     <p className="text-sm font-medium text-stone-800 dark:text-zinc-100 truncate">{pet.name}</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {missing.map(issue => (
-                        <span
-                          key={issue}
-                          className="text-[11px] px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
-                        >
-                          {issue}
-                        </span>
+                        <span key={issue} className="text-[11px] px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">{issue}</span>
                       ))}
                     </div>
                   </div>
                 </div>
               ))}
               {healthIssues.length > 4 && (
-                <p className="text-xs text-stone-400 dark:text-zinc-500 pt-1">
-                  +{healthIssues.length - 4} más
-                </p>
+                <p className="text-xs text-stone-400 dark:text-zinc-500 pt-1">+{healthIssues.length - 4} más</p>
               )}
             </div>
           )}
@@ -333,6 +359,8 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: FoundationNavId) => voi
   );
 }
 
+// ─── My Pets page ──────────────────────────────────────────────────────────────
+
 const FILTER_OPTIONS: { id: PetStatus | 'all'; label: string }[] = [
   { id: 'all',        label: 'Todos'       },
   { id: 'available',  label: 'Disponibles' },
@@ -340,14 +368,32 @@ const FILTER_OPTIONS: { id: PetStatus | 'all'; label: string }[] = [
   { id: 'adopted',    label: 'Adoptados'   },
 ];
 
-function MyPetsPage() {
+function MyPetsPage({
+  pets,
+  loading,
+  error,
+  onRetry,
+}: {
+  pets: Pet[];
+  loading: boolean;
+  error: boolean;
+  onRetry: () => void;
+}) {
   const [filter, setFilter] = useState<PetStatus | 'all'>('all');
-  const filtered = filter === 'all' ? STATIC_PETS : STATIC_PETS.filter(p => p.status === filter);
+
+  const counts = {
+    all:        pets.length,
+    available:  pets.filter(p => p.status === 'available').length,
+    in_process: pets.filter(p => p.status === 'in_process').length,
+    adopted:    pets.filter(p => p.status === 'adopted').length,
+  };
+
+  const filtered = filter === 'all' ? pets : pets.filter(p => p.status === filter);
+
+  if (error) return <div className="px-4 sm:px-6 py-8"><SectionError onRetry={onRetry} /></div>;
 
   return (
     <div className="px-4 sm:px-6 py-8">
-
-      {/* Status filters */}
       <div className="flex flex-wrap gap-2 mb-6">
         {FILTER_OPTIONS.map(opt => (
           <button
@@ -361,18 +407,27 @@ function MyPetsPage() {
             )}
           >
             {opt.label}
-            <span className={cn(
-              'ml-1.5 text-xs tabular-nums',
-              filter === opt.id ? 'text-white/70' : 'text-stone-400 dark:text-zinc-500',
-            )}>
-              {STATIC_COUNTS[opt.id]}
+            <span className={cn('ml-1.5 text-xs tabular-nums', filter === opt.id ? 'text-white/70' : 'text-stone-400 dark:text-zinc-500')}>
+              {loading ? '…' : counts[opt.id]}
             </span>
           </button>
         ))}
       </div>
 
-      {/* Grid */}
-      {filtered.length > 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[0,1,2,3].map(i => (
+            <div key={i} className="rounded-xl border border-stone-200 dark:border-zinc-800 overflow-hidden">
+              <Skeleton className="h-40 w-full" />
+              <div className="p-3.5 space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-36" />
+                <div className="flex gap-1.5"><Skeleton className="h-5 w-14 rounded" /><Skeleton className="h-5 w-16 rounded" /></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map(pet => <PetCard key={pet.id} pet={pet} />)}
         </div>
@@ -383,13 +438,10 @@ function MyPetsPage() {
           </div>
           <p className="text-sm font-medium text-stone-700 dark:text-zinc-300">Sin mascotas en esta categoría</p>
           <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1">
-            {filter === 'all'
-              ? 'Aún no has registrado ninguna mascota.'
-              : 'No hay mascotas con este estado actualmente.'}
+            {filter === 'all' ? 'Aún no has registrado ninguna mascota.' : 'No hay mascotas con este estado actualmente.'}
           </p>
         </div>
       )}
-
     </div>
   );
 }
@@ -405,17 +457,21 @@ const INPUT_CLS =
 interface AddPetForm {
   name: string;
   species: Pet['species'] | '';
-  other_species: string;
   breed: string;
   age_months: string;
+  gender: Pet['gender'] | '';
   size: Pet['size'] | '';
-  good_with_kids: boolean;
-  good_with_pets: boolean;
+  description: string;
+  city: string;
+  vaccinated: boolean;
+  sterilized: boolean;
+  dewormed: boolean;
+  microchipped: boolean;
 }
 
 const EMPTY_FORM: AddPetForm = {
-  name: '', species: '', other_species: '', breed: '', age_months: '', size: '',
-  good_with_kids: false, good_with_pets: false,
+  name: '', species: '', breed: '', age_months: '', gender: '', size: '',
+  description: '', city: '', vaccinated: false, sterilized: false, dewormed: false, microchipped: false,
 };
 
 function FormField({
@@ -475,37 +531,54 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-4">
       <span className="w-1 h-3.5 rounded-full bg-brand shrink-0" />
-      <span className="text-[11px] font-semibold text-stone-500 dark:text-zinc-400 uppercase tracking-wider select-none">
-        {children}
-      </span>
+      <span className="text-[11px] font-semibold text-stone-500 dark:text-zinc-400 uppercase tracking-wider select-none">{children}</span>
     </div>
   );
 }
 
-function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+function ToggleSwitch({ checked, onChange, label, description }: {
+  checked: boolean;
+  onChange: () => void;
+  label: string;
+  description?: string;
+}) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={onChange}
-      className={cn(
-        'relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
-        checked ? 'bg-brand' : 'bg-stone-200 dark:bg-zinc-700',
-      )}
-    >
-      <span className={cn(
-        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200',
-        checked ? 'translate-x-5' : 'translate-x-0',
-      )} />
-    </button>
+    <label className="flex items-center justify-between gap-4 cursor-pointer bg-stone-50 dark:bg-zinc-900/60 rounded-xl px-4 py-3.5 hover:bg-stone-100 dark:hover:bg-zinc-900 transition-colors">
+      <div>
+        <p className="text-sm font-medium text-stone-800 dark:text-zinc-100">{label}</p>
+        {description && <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">{description}</p>}
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={onChange}
+        className={cn(
+          'relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
+          checked ? 'bg-brand' : 'bg-stone-200 dark:bg-zinc-700',
+        )}
+      >
+        <span className={cn(
+          'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200',
+          checked ? 'translate-x-5' : 'translate-x-0',
+        )} />
+      </button>
+    </label>
   );
 }
 
-function AddPetPage() {
+function AddPetPage({
+  onAdded,
+  onNavigate,
+}: {
+  onAdded: () => void;
+  onNavigate: (id: FoundationNavId) => void;
+}) {
   const [form, setForm] = useState<AddPetForm>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof AddPetForm, string>>>({});
-  const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  const [done, setDone] = useState<{ name: string } | null>(null);
   const [photos, setPhotos] = useState<{ file: File; url: string }[]>([]);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -520,13 +593,10 @@ function AddPetPage() {
   }, [photos.length]);
 
   const removePhoto = (idx: number) => {
-    setPhotos(p => {
-      URL.revokeObjectURL(p[idx].url);
-      return p.filter((_, i) => i !== idx);
-    });
+    setPhotos(p => { URL.revokeObjectURL(p[idx].url); return p.filter((_, i) => i !== idx); });
   };
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
     if (errors[name as keyof AddPetForm]) setErrors(e => ({ ...e, [name]: undefined }));
@@ -535,17 +605,51 @@ function AddPetPage() {
   const reset = () => {
     setForm(EMPTY_FORM);
     setErrors({});
+    setSubmitError(false);
     photos.forEach(p => URL.revokeObjectURL(p.url));
     setPhotos([]);
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Partial<Record<keyof AddPetForm, string>> = {};
     if (!form.species) errs.species = 'Selecciona una especie';
+    if (!form.gender)  errs.gender  = 'Selecciona un género';
     if (!form.size)    errs.size    = 'Selecciona un tamaño';
+    if (!form.city.trim()) errs.city = 'Ingresa la ciudad';
     if (Object.keys(errs).length) { setErrors(errs); return; }
-    setDone(true);
+
+    const payload: CreatePetPayload = {
+      name: form.name,
+      species: form.species as Pet['species'],
+      breed: form.breed.trim() || undefined,
+      age_months: Number(form.age_months),
+      gender: form.gender as Pet['gender'],
+      size: form.size as Pet['size'],
+      description: form.description.trim() || undefined,
+      city: form.city.trim(),
+      clinical_record: {
+        vaccinated: form.vaccinated,
+        sterilized: form.sterilized,
+        dewormed: form.dewormed,
+        microchipped: form.microchipped,
+      },
+    };
+
+    setSubmitting(true);
+    setSubmitError(false);
+    try {
+      const pet = await petsApi.create(payload);
+      for (const p of photos) {
+        try { await petsApi.uploadPhoto(pet.id, p.file); } catch { /* non-fatal */ }
+      }
+      setDone({ name: pet.name });
+      onAdded();
+    } catch {
+      setSubmitError(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (done) {
@@ -554,29 +658,43 @@ function AddPetPage() {
         <div className="w-20 h-20 rounded-3xl bg-brand-light flex items-center justify-center mb-6">
           <PawPrint className="w-10 h-10 text-brand" strokeWidth={1.5} />
         </div>
-        <h2 className="text-2xl font-bold text-stone-900 dark:text-zinc-100">¡Mascota registrada!</h2>
+        <h2 className="text-2xl font-bold text-stone-900 dark:text-zinc-100">¡{done.name} fue registrado!</h2>
         <p className="text-sm text-stone-500 dark:text-zinc-400 mt-2 mb-8 max-w-xs leading-relaxed">
           El perfil fue publicado. Los adoptantes ya pueden verlo en el catálogo.
         </p>
-        <button
-          onClick={() => { reset(); setDone(false); }}
-          className="h-10 px-6 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
-        >
-          Agregar otra mascota
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { reset(); setDone(null); }}
+            className="h-10 px-6 rounded-xl bg-brand text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            Agregar otra
+          </button>
+          <button
+            onClick={() => onNavigate('my-pets')}
+            className="h-10 px-5 rounded-xl text-stone-600 dark:text-zinc-400 text-sm font-medium border border-stone-200 dark:border-zinc-700 hover:bg-stone-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            Ver mis mascotas
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="px-6 sm:px-8 py-6">
-
       <div className="mb-5">
         <h1 className="text-xl font-bold text-stone-900 dark:text-zinc-100">Registrar mascota</h1>
         <p className="text-sm text-stone-500 dark:text-zinc-400 mt-1">
           Completa los datos del animal para publicarlo en el catálogo de adopción.
         </p>
       </div>
+
+      {submitError && (
+        <div className="flex items-center gap-2 mb-5 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
+          <AlertCircle className="w-4 h-4 text-red-500 shrink-0" strokeWidth={1.75} />
+          <p className="text-xs text-red-600 dark:text-red-400">No pudimos registrar la mascota. Intenta de nuevo.</p>
+        </div>
+      )}
 
       <form onSubmit={onSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8 lg:gap-10 items-start">
@@ -587,7 +705,6 @@ function AddPetPage() {
               Fotos <span className="text-stone-300 dark:text-zinc-600 font-normal normal-case tracking-normal">(máx. 5)</span>
             </span>
 
-            {/* Cover photo / dropzone */}
             <div
               onDragOver={e => { e.preventDefault(); setDragging(true); }}
               onDragLeave={() => setDragging(false)}
@@ -606,17 +723,13 @@ function AddPetPage() {
             >
               {photos.length === 0 ? (
                 <>
-                  <div className={cn(
-                    'w-16 h-16 rounded-2xl flex items-center justify-center transition-colors',
-                    dragging ? 'bg-brand/20' : 'bg-stone-100 dark:bg-zinc-800',
-                  )}>
+                  <div className={cn('w-16 h-16 rounded-2xl flex items-center justify-center transition-colors', dragging ? 'bg-brand/20' : 'bg-stone-100 dark:bg-zinc-800')}>
                     <ImagePlus className={cn('w-8 h-8', dragging ? 'text-brand' : 'text-stone-300 dark:text-zinc-600')} strokeWidth={1.5} />
                   </div>
                   <div className="text-center px-6">
-                    <p className="text-sm font-semibold text-stone-700 dark:text-zinc-300">
-                      {dragging ? 'Suelta para subir' : 'Arrastra las fotos aquí'}
-                    </p>
+                    <p className="text-sm font-semibold text-stone-700 dark:text-zinc-300">{dragging ? 'Suelta para subir' : 'Arrastra las fotos aquí'}</p>
                     <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1">JPG, PNG o WebP · máx. 5 MB</p>
+                    <p className="text-xs text-stone-300 dark:text-zinc-600 mt-0.5">(Solo previsualización por ahora)</p>
                   </div>
                   <button
                     type="button"
@@ -630,23 +743,18 @@ function AddPetPage() {
                 <>
                   <img src={photos[0].url} alt="Foto principal" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-                  <span className="absolute bottom-3 left-3.5 text-[11px] font-bold text-white/90 uppercase tracking-widest">
-                    Portada
-                  </span>
+                  <span className="absolute bottom-3 left-3.5 text-[11px] font-bold text-white/90 uppercase tracking-widest">Portada</span>
                   <button
                     type="button"
                     onClick={e => { e.stopPropagation(); removePhoto(0); }}
                     className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
                   >
-                    <svg viewBox="0 0 12 12" fill="none" className="w-3.5 h-3.5">
-                      <path d="M3 3l6 6M9 3l-6 6" stroke="white" strokeWidth={1.8} strokeLinecap="round" />
-                    </svg>
+                    <svg viewBox="0 0 12 12" fill="none" className="w-3.5 h-3.5"><path d="M3 3l6 6M9 3l-6 6" stroke="white" strokeWidth={1.8} strokeLinecap="round" /></svg>
                   </button>
                 </>
               )}
             </div>
 
-            {/* Thumbnails row */}
             {photos.length > 0 && (
               <div className="grid grid-cols-4 gap-2">
                 {photos.slice(1).map((p, i) => (
@@ -657,9 +765,7 @@ function AddPetPage() {
                       onClick={() => removePhoto(i + 1)}
                       className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                     >
-                      <svg viewBox="0 0 12 12" fill="none" className="w-3.5 h-3.5">
-                        <path d="M3 3l6 6M9 3l-6 6" stroke="white" strokeWidth={1.8} strokeLinecap="round" />
-                      </svg>
+                      <svg viewBox="0 0 12 12" fill="none" className="w-3.5 h-3.5"><path d="M3 3l6 6M9 3l-6 6" stroke="white" strokeWidth={1.8} strokeLinecap="round" /></svg>
                     </button>
                   </div>
                 ))}
@@ -688,75 +794,52 @@ function AddPetPage() {
           {/* ── Form fields panel ── */}
           <div className="space-y-6">
 
-            {/* Section 1 — Datos básicos */}
             <div>
               <SectionHeading>Datos básicos</SectionHeading>
               <div className="space-y-4">
                 <FormField label="Nombre" required>
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={onChange}
-                    required
-                    placeholder="Ej. Luna"
-                    className={INPUT_CLS}
-                  />
+                  <input name="name" value={form.name} onChange={onChange} required placeholder="Ej. Luna" className={INPUT_CLS} />
                 </FormField>
 
                 <FormField label="Especie" required error={errors.species}>
                   <PillGroup
                     options={[
-                      { value: 'dog'   as Pet['species'], label: 'Perro' },
-                      { value: 'cat'   as Pet['species'], label: 'Gato'  },
-                      { value: 'other' as Pet['species'], label: 'Otro'  },
+                      { value: 'dog'    as Pet['species'], label: 'Perro'  },
+                      { value: 'cat'    as Pet['species'], label: 'Gato'   },
+                      { value: 'rabbit' as Pet['species'], label: 'Conejo' },
+                      { value: 'other'  as Pet['species'], label: 'Otro'   },
                     ]}
                     value={form.species}
-                    onChange={v => { setForm(f => ({ ...f, species: v, other_species: '' })); setErrors(e => ({ ...e, species: undefined })); }}
+                    onChange={v => { setForm(f => ({ ...f, species: v })); setErrors(e => ({ ...e, species: undefined })); }}
                     error={errors.species}
                   />
-                  {form.species === 'other' && (
-                    <input
-                      name="other_species"
-                      value={form.other_species}
-                      onChange={onChange}
-                      autoFocus
-                      placeholder="Ej. Conejo, Hurón, Tortuga…"
-                      className={INPUT_CLS}
-                    />
-                  )}
                 </FormField>
               </div>
             </div>
 
-            {/* Section 2 — Características físicas */}
             <div>
               <SectionHeading>Características</SectionHeading>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField label="Raza">
-                    <input
-                      name="breed"
-                      value={form.breed}
-                      onChange={onChange}
-                      placeholder="Ej. Labrador mestizo"
-                      className={INPUT_CLS}
-                    />
+                    <input name="breed" value={form.breed} onChange={onChange} placeholder="Ej. Labrador mestizo" className={INPUT_CLS} />
                   </FormField>
-
                   <FormField label="Edad (meses)" required>
-                    <input
-                      name="age_months"
-                      type="number"
-                      min={0}
-                      max={360}
-                      value={form.age_months}
-                      onChange={onChange}
-                      required
-                      placeholder="Ej. 18"
-                      className={INPUT_CLS}
-                    />
+                    <input name="age_months" type="number" min={0} max={360} value={form.age_months} onChange={onChange} required placeholder="Ej. 18" className={INPUT_CLS} />
                   </FormField>
                 </div>
+
+                <FormField label="Género" required error={errors.gender}>
+                  <PillGroup
+                    options={[
+                      { value: 'male'   as Pet['gender'], label: 'Macho'  },
+                      { value: 'female' as Pet['gender'], label: 'Hembra' },
+                    ]}
+                    value={form.gender}
+                    onChange={v => { setForm(f => ({ ...f, gender: v })); setErrors(e => ({ ...e, gender: undefined })); }}
+                    error={errors.gender}
+                  />
+                </FormField>
 
                 <FormField label="Tamaño" required error={errors.size}>
                   <PillGroup
@@ -770,44 +853,61 @@ function AddPetPage() {
                     error={errors.size}
                   />
                 </FormField>
+
+                <FormField label="Ciudad" required error={errors.city}>
+                  <input name="city" value={form.city} onChange={onChange} required placeholder="Ej. Bogotá" className={INPUT_CLS} />
+                </FormField>
+
+                <FormField label="Descripción">
+                  <textarea
+                    name="description"
+                    value={form.description}
+                    onChange={onChange}
+                    rows={3}
+                    placeholder="Cuéntanos sobre la personalidad y necesidades del animal…"
+                    className={cn(INPUT_CLS, 'resize-none')}
+                  />
+                </FormField>
               </div>
             </div>
 
-            {/* Section 3 — Compatibilidad */}
             <div>
-              <SectionHeading>Compatibilidad</SectionHeading>
+              <SectionHeading>Registro médico</SectionHeading>
               <div className="space-y-2">
-                <label className="flex items-center justify-between gap-4 cursor-pointer group bg-stone-50 dark:bg-zinc-900/60 rounded-xl px-4 py-3.5 hover:bg-stone-100 dark:hover:bg-zinc-900 transition-colors">
-                  <div>
-                    <p className="text-sm font-medium text-stone-800 dark:text-zinc-100">Bueno con niños</p>
-                    <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Se lleva bien con menores de edad</p>
-                  </div>
-                  <ToggleSwitch
-                    checked={form.good_with_kids}
-                    onChange={() => setForm(f => ({ ...f, good_with_kids: !f.good_with_kids }))}
-                  />
-                </label>
-
-                <label className="flex items-center justify-between gap-4 cursor-pointer group bg-stone-50 dark:bg-zinc-900/60 rounded-xl px-4 py-3.5 hover:bg-stone-100 dark:hover:bg-zinc-900 transition-colors">
-                  <div>
-                    <p className="text-sm font-medium text-stone-800 dark:text-zinc-100">Bueno con mascotas</p>
-                    <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Convive bien con otros animales</p>
-                  </div>
-                  <ToggleSwitch
-                    checked={form.good_with_pets}
-                    onChange={() => setForm(f => ({ ...f, good_with_pets: !f.good_with_pets }))}
-                  />
-                </label>
+                <ToggleSwitch
+                  checked={form.vaccinated}
+                  onChange={() => setForm(f => ({ ...f, vaccinated: !f.vaccinated }))}
+                  label="Vacunado"
+                  description="Tiene esquema de vacunación completo o al día"
+                />
+                <ToggleSwitch
+                  checked={form.sterilized}
+                  onChange={() => setForm(f => ({ ...f, sterilized: !f.sterilized }))}
+                  label="Esterilizado"
+                  description="Fue sometido a procedimiento de esterilización"
+                />
+                <ToggleSwitch
+                  checked={form.dewormed}
+                  onChange={() => setForm(f => ({ ...f, dewormed: !f.dewormed }))}
+                  label="Desparasitado"
+                  description="Tratamiento antiparasitario interno y externo"
+                />
+                <ToggleSwitch
+                  checked={form.microchipped}
+                  onChange={() => setForm(f => ({ ...f, microchipped: !f.microchipped }))}
+                  label="Microchip"
+                  description="Identificado con microchip de registro"
+                />
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex items-center gap-3 pt-1">
               <button
                 type="submit"
-                className="h-11 px-8 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
+                disabled={submitting}
+                className="h-11 px-8 rounded-xl bg-brand text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                Registrar mascota
+                {submitting ? 'Registrando…' : 'Registrar mascota'}
               </button>
               <button
                 type="button"
@@ -825,124 +925,60 @@ function AddPetPage() {
   );
 }
 
-// ─── Adoption requests ────────────────────────────────────────────────────────
+// ─── Requests page ─────────────────────────────────────────────────────────────
 
-type RequestStatus = 'pending' | 'approved' | 'rejected' | 'in_process';
-
-interface AdoptionRequest {
-  id: number;
-  pet: Pick<Pet, 'id' | 'name' | 'species' | 'breed'>;
-  applicant: { name: string; email: string };
-  requested_at: string;
-  status: RequestStatus;
-  message?: string;
-}
-
-const STATIC_REQUESTS: AdoptionRequest[] = [
-  {
-    id: 1,
-    pet: { id: 1, name: 'Luna', species: 'dog', breed: 'Labrador mestizo' },
-    applicant: { name: 'Carlos García', email: 'carlos.garcia@gmail.com' },
-    requested_at: '2024-04-10T09:15:00Z',
-    status: 'pending',
-    message: 'Tengo un jardín grande y mucha experiencia con perros. Luna estaría increíble en mi familia.',
-  },
-  {
-    id: 2,
-    pet: { id: 2, name: 'Milo', species: 'cat', breed: 'Siamés mestizo' },
-    applicant: { name: 'Valentina Torres', email: 'vale.torres@hotmail.com' },
-    requested_at: '2024-04-08T14:30:00Z',
-    status: 'pending',
-    message: 'Vivo sola en un apartamento tranquilo y he tenido gatos toda mi vida.',
-  },
-  {
-    id: 3,
-    pet: { id: 1, name: 'Luna', species: 'dog', breed: 'Labrador mestizo' },
-    applicant: { name: 'Andrés Morales', email: 'andres.morales@empresa.co' },
-    requested_at: '2024-04-07T11:00:00Z',
-    status: 'pending',
-  },
-  {
-    id: 4,
-    pet: { id: 4, name: 'Nala', species: 'cat', breed: 'Doméstico' },
-    applicant: { name: 'María Rodríguez', email: 'maria.r@gmail.com' },
-    requested_at: '2024-04-05T16:45:00Z',
-    status: 'approved',
-    message: 'Tenemos dos niños pequeños y buscamos una mascota tranquila para la familia.',
-  },
-  {
-    id: 5,
-    pet: { id: 2, name: 'Milo', species: 'cat', breed: 'Siamés mestizo' },
-    applicant: { name: 'Diego Herrera', email: 'dherrera@correo.com' },
-    requested_at: '2024-04-03T10:20:00Z',
-    status: 'rejected',
-    message: 'Quiero adoptar a Milo para mi apartamento pequeño en el centro.',
-  },
-  {
-    id: 6,
-    pet: { id: 3, name: 'Rocky', species: 'dog', breed: 'Pastor Alemán' },
-    applicant: { name: 'Sofía Jiménez', email: 'sofia.j@email.co' },
-    requested_at: '2024-03-28T09:00:00Z',
-    status: 'in_process',
-    message: 'Casa con patio grande. He tenido pastores alemanes antes y sé lo que requieren.',
-  },
-  {
-    id: 7,
-    pet: { id: 4, name: 'Nala', species: 'cat', breed: 'Doméstico' },
-    applicant: { name: 'Julián Ospina', email: 'julian.o@gmail.com' },
-    requested_at: '2024-03-25T13:30:00Z',
-    status: 'rejected',
-  },
-];
-
-const REQUEST_STATUS_CONFIG: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
+const REQUEST_STATUS_CONFIG: Record<FoundationAdoptionStatus, { label: string; badge: string; dot: string }> = {
   pending:    { label: 'Pendiente',  badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',         dot: 'bg-amber-500'   },
+  reviewing:  { label: 'En revisión',badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',             dot: 'bg-blue-500'    },
   approved:   { label: 'Aprobada',   badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
   rejected:   { label: 'Rechazada',  badge: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',                dot: 'bg-red-400'     },
-  in_process: { label: 'En proceso', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',            dot: 'bg-blue-500'    },
+  completed:  { label: 'Completada', badge: 'bg-stone-100 text-stone-500 dark:bg-zinc-800 dark:text-zinc-400',              dot: 'bg-stone-400'   },
 };
 
-const REQUEST_FILTER_OPTIONS: { id: RequestStatus | 'all'; label: string }[] = [
-  { id: 'all',        label: 'Todas'      },
-  { id: 'pending',    label: 'Pendientes' },
-  { id: 'in_process', label: 'En proceso' },
-  { id: 'approved',   label: 'Aprobadas'  },
-  { id: 'rejected',   label: 'Rechazadas' },
+const REQUEST_FILTER_OPTIONS: { id: FoundationAdoptionStatus | 'all'; label: string }[] = [
+  { id: 'all',       label: 'Todas'      },
+  { id: 'pending',   label: 'Pendientes' },
+  { id: 'reviewing', label: 'En revisión'},
+  { id: 'approved',  label: 'Aprobadas'  },
+  { id: 'rejected',  label: 'Rechazadas' },
 ];
 
-function formatRequestDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  });
-}
-
-function getInitials(name: string): string {
-  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
-}
-
-function RequestsPage() {
-  const [requests, setRequests] = useState<AdoptionRequest[]>(STATIC_REQUESTS);
-  const [filter, setFilter]     = useState<RequestStatus | 'all'>('all');
+function RequestsPage({
+  adoptions,
+  loading,
+  error,
+  onRetry,
+  onUpdateStatus,
+}: {
+  adoptions: FoundationAdoption[];
+  loading: boolean;
+  error: boolean;
+  onRetry: () => void;
+  onUpdateStatus: (id: number, status: FoundationAdoptionStatus) => Promise<unknown>;
+}) {
+  const [filter, setFilter]   = useState<FoundationAdoptionStatus | 'all'>('all');
+  const [updating, setUpdating] = useState<number | null>(null);
 
   const counts = {
-    all:        requests.length,
-    pending:    requests.filter(r => r.status === 'pending').length,
-    approved:   requests.filter(r => r.status === 'approved').length,
-    in_process: requests.filter(r => r.status === 'in_process').length,
-    rejected:   requests.filter(r => r.status === 'rejected').length,
+    all:       adoptions.length,
+    pending:   adoptions.filter(r => r.status === 'pending').length,
+    reviewing: adoptions.filter(r => r.status === 'reviewing').length,
+    approved:  adoptions.filter(r => r.status === 'approved').length,
+    rejected:  adoptions.filter(r => r.status === 'rejected').length,
+    completed: adoptions.filter(r => r.status === 'completed').length,
   };
 
-  const filtered = filter === 'all' ? requests : requests.filter(r => r.status === filter);
+  const filtered = filter === 'all' ? adoptions : adoptions.filter(r => r.status === filter);
 
-  const approve = (id: number) =>
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' as RequestStatus } : r));
-  const reject  = (id: number) =>
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' as RequestStatus } : r));
+  const handleAction = async (id: number, status: FoundationAdoptionStatus) => {
+    setUpdating(id);
+    try { await onUpdateStatus(id, status); } finally { setUpdating(null); }
+  };
+
+  if (error) return <div className="px-6 sm:px-8 py-6"><SectionError onRetry={onRetry} /></div>;
 
   return (
     <div className="px-6 sm:px-8 py-6">
-
-      {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
         {REQUEST_FILTER_OPTIONS.map(opt => (
           <button
@@ -956,80 +992,92 @@ function RequestsPage() {
             )}
           >
             {opt.label}
-            <span className={cn(
-              'ml-1.5 text-xs tabular-nums',
-              filter === opt.id ? 'text-white/70' : 'text-stone-400 dark:text-zinc-500',
-            )}>
-              {counts[opt.id]}
+            <span className={cn('ml-1.5 text-xs tabular-nums', filter === opt.id ? 'text-white/70' : 'text-stone-400 dark:text-zinc-500')}>
+              {loading ? '…' : (opt.id === 'all' ? counts.all : counts[opt.id as FoundationAdoptionStatus] ?? 0)}
             </span>
           </button>
         ))}
       </div>
 
-      {/* List */}
-      {filtered.length > 0 ? (
+      {loading ? (
+        <div className="space-y-3">{[0,1,2].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
+      ) : filtered.length > 0 ? (
         <div className="space-y-3">
           {filtered.map(req => {
             const cfg = REQUEST_STATUS_CONFIG[req.status];
+            const isUpdating = updating === req.id;
             return (
-              <div
-                key={req.id}
-                className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-4"
-              >
+              <div key={req.id} className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-4">
                 <div className="flex items-start gap-4">
-
-                  {/* Applicant avatar */}
                   <div className="w-10 h-10 rounded-full bg-brand-light dark:bg-brand/20 shrink-0 flex items-center justify-center mt-0.5">
-                    <span className="text-xs font-bold text-brand select-none">{getInitials(req.applicant.name)}</span>
+                    <span className="text-xs font-bold text-brand select-none">{getInitials(req.adopter_name || 'U')}</span>
                   </div>
 
-                  {/* Main info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">{req.applicant.name}</span>
+                      <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">{req.adopter_name || 'Adoptante'}</span>
                       <span className="text-xs text-stone-400 dark:text-zinc-500">quiere adoptar a</span>
-                      <span className="text-sm font-semibold text-brand">{req.pet.name}</span>
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-zinc-800 text-stone-500 dark:text-zinc-400">
-                        {SPECIES_LABEL[req.pet.species]}
-                      </span>
+                      <span className="text-sm font-semibold text-brand">{req.pet_name}</span>
                     </div>
                     <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">
-                      {req.applicant.email} · {formatRequestDate(req.requested_at)}
+                      {req.adopter_email} · {formatDate(req.created_at)}
                     </p>
                     {req.message && (
-                      <p className="text-xs text-stone-500 dark:text-zinc-400 mt-2 line-clamp-1 italic">
-                        "{req.message}"
-                      </p>
+                      <p className="text-xs text-stone-500 dark:text-zinc-400 mt-2 line-clamp-1 italic">"{req.message}"</p>
                     )}
                   </div>
 
-                  {/* Status + Actions */}
                   <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                    <span className={cn(
-                      'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium',
-                      cfg.badge,
-                    )}>
+                    <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium', cfg.badge)}>
                       <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', cfg.dot)} />
                       {cfg.label}
                     </span>
                     {req.status === 'pending' && (
                       <>
                         <button
-                          onClick={() => approve(req.id)}
-                          className="h-8 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+                          onClick={() => handleAction(req.id, 'reviewing')}
+                          disabled={isUpdating}
+                          className="h-8 px-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors disabled:opacity-50"
                         >
-                          Aprobar
+                          Revisar
                         </button>
                         <button
-                          onClick={() => reject(req.id)}
-                          className="h-8 px-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                          onClick={() => handleAction(req.id, 'rejected')}
+                          disabled={isUpdating}
+                          className="h-8 px-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50"
                         >
                           Rechazar
                         </button>
                       </>
                     )}
+                    {req.status === 'reviewing' && (
+                      <>
+                        <button
+                          onClick={() => handleAction(req.id, 'approved')}
+                          disabled={isUpdating}
+                          className="h-8 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors disabled:opacity-50"
+                        >
+                          Aprobar
+                        </button>
+                        <button
+                          onClick={() => handleAction(req.id, 'rejected')}
+                          disabled={isUpdating}
+                          className="h-8 px-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50"
+                        >
+                          Rechazar
+                        </button>
+                      </>
+                    )}
+                    {req.status === 'approved' && (
+                      <button
+                        onClick={() => handleAction(req.id, 'completed')}
+                        disabled={isUpdating}
+                        className="h-8 px-3 rounded-lg bg-stone-100 dark:bg-zinc-800 text-stone-600 dark:text-zinc-400 text-xs font-semibold hover:bg-stone-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                      >
+                        Completar
+                      </button>
+                    )}
                   </div>
-
                 </div>
               </div>
             );
@@ -1042,30 +1090,155 @@ function RequestsPage() {
           </div>
           <p className="text-sm font-medium text-stone-700 dark:text-zinc-300">Sin solicitudes</p>
           <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1">
-            {filter === 'all'
-              ? 'Aún no has recibido solicitudes de adopción.'
-              : 'No hay solicitudes con este estado.'}
+            {filter === 'all' ? 'Aún no has recibido solicitudes de adopción.' : 'No hay solicitudes con este estado.'}
           </p>
         </div>
       )}
-
     </div>
   );
 }
 
-// ─── Schedule page data ────────────────────────────────────────────────────────
+// ─── History page ──────────────────────────────────────────────────────────────
 
-interface DateSlot {
-  start: string;
-  end: string;
-}
-
-const MONTH_NAMES = [
-  'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
+const HISTORY_FILTER_OPTIONS: { id: 'all' | 'completed' | 'rejected'; label: string }[] = [
+  { id: 'all',       label: 'Todas'      },
+  { id: 'completed', label: 'Adoptadas'  },
+  { id: 'rejected',  label: 'Rechazadas' },
 ];
 
+function HistoryPage({
+  adoptions,
+  loading,
+  error,
+  onRetry,
+}: {
+  adoptions: FoundationAdoption[];
+  loading: boolean;
+  error: boolean;
+  onRetry: () => void;
+}) {
+  const [filter, setFilter] = useState<'all' | 'completed' | 'rejected'>('all');
+
+  const history = adoptions.filter(a => a.status === 'completed' || a.status === 'rejected');
+  const stats = {
+    total:     history.length,
+    completed: history.filter(a => a.status === 'completed').length,
+    rejected:  history.filter(a => a.status === 'rejected').length,
+  };
+
+  const filtered = filter === 'all' ? history : history.filter(a => a.status === filter);
+  const sorted = [...filtered].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+
+  if (error) return <div className="px-6 sm:px-8 py-6"><SectionError onRetry={onRetry} /></div>;
+
+  return (
+    <div className="px-6 sm:px-8 py-6">
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-3.5">
+          <p className="text-2xl font-bold text-stone-900 dark:text-zinc-100 tabular-nums">{loading ? '…' : stats.total}</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Total procesadas</p>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-3.5">
+          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{loading ? '…' : stats.completed}</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Adoptadas</p>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-3.5">
+          <p className="text-2xl font-bold text-red-500 dark:text-red-400 tabular-nums">{loading ? '…' : stats.rejected}</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Rechazadas</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-6">
+        {HISTORY_FILTER_OPTIONS.map(opt => {
+          const count = opt.id === 'all' ? stats.total : stats[opt.id];
+          return (
+            <button
+              key={opt.id}
+              onClick={() => setFilter(opt.id)}
+              className={cn(
+                'h-8 px-3 rounded-lg text-sm font-medium transition-colors',
+                filter === opt.id
+                  ? 'bg-brand text-white'
+                  : 'bg-stone-100 dark:bg-zinc-800 text-stone-600 dark:text-zinc-400 hover:bg-brand-light hover:text-brand dark:hover:bg-zinc-700',
+              )}
+            >
+              {opt.label}
+              <span className={cn('ml-1.5 text-xs tabular-nums', filter === opt.id ? 'text-white/70' : 'text-stone-400 dark:text-zinc-500')}>
+                {loading ? '…' : count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {loading ? (
+        <div className="space-y-3">{[0,1,2].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}</div>
+      ) : sorted.length > 0 ? (
+        <div className="space-y-3">
+          {sorted.map(entry => (
+            <div key={entry.id} className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-4">
+              <div className="flex items-start gap-4">
+                <div className={cn(
+                  'w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-0.5',
+                  entry.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/20',
+                )}>
+                  {entry.status === 'completed'
+                    ? <Heart className="w-4 h-4 text-emerald-600 dark:text-emerald-400" strokeWidth={2} fill="currentColor" />
+                    : <PawPrint className="w-4 h-4 text-red-400" strokeWidth={1.5} />
+                  }
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">{entry.pet_name}</span>
+                  </div>
+                  <p className="text-xs text-stone-500 dark:text-zinc-400 mt-0.5">
+                    {entry.adopter_name || 'Adoptante'}
+                    {entry.adopter_email && <span className="text-stone-300 dark:text-zinc-600 mx-1">·</span>}
+                    {entry.adopter_email}
+                  </p>
+                  {entry.message && (
+                    <p className="text-xs text-stone-400 dark:text-zinc-500 mt-2 italic line-clamp-1">"{entry.message}"</p>
+                  )}
+                  <p className="text-[11px] text-stone-300 dark:text-zinc-600 mt-1.5">
+                    Resuelta el {formatDate(entry.updated_at)}
+                  </p>
+                </div>
+
+                <span className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium shrink-0',
+                  entry.status === 'completed'
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+                )}>
+                  <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', entry.status === 'completed' ? 'bg-emerald-500' : 'bg-red-400')} />
+                  {entry.status === 'completed' ? 'Adoptada' : 'Rechazada'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-stone-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+            <PawPrint className="w-7 h-7 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
+          </div>
+          <p className="text-sm font-medium text-stone-700 dark:text-zinc-300">Sin registros</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1">
+            No hay adopciones {filter === 'completed' ? 'completadas' : 'rechazadas'} aún.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Schedule page (unchanged) ─────────────────────────────────────────────────
+
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAY_HEADERS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+interface DateSlot { start: string; end: string; }
 
 function toDateKey(d: Date): string {
   const y = d.getFullYear();
@@ -1076,9 +1249,7 @@ function toDateKey(d: Date): string {
 
 function formatSlotDate(key: string): string {
   const [y, m, d] = key.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('es-CO', {
-    weekday: 'short', day: 'numeric', month: 'short',
-  });
+  return new Date(y, m - 1, d).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 const TIME_INPUT_CLS =
@@ -1087,29 +1258,50 @@ const TIME_INPUT_CLS =
   'focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors';
 
 function ScheduleFoundationPage() {
+  const { user } = useAuth();
   const todayRef = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
-
   const [viewYear,  setViewYear]  = useState(todayRef.getFullYear());
   const [viewMonth, setViewMonth] = useState(todayRef.getMonth());
   const [selected,  setSelected]  = useState<Map<string, DateSlot>>(new Map());
   const [saved,     setSaved]     = useState(false);
 
-  const prevMonth = () => {
-    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
-    else setViewMonth(m => m - 1);
-  };
-  const nextMonth = () => {
-    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
-    else setViewMonth(m => m + 1);
-  };
+  const { data: existingAvailability = [] } = useQuery({
+    queryKey: ['foundation-availability', user?.id],
+    queryFn: () => foundationsApi.getAvailability(user!.id),
+    enabled: !!user?.id,
+  });
+
+  useEffect(() => {
+    if (existingAvailability.length === 0) return;
+    setSelected(new Map(
+      existingAvailability.map(a => [a.available_date, { start: a.start_time, end: a.end_time }])
+    ));
+  }, [existingAvailability]);
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      foundationsApi.setAvailability(
+        Array.from(selected.entries()).map(([date, slot]) => ({
+          available_date: date,
+          start_time: slot.start,
+          end_time: slot.end,
+        }))
+      ),
+    onSuccess: () => {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    },
+  });
+
+  const prevMonth = () => { if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); } else setViewMonth(m => m - 1); };
+  const nextMonth = () => { if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); } else setViewMonth(m => m + 1); };
 
   const toggleDay = (d: Date) => {
     if (d < todayRef) return;
     const key = toDateKey(d);
     setSelected(prev => {
       const next = new Map(prev);
-      if (next.has(key)) next.delete(key);
-      else next.set(key, { start: '09:00', end: '17:00' });
+      if (next.has(key)) next.delete(key); else next.set(key, { start: '09:00', end: '17:00' });
       return next;
     });
   };
@@ -1123,16 +1315,9 @@ function ScheduleFoundationPage() {
     });
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
-  // Build calendar grid (Mon-based)
   const firstDay = new Date(viewYear, viewMonth, 1);
   const lastDay  = new Date(viewYear, viewMonth + 1, 0);
   const startDow = (firstDay.getDay() + 6) % 7;
-
   const calDays: (Date | null)[] = [];
   for (let i = 0; i < startDow; i++) calDays.push(null);
   for (let d = 1; d <= lastDay.getDate(); d++) calDays.push(new Date(viewYear, viewMonth, d));
@@ -1144,50 +1329,26 @@ function ScheduleFoundationPage() {
 
   return (
     <div className="flex flex-col min-h-full p-6 sm:p-8 gap-4">
-
       <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
-
-        {/* ── Calendar ───────────────────────────────────────────── */}
         <div className="flex flex-col flex-1 min-w-0 bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 p-5">
-
-          {/* Month navigation */}
           <div className="flex items-center justify-between mb-5 shrink-0">
-            <button
-              type="button"
-              onClick={prevMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
-            >
+            <button type="button" onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors">
               <ChevronLeft className="w-4 h-4" strokeWidth={2} />
             </button>
-            <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">
-              {MONTH_NAMES[viewMonth]} {viewYear}
-            </span>
-            <button
-              type="button"
-              onClick={nextMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
-            >
+            <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">{MONTH_NAMES[viewMonth]} {viewYear}</span>
+            <button type="button" onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors">
               <ChevronRight className="w-4 h-4" strokeWidth={2} />
             </button>
           </div>
-
-          {/* Day-of-week headers */}
           <div className="grid grid-cols-7 shrink-0 mb-1">
             {DAY_HEADERS.map(h => (
-              <div key={h} className="text-center text-[11px] font-semibold text-stone-400 dark:text-zinc-500 pb-2">
-                {h}
-              </div>
+              <div key={h} className="text-center text-[11px] font-semibold text-stone-400 dark:text-zinc-500 pb-2">{h}</div>
             ))}
           </div>
-
-          {/* Day cells */}
-          <div
-            className="grid grid-cols-7 flex-1"
-            style={{ gridTemplateRows: `repeat(${numWeeks}, 1fr)` }}
-          >
+          <div className="grid grid-cols-7 flex-1" style={{ gridTemplateRows: `repeat(${numWeeks}, 1fr)` }}>
             {calDays.map((d, i) => {
               if (!d) return <div key={i} />;
-              const key    = toDateKey(d);
+              const key = toDateKey(d);
               const isPast = d < todayRef;
               const isToday = key === todayKey;
               const isSel  = selected.has(key);
@@ -1212,66 +1373,46 @@ function ScheduleFoundationPage() {
           </div>
         </div>
 
-        {/* ── Selected dates panel ───────────────────────────────── */}
         <div className="w-full lg:w-72 flex flex-col bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 p-5 overflow-hidden">
           <div className="flex items-center gap-2 mb-4 shrink-0">
             <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">Días seleccionados</span>
-            {selected.size > 0 && (
-              <span className="ml-auto text-xs tabular-nums text-stone-400 dark:text-zinc-500">{selected.size}</span>
-            )}
+            {selected.size > 0 && <span className="ml-auto text-xs tabular-nums text-stone-400 dark:text-zinc-500">{selected.size}</span>}
           </div>
-
           {selectedEntries.length === 0 ? (
             <div className="flex flex-col items-center justify-center flex-1 text-center gap-2">
               <div className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-zinc-800 flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
               </div>
-              <p className="text-xs text-stone-400 dark:text-zinc-500">
-                Selecciona días en el calendario
-              </p>
+              <p className="text-xs text-stone-400 dark:text-zinc-500">Selecciona días en el calendario</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-0">
               {selectedEntries.map(([key, slot]) => (
-                <div
-                  key={key}
-                  className="rounded-xl border border-stone-100 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-800/50 p-3"
-                >
-                  <p className="text-xs font-semibold text-stone-700 dark:text-zinc-200 capitalize mb-2">
-                    {formatSlotDate(key)}
-                  </p>
+                <div key={key} className="rounded-xl border border-stone-100 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-800/50 p-3">
+                  <p className="text-xs font-semibold text-stone-700 dark:text-zinc-200 capitalize mb-2">{formatSlotDate(key)}</p>
                   <div className="flex items-center gap-1.5">
-                    <input
-                      type="time"
-                      value={slot.start}
-                      onChange={e => updateTime(key, 'start', e.target.value)}
-                      className={cn(TIME_INPUT_CLS, 'flex-1 min-w-0')}
-                    />
+                    <input type="time" value={slot.start} onChange={e => updateTime(key, 'start', e.target.value)} className={cn(TIME_INPUT_CLS, 'flex-1 min-w-0')} />
                     <span className="text-[10px] text-stone-300 dark:text-zinc-600 shrink-0">—</span>
-                    <input
-                      type="time"
-                      value={slot.end}
-                      onChange={e => updateTime(key, 'end', e.target.value)}
-                      className={cn(TIME_INPUT_CLS, 'flex-1 min-w-0')}
-                    />
+                    <input type="time" value={slot.end} onChange={e => updateTime(key, 'end', e.target.value)} className={cn(TIME_INPUT_CLS, 'flex-1 min-w-0')} />
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-
       </div>
 
-      {/* Bottom bar */}
       <div className="flex items-center justify-between shrink-0">
         <p className="text-xs text-stone-400 dark:text-zinc-500">
-          {selected.size === 0
-            ? 'Ningún día seleccionado'
-            : `${selected.size} ${selected.size === 1 ? 'día seleccionado' : 'días seleccionados'}`}
+          {selected.size === 0 ? 'Ningún día seleccionado' : `${selected.size} ${selected.size === 1 ? 'día seleccionado' : 'días seleccionados'}`}
         </p>
         <div className="flex items-center gap-3">
-          {saved && (
+          {saveMutation.isError && (
+            <span className="text-xs font-medium text-red-500 dark:text-red-400">
+              Error al guardar. Intenta de nuevo.
+            </span>
+          )}
+          {saved && !saveMutation.isError && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
               Guardado
@@ -1279,251 +1420,17 @@ function ScheduleFoundationPage() {
           )}
           <button
             type="button"
-            onClick={handleSave}
-            className="h-9 px-5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
+            disabled={saveMutation.isPending}
+            onClick={() => saveMutation.mutate()}
+            className="h-9 px-5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
           >
+            {saveMutation.isPending && (
+              <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin inline-block" />
+            )}
             Guardar disponibilidad
           </button>
         </div>
       </div>
-
-    </div>
-  );
-}
-
-// ─── History page data ────────────────────────────────────────────────────────
-
-interface HistoryEntry {
-  id: number;
-  pet: Pick<Pet, 'id' | 'name' | 'species' | 'breed'>;
-  applicant: { name: string; email: string };
-  requested_at: string;
-  resolved_at: string;
-  outcome: 'adopted' | 'rejected';
-  message?: string;
-}
-
-const STATIC_HISTORY: HistoryEntry[] = [
-  {
-    id: 1,
-    pet: { id: 10, name: 'Bruno', species: 'dog', breed: 'Golden Retriever' },
-    applicant: { name: 'Felipe Castillo', email: 'f.castillo@empresa.co' },
-    requested_at: '2023-06-01T09:00:00Z',
-    resolved_at: '2023-06-20T14:00:00Z',
-    outcome: 'adopted',
-    message: 'Familia con niños, casa grande. Bruno sería perfecto para nosotros.',
-  },
-  {
-    id: 2,
-    pet: { id: 9, name: 'Tina', species: 'cat', breed: 'Angora mestiza' },
-    applicant: { name: 'Natalia Gómez', email: 'nati.g@email.co' },
-    requested_at: '2023-07-10T11:00:00Z',
-    resolved_at: '2023-07-25T09:00:00Z',
-    outcome: 'adopted',
-    message: 'Vivo en una casa con jardín y ya tengo otro gato. Busco una compañera para él.',
-  },
-  {
-    id: 3,
-    pet: { id: 5, name: 'Max', species: 'dog', breed: 'Beagle' },
-    applicant: { name: 'Laura Pinto', email: 'laura.pinto@gmail.com' },
-    requested_at: '2023-07-20T10:00:00Z',
-    resolved_at: '2023-08-05T14:00:00Z',
-    outcome: 'adopted',
-    message: 'Tengo un jardín enorme y mis hijos aman los perros.',
-  },
-  {
-    id: 4,
-    pet: { id: 7, name: 'Lola', species: 'dog', breed: 'Shih Tzu' },
-    applicant: { name: 'Roberto Vargas', email: 'rvargas@hotmail.com' },
-    requested_at: '2023-10-12T08:30:00Z',
-    resolved_at: '2023-10-28T15:00:00Z',
-    outcome: 'adopted',
-  },
-  {
-    id: 5,
-    pet: { id: 8, name: 'Paco', species: 'dog', breed: 'Dálmata mestizo' },
-    applicant: { name: 'Camila Restrepo', email: 'c.restrepo@gmail.com' },
-    requested_at: '2023-11-01T09:00:00Z',
-    resolved_at: '2023-11-15T10:30:00Z',
-    outcome: 'rejected',
-    message: 'Mi edificio no permite mascotas grandes pero igual intenté.',
-  },
-  {
-    id: 6,
-    pet: { id: 4, name: 'Nala', species: 'cat', breed: 'Doméstico' },
-    applicant: { name: 'Julián Ospina', email: 'julian.o@gmail.com' },
-    requested_at: '2024-03-25T13:30:00Z',
-    resolved_at: '2024-03-29T11:00:00Z',
-    outcome: 'rejected',
-  },
-  {
-    id: 7,
-    pet: { id: 2, name: 'Milo', species: 'cat', breed: 'Siamés mestizo' },
-    applicant: { name: 'Diego Herrera', email: 'dherrera@correo.com' },
-    requested_at: '2024-04-03T10:20:00Z',
-    resolved_at: '2024-04-09T09:00:00Z',
-    outcome: 'rejected',
-    message: 'Quiero adoptar a Milo para mi apartamento pequeño en el centro.',
-  },
-  {
-    id: 8,
-    pet: { id: 4, name: 'Nala', species: 'cat', breed: 'Doméstico' },
-    applicant: { name: 'María Rodríguez', email: 'maria.r@gmail.com' },
-    requested_at: '2024-04-05T16:45:00Z',
-    resolved_at: '2024-04-18T11:00:00Z',
-    outcome: 'adopted',
-    message: 'Tenemos dos niños pequeños y buscamos una mascota tranquila para la familia.',
-  },
-];
-
-const HISTORY_FILTER_OPTIONS: { id: 'all' | 'adopted' | 'rejected'; label: string }[] = [
-  { id: 'all',      label: 'Todas'      },
-  { id: 'adopted',  label: 'Adoptadas'  },
-  { id: 'rejected', label: 'Rechazadas' },
-];
-
-function HistoryPage() {
-  const [filter, setFilter] = useState<'all' | 'adopted' | 'rejected'>('all');
-
-  const stats = {
-    total:    STATIC_HISTORY.length,
-    adopted:  STATIC_HISTORY.filter(e => e.outcome === 'adopted').length,
-    rejected: STATIC_HISTORY.filter(e => e.outcome === 'rejected').length,
-  };
-
-  const filtered = filter === 'all'
-    ? STATIC_HISTORY
-    : STATIC_HISTORY.filter(e => e.outcome === filter);
-
-  const sorted = [...filtered].sort(
-    (a, b) => new Date(b.resolved_at).getTime() - new Date(a.resolved_at).getTime(),
-  );
-
-  return (
-    <div className="px-6 sm:px-8 py-6">
-
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-3.5">
-          <p className="text-2xl font-bold text-stone-900 dark:text-zinc-100 tabular-nums">{stats.total}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Total procesadas</p>
-        </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-3.5">
-          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.adopted}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Adoptadas</p>
-        </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 px-4 py-3.5">
-          <p className="text-2xl font-bold text-red-500 dark:text-red-400 tabular-nums">{stats.rejected}</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Rechazadas</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {HISTORY_FILTER_OPTIONS.map(opt => {
-          const count = opt.id === 'all' ? stats.total : opt.id === 'adopted' ? stats.adopted : stats.rejected;
-          return (
-            <button
-              key={opt.id}
-              onClick={() => setFilter(opt.id)}
-              className={cn(
-                'h-8 px-3 rounded-lg text-sm font-medium transition-colors',
-                filter === opt.id
-                  ? 'bg-brand text-white'
-                  : 'bg-stone-100 dark:bg-zinc-800 text-stone-600 dark:text-zinc-400 hover:bg-brand-light hover:text-brand dark:hover:bg-zinc-700',
-              )}
-            >
-              {opt.label}
-              <span className={cn(
-                'ml-1.5 text-xs tabular-nums',
-                filter === opt.id ? 'text-white/70' : 'text-stone-400 dark:text-zinc-500',
-              )}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* List */}
-      {sorted.length > 0 ? (
-        <div className="space-y-3">
-          {sorted.map(entry => (
-            <div
-              key={entry.id}
-              className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-4"
-            >
-              <div className="flex items-start gap-4">
-
-                {/* Outcome icon */}
-                <div className={cn(
-                  'w-10 h-10 rounded-full shrink-0 flex items-center justify-center mt-0.5',
-                  entry.outcome === 'adopted'
-                    ? 'bg-emerald-100 dark:bg-emerald-900/30'
-                    : 'bg-red-100 dark:bg-red-900/20',
-                )}>
-                  {entry.outcome === 'adopted'
-                    ? <Heart className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" strokeWidth={2} fill="currentColor" />
-                    : <PawPrint className="w-4.5 h-4.5 text-red-400 dark:text-red-400" strokeWidth={1.5} />
-                  }
-                </div>
-
-                {/* Main info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-semibold text-stone-800 dark:text-zinc-100">{entry.pet.name}</span>
-                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-zinc-800 text-stone-500 dark:text-zinc-400">
-                      {SPECIES_LABEL[entry.pet.species]}
-                    </span>
-                    {entry.pet.breed && (
-                      <span className="text-xs text-stone-400 dark:text-zinc-500 truncate">· {entry.pet.breed}</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-stone-500 dark:text-zinc-400 mt-0.5">
-                    {entry.applicant.name}
-                    <span className="text-stone-300 dark:text-zinc-600 mx-1">·</span>
-                    {entry.applicant.email}
-                  </p>
-                  {entry.message && (
-                    <p className="text-xs text-stone-400 dark:text-zinc-500 mt-2 italic line-clamp-1">
-                      "{entry.message}"
-                    </p>
-                  )}
-                  <p className="text-[11px] text-stone-300 dark:text-zinc-600 mt-1.5">
-                    Resuelta el {formatRequestDate(entry.resolved_at)}
-                  </p>
-                </div>
-
-                {/* Status badge */}
-                <span className={cn(
-                  'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium shrink-0',
-                  entry.outcome === 'adopted'
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-                )}>
-                  <span className={cn(
-                    'w-1.5 h-1.5 rounded-full shrink-0',
-                    entry.outcome === 'adopted' ? 'bg-emerald-500' : 'bg-red-400',
-                  )} />
-                  {entry.outcome === 'adopted' ? 'Adoptada' : 'Rechazada'}
-                </span>
-
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-stone-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
-            <PawPrint className="w-7 h-7 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
-          </div>
-          <p className="text-sm font-medium text-stone-700 dark:text-zinc-300">Sin registros</p>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-1">
-            No hay adopciones {filter === 'adopted' ? 'completadas' : 'rechazadas'} aún.
-          </p>
-        </div>
-      )}
-
     </div>
   );
 }
@@ -1531,9 +1438,48 @@ function HistoryPage() {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function FoundationPage() {
+  const qc = useQueryClient();
   const [activeNav, setActiveNav] = useState<FoundationNavId>('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const {
+    data: pets = [],
+    isLoading: petsLoading,
+    isError: petsError,
+  } = useQuery({
+    queryKey: ['foundation-pets'],
+    queryFn: () => foundationsApi.myPets(),
+  });
+
+  const {
+    data: adoptions = [],
+    isLoading: adoptionsLoading,
+    isError: adoptionsError,
+  } = useQuery({
+    queryKey: ['foundation-adoptions'],
+    queryFn: () => foundationsApi.myAdoptions(),
+  });
+
+  useRealtimeTable('adoption_requests', [['foundation-adoptions']]);
+  useRealtimeTable('visit_schedules', [['foundation-adoptions']]);
+  useRealtimeTable('pets', [['foundation-pets']]);
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: FoundationAdoptionStatus }) =>
+      adoptionsApi.updateStatus(id, status),
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ['foundation-adoptions'] });
+      qc.setQueryData<FoundationAdoption[]>(
+        ['foundation-adoptions'],
+        old => old?.map(a => a.id === id ? { ...a, status } : a) ?? [],
+      );
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['foundation-adoptions'] });
+      qc.invalidateQueries({ queryKey: ['foundation-pets'] });
+    },
+  });
 
   useEffect(() => {
     const html = document.documentElement;
@@ -1541,6 +1487,9 @@ export default function FoundationPage() {
     html.style.overflow = 'hidden';
     return () => { html.style.overflow = prev; };
   }, []);
+
+  const handleUpdateStatus = (id: number, status: FoundationAdoptionStatus) =>
+    updateStatusMutation.mutateAsync({ id, status });
 
   return (
     <SidebarProvider className="h-screen overflow-hidden">
@@ -1554,8 +1503,6 @@ export default function FoundationPage() {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-stone-50 dark:bg-zinc-950">
-
-        {/* Top bar */}
         <header className="sticky top-0 z-10 flex items-center gap-2 px-4 sm:px-6 h-14 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-sm border-b border-stone-200 dark:border-zinc-800 shrink-0">
           <button
             className={cn(
@@ -1573,10 +1520,7 @@ export default function FoundationPage() {
               {BREADCRUMBS[activeNav].map((crumb, i, arr) => (
                 <li key={crumb} className="flex items-center gap-1">
                   <ChevronRight className="w-3.5 h-3.5 text-stone-300 dark:text-zinc-600 shrink-0" aria-hidden="true" />
-                  <span className={i === arr.length - 1
-                    ? 'font-semibold text-stone-800 dark:text-zinc-100'
-                    : 'text-stone-400 dark:text-zinc-500'
-                  }>
+                  <span className={i === arr.length - 1 ? 'font-semibold text-stone-800 dark:text-zinc-100' : 'text-stone-400 dark:text-zinc-500'}>
                     {crumb}
                   </span>
                 </li>
@@ -1586,14 +1530,48 @@ export default function FoundationPage() {
         </header>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {activeNav === 'overview'  && <OverviewPage onNavigate={setActiveNav} />}
-          {activeNav === 'my-pets'   && <MyPetsPage />}
-          {activeNav === 'add-pet'   && <AddPetPage />}
-          {activeNav === 'requests'  && <RequestsPage />}
-          {activeNav === 'schedule'  && <ScheduleFoundationPage />}
-          {activeNav === 'history'   && <HistoryPage />}
+          {activeNav === 'overview' && (
+            <OverviewPage
+              onNavigate={setActiveNav}
+              pets={pets}
+              adoptions={adoptions}
+              petsLoading={petsLoading}
+              adoptionsLoading={adoptionsLoading}
+            />
+          )}
+          {activeNav === 'my-pets' && (
+            <MyPetsPage
+              pets={pets}
+              loading={petsLoading}
+              error={petsError}
+              onRetry={() => qc.invalidateQueries({ queryKey: ['foundation-pets'] })}
+            />
+          )}
+          {activeNav === 'add-pet' && (
+            <AddPetPage
+              onAdded={() => qc.invalidateQueries({ queryKey: ['foundation-pets'] })}
+              onNavigate={setActiveNav}
+            />
+          )}
+          {activeNav === 'requests' && (
+            <RequestsPage
+              adoptions={adoptions}
+              loading={adoptionsLoading}
+              error={adoptionsError}
+              onRetry={() => qc.invalidateQueries({ queryKey: ['foundation-adoptions'] })}
+              onUpdateStatus={handleUpdateStatus}
+            />
+          )}
+          {activeNav === 'schedule' && <ScheduleFoundationPage />}
+          {activeNav === 'history' && (
+            <HistoryPage
+              adoptions={adoptions}
+              loading={adoptionsLoading}
+              error={adoptionsError}
+              onRetry={() => qc.invalidateQueries({ queryKey: ['foundation-adoptions'] })}
+            />
+          )}
         </div>
-
       </div>
     </SidebarProvider>
   );

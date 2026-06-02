@@ -5,6 +5,15 @@ export type AdoptionStatus =
   | 'rejected'
   | 'completed';
 
+export type VisitStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
+
+export interface VisitSchedule {
+  id: number;
+  scheduled_at: string;
+  location?: string;
+  status: VisitStatus;
+}
+
 export interface AdoptionRequest {
   id: number;
   pet_id: number;
@@ -16,6 +25,10 @@ export interface AdoptionRequest {
   message: string;
   created_at: string;
   updated_at: string;
+  tracking_code?: string;
+  foundation_name?: string;
+  foundation_address?: string;
+  visit_schedule?: VisitSchedule | null;
 }
 
 export interface CreateAdoptionPayload {

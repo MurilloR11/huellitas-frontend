@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect } from 'react';
-import { createBrowserRouter, Navigate, useNavigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useNavigate, useParams } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { HomePage } from '../features/home/pages/HomePage';
 import LoginPage from '../features/auth/pages/LoginPage';
@@ -20,13 +20,13 @@ import AdminPetsPage from '../features/admin/pages/AdminPetsPage';
 import AdminAdoptionsPage from '../features/admin/pages/AdminAdoptionsPage';
 import FoundationPage from '../features/foundations/pages/FoundationPage';
 import DeveloperPage from '../features/developer/pages/DeveloperPage';
+import ApplyPage from '../features/adoptions/pages/ApplyPage';
+import MyAdoptionsPage from '../features/adoptions/pages/MyAdoptionsPage';
 
 const PetsList = () => <div className="p-8">Mascotas en adopción</div>;
 const PetDetail = () => <div className="p-8">Detalle de mascota</div>;
 const FoundationsList = () => <div className="p-8">Fundaciones</div>;
 const FoundationDetail = () => <div className="p-8">Detalle de fundación</div>;
-const AdoptionRequest = () => <div className="p-8">Solicitar adopción</div>;
-const MyAdoptions = () => <div className="p-8">Mis adopciones</div>;
 const NotFound = () => <div className="p-8 text-red-500">404 — Página no encontrada</div>;
 
 const Spinner = () => (
@@ -34,6 +34,11 @@ const Spinner = () => (
     <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
   </div>
 );
+
+function TrackAdoptionRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to="/explore" state={{ navId: 'track', adoptionId: Number(id) }} replace />;
+}
 
 function LogoutRoute() {
   const { logout } = useAuth();
@@ -100,11 +105,19 @@ export const router = createBrowserRouter([
   { path: '/rejected', element: <RejectedPage /> },
   {
     path: '/my-adoptions',
-    element: <ProtectedRoute roles={['ciudadano']}><MyAdoptions /></ProtectedRoute>,
+    element: <ProtectedRoute roles={['ciudadano']}><MyAdoptionsPage /></ProtectedRoute>,
   },
   {
-    path: '/adopt/:petId',
-    element: <ProtectedRoute roles={['ciudadano']}><AdoptionRequest /></ProtectedRoute>,
+    path: '/adoptions',
+    element: <ProtectedRoute roles={['ciudadano']}><Navigate to="/explore" state={{ navId: 'track' }} replace /></ProtectedRoute>,
+  },
+  {
+    path: '/adoptions/:id',
+    element: <ProtectedRoute roles={['ciudadano']}><TrackAdoptionRedirect /></ProtectedRoute>,
+  },
+  {
+    path: '/adopt',
+    element: <ProtectedRoute roles={['ciudadano']}><ApplyPage /></ProtectedRoute>,
   },
   {
     path: '/foundation/dashboard',

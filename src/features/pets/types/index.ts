@@ -1,4 +1,4 @@
-export type PetSpecies = 'dog' | 'cat' | 'other';
+export type PetSpecies = 'dog' | 'cat' | 'rabbit' | 'other';
 export type PetGender = 'male' | 'female';
 export type PetSize = 'small' | 'medium' | 'large';
 export type PetStatus = 'available' | 'in_process' | 'adopted';
@@ -27,6 +27,7 @@ export interface Pet {
   foundation_name: string;
   city: string;
   created_at: string;
+  adoption_code?: string;
 }
 
 export interface SearchFilters {

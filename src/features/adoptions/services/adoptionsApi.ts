@@ -10,4 +10,12 @@ export const adoptionsApi = {
 
   getById: (id: number) =>
     apiClient.get<AdoptionRequest>(`/adoptions/${id}`).then((r) => r.data),
+
+  updateStatus: (id: number, status: string) =>
+    apiClient.patch<AdoptionRequest>(`/adoptions/${id}/status`, { status }).then((r) => r.data),
+
+  scheduleVisit: (adoptionId: number, scheduledAt: string) =>
+    apiClient
+      .post<AdoptionRequest>(`/adoptions/${adoptionId}/schedule`, { scheduled_at: scheduledAt })
+      .then((r) => r.data),
 };
