@@ -1657,10 +1657,10 @@ function VerifyPage({
   });
 
   useEffect(() => {
-    if (adoption && !isFetching) {
+    if (adoption && !isFetching && !toast) {
       setShowModal(true);
     }
-  }, [adoption, isFetching]);
+  }, [adoption, isFetching, toast]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
