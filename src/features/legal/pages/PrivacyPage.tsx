@@ -56,11 +56,11 @@ export default function PrivacyPage() {
               plataforma de adopción responsable de mascotas operada en Colombia. Para cualquier consulta
               relacionada con el tratamiento de tus datos puedes contactarnos en:{' '}
               <a
-                href="mailto:privacidad@huellitas.app"
+                href="mailto:huellitasapisoporte@gmail.co"
                 className="font-medium underline underline-offset-2"
                 style={{ color: 'var(--color-brand)' }}
               >
-                privacidad@huellitas.app
+                huellitasapisoporte@gmail.co
               </a>
             </p>
           </Section>
@@ -143,11 +143,11 @@ export default function PrivacyPage() {
             <p className="mt-4">
               Para ejercer cualquiera de estos derechos, escríbenos a{' '}
               <a
-                href="mailto:privacidad@huellitas.app"
+                href="mailto:huellitasapisoporte@gmail.co"
                 className="font-medium underline underline-offset-2"
                 style={{ color: 'var(--color-brand)' }}
               >
-                privacidad@huellitas.app
+                huellitasapisoporte@gmail.co
               </a>{' '}
               con el asunto "Ejercicio de derechos – Ley 1581". Responderemos en un plazo máximo de{' '}
               <strong className="text-stone-900 dark:text-zinc-100">10 días hábiles</strong>.
@@ -190,11 +190,11 @@ export default function PrivacyPage() {
               eliminaremos de inmediato. Si eres padre o tutor y crees que tu hijo registró una cuenta,
               contáctanos en{' '}
               <a
-                href="mailto:privacidad@huellitas.app"
+                href="mailto:huellitasapisoporte@gmail.co"
                 className="font-medium underline underline-offset-2"
                 style={{ color: 'var(--color-brand)' }}
               >
-                privacidad@huellitas.app
+                huellitasapisoporte@gmail.co
               </a>
               .
             </p>
@@ -217,8 +217,8 @@ export default function PrivacyPage() {
             </p>
             <div className="mt-4 p-4 rounded-xl bg-stone-100 dark:bg-zinc-900 border border-stone-200 dark:border-zinc-800 text-sm space-y-1">
               <p><span className="text-stone-500 dark:text-zinc-400">Correo:</span>{' '}
-                <a href="mailto:privacidad@huellitas.app" className="font-medium underline underline-offset-2" style={{ color: 'var(--color-brand)' }}>
-                  privacidad@huellitas.app
+                <a href="mailto:huellitasapisoporte@gmail.co" className="font-medium underline underline-offset-2" style={{ color: 'var(--color-brand)' }}>
+                  huellitasapisoporte@gmail.co
                 </a>
               </p>
               <p><span className="text-stone-500 dark:text-zinc-400">Asunto:</span> <span className="text-stone-800 dark:text-zinc-200">"Protección de datos personales"</span></p>
