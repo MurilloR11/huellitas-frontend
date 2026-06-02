@@ -31,7 +31,27 @@ export interface AdoptionRequest {
   visit_schedule?: VisitSchedule | null;
 }
 
+export interface AdoptionDocuments {
+  doc_id?: string;
+  doc_address?: string;
+  doc_landlord?: string;
+}
+
+export interface AdoptionFormData {
+  phone?: string;
+  city?: string;
+  housing_type?: string;
+  ownership?: string;
+  outdoor_space?: string;
+  residents?: string;
+  children?: string;
+  current_pets?: string;
+  prev_pets?: string;
+  documents?: AdoptionDocuments;
+}
+
 export interface CreateAdoptionPayload {
   pet_id: number;
   message: string;
+  form_data?: AdoptionFormData;
 }

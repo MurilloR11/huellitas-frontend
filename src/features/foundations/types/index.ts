@@ -19,8 +19,35 @@ export type FoundationAdoptionStatus =
   | 'rejected'
   | 'completed';
 
+export interface AdoptionDocuments {
+  doc_id?: string;
+  doc_address?: string;
+  doc_landlord?: string;
+}
+
+export interface AdoptionFormData {
+  phone?: string;
+  city?: string;
+  housing_type?: string;
+  ownership?: string;
+  outdoor_space?: string;
+  residents?: string;
+  children?: string;
+  current_pets?: string;
+  prev_pets?: string;
+  documents?: AdoptionDocuments;
+}
+
+export interface VisitSchedule {
+  id: number;
+  scheduled_at: string;
+  location?: string;
+  status: string;
+}
+
 export interface FoundationAdoption {
   id: number;
+  tracking_code?: string;
   pet_id: number;
   pet_name: string;
   pet_photo?: string;
@@ -28,8 +55,11 @@ export interface FoundationAdoption {
   adopter_name: string;
   adopter_email: string;
   foundation_id: string;
+  foundation_name?: string;
   status: FoundationAdoptionStatus;
   message: string;
+  form_data?: AdoptionFormData;
+  visit_schedule?: VisitSchedule;
   created_at: string;
   updated_at: string;
 }

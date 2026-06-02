@@ -29,4 +29,9 @@ export const foundationsApi = {
         params: fromDate ? { from_date: fromDate } : undefined,
       })
       .then((r) => r.data),
+
+  verifyCode: (code: string) =>
+    apiClient
+      .get<FoundationAdoption>(`/adoptions/by-code/${encodeURIComponent(code.trim().toUpperCase())}`)
+      .then((r) => r.data),
 };

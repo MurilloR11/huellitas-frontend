@@ -32,7 +32,7 @@ import {
 import { petsApi } from '../../pets/services/petsApi';
 import { adoptionsApi } from '../services/adoptionsApi';
 import type { Pet } from '../../pets/types';
-import type { AdoptionRequest } from '../types';
+import type { AdoptionRequest, AdoptionFormData } from '../types';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -214,25 +214,27 @@ function FileUploadField({
   label,
   hint,
   required,
+  file,
+  onFileChange,
 }: {
   id: string;
   label: string;
   hint?: string;
   required?: boolean;
+  file: File | null;
+  onFileChange: (file: File | null) => void;
 }) {
-  const [fileName, setFileName] = useState<string | null>(null);
-
   return (
     <FormField id={id} label={label} required={required}>
       <label
         htmlFor={id}
         className="relative flex flex-col items-center justify-center gap-2 h-24 rounded-xl border-2 border-dashed border-stone-200 dark:border-zinc-700 bg-stone-50 dark:bg-zinc-900/50 hover:border-stone-300 dark:hover:border-zinc-600 hover:bg-stone-100/60 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors text-center px-4 overflow-hidden"
       >
-        {fileName ? (
+        {file ? (
           <>
             <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" strokeWidth={1.75} />
             <span className="text-xs font-medium text-stone-600 dark:text-zinc-300 truncate max-w-full">
-              {fileName}
+              {file.name}
             </span>
           </>
         ) : (
@@ -253,7 +255,10 @@ function FileUploadField({
           type="file"
           accept=".pdf,.jpg,.jpeg,.png"
           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-          onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+          onChange={(e) => {
+            onFileChange(e.target.files?.[0] ?? null);
+            e.target.value = '';
+          }}
         />
       </label>
     </FormField>
@@ -437,15 +442,42 @@ function ResolvedPhase({
   submitError,
 }: {
   pet: Pet;
-  onSubmit: (message: string) => void;
+  onSubmit: (message: string, formData: AdoptionFormData, files: Record<string, File>) => void;
   submitting: boolean;
   submitError: boolean;
 }) {
-  const [message, setMessage] = useState('');
+  const [message, setMessage]         = useState('');
+  const [phone, setPhone]             = useState('');
+  const [city, setCity]               = useState('');
+  const [housingType, setHousingType] = useState('');
+  const [ownership, setOwnership]     = useState('');
+  const [outdoor, setOutdoor]         = useState('');
+  const [residents, setResidents]     = useState('');
+  const [children, setChildren]       = useState('');
+  const [currentPets, setCurrentPets] = useState('');
+  const [prevPets, setPrevPets]       = useState('');
+  const [docId, setDocId]             = useState<File | null>(null);
+  const [docAddress, setDocAddress]   = useState<File | null>(null);
+  const [docLandlord, setDocLandlord] = useState<File | null>(null);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onSubmit(message);
+    const formData: AdoptionFormData = {
+      phone:         phone.trim() || undefined,
+      city:          city.trim() || undefined,
+      housing_type:  housingType || undefined,
+      ownership:     ownership || undefined,
+      outdoor_space: outdoor || undefined,
+      residents:     residents || undefined,
+      children:      children || undefined,
+      current_pets:  currentPets || undefined,
+      prev_pets:     prevPets || undefined,
+    };
+    const files: Record<string, File> = {};
+    if (docId)       files['doc_id']       = docId;
+    if (docAddress)  files['doc_address']  = docAddress;
+    if (docLandlord) files['doc_landlord'] = docLandlord;
+    onSubmit(message, formData, files);
   }
 
   return (
@@ -480,10 +512,21 @@ function ResolvedPhase({
                 <Input id="email" type="email" placeholder="correo@ejemplo.com" />
               </FormField>
               <FormField id="phone" label="Teléfono de contacto" required>
-                <Input id="phone" type="tel" placeholder="+57 300 000 0000" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+57 300 000 0000"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                />
               </FormField>
               <FormField id="city" label="Ciudad de residencia" required>
-                <Input id="city" placeholder="Tu ciudad" />
+                <Input
+                  id="city"
+                  placeholder="Tu ciudad"
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                />
               </FormField>
             </div>
           </section>
@@ -493,7 +536,7 @@ function ResolvedPhase({
             <SectionHeader icon={Home} title="Información del hogar" description="El entorno donde vivirá el animal" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField id="housing-type" label="Tipo de vivienda" required>
-                <Select>
+                <Select value={housingType} onValueChange={setHousingType}>
                   <SelectTrigger id="housing-type"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="house">Casa</SelectItem>
@@ -504,7 +547,7 @@ function ResolvedPhase({
                 </Select>
               </FormField>
               <FormField id="ownership" label="Condición de tenencia" required>
-                <Select>
+                <Select value={ownership} onValueChange={setOwnership}>
                   <SelectTrigger id="ownership"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="owner">Propietario</SelectItem>
@@ -514,7 +557,7 @@ function ResolvedPhase({
                 </Select>
               </FormField>
               <FormField id="outdoor" label="Espacio exterior" required>
-                <Select>
+                <Select value={outdoor} onValueChange={setOutdoor}>
                   <SelectTrigger id="outdoor"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="large">Sí, amplio (jardín / patio)</SelectItem>
@@ -524,7 +567,7 @@ function ResolvedPhase({
                 </Select>
               </FormField>
               <FormField id="residents" label="Personas en el hogar" required>
-                <Select>
+                <Select value={residents} onValueChange={setResidents}>
                   <SelectTrigger id="residents"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">1 persona</SelectItem>
@@ -535,7 +578,7 @@ function ResolvedPhase({
                 </Select>
               </FormField>
               <FormField id="children" label="Niños menores de 12 años" required>
-                <Select>
+                <Select value={children} onValueChange={setChildren}>
                   <SelectTrigger id="children"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No hay</SelectItem>
@@ -545,7 +588,7 @@ function ResolvedPhase({
                 </Select>
               </FormField>
               <FormField id="current-pets" label="Mascotas actuales" required>
-                <Select>
+                <Select value={currentPets} onValueChange={setCurrentPets}>
                   <SelectTrigger id="current-pets"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Ninguna</SelectItem>
@@ -570,7 +613,7 @@ function ResolvedPhase({
           <div className="space-y-4">
             <div className="max-w-sm">
               <FormField id="prev-pets" label="¿Has tenido mascotas antes?" required>
-                <Select>
+                <Select value={prevPets} onValueChange={setPrevPets}>
                   <SelectTrigger id="prev-pets"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="yes">Sí</SelectItem>
@@ -609,9 +652,29 @@ function ResolvedPhase({
         <section className="space-y-4">
           <SectionHeader icon={FileText} title="Documentos requeridos" description="Adjunta los archivos en formato PDF o imagen" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <FileUploadField id="doc-id"       label="Copia de cédula de ciudadanía" hint="PDF, JPG o PNG · máx. 5 MB" required />
-            <FileUploadField id="doc-address"  label="Comprobante de domicilio"      hint="Máx. 3 meses de antigüedad"  required />
-            <FileUploadField id="doc-landlord" label="Autorización del arrendador"   hint="Solo si vives en arriendo"           />
+            <FileUploadField
+              id="doc-id"
+              label="Copia de cédula de ciudadanía"
+              hint="PDF, JPG o PNG · máx. 5 MB"
+              required
+              file={docId}
+              onFileChange={setDocId}
+            />
+            <FileUploadField
+              id="doc-address"
+              label="Comprobante de domicilio"
+              hint="Máx. 3 meses de antigüedad"
+              required
+              file={docAddress}
+              onFileChange={setDocAddress}
+            />
+            <FileUploadField
+              id="doc-landlord"
+              label="Autorización del arrendador"
+              hint="Solo si vives en arriendo"
+              file={docLandlord}
+              onFileChange={setDocLandlord}
+            />
           </div>
         </section>
 
@@ -667,12 +730,18 @@ export default function ApplyPage() {
     },
   });
 
-  async function handleSubmit(message: string) {
+  async function handleSubmit(message: string, formData: AdoptionFormData, files: Record<string, File>) {
     if (!pet) return;
     setStep('submitting');
     setSubmitError(false);
     try {
-      const result = await createMutation.mutateAsync({ pet_id: pet.id, message });
+      const result = await createMutation.mutateAsync({ pet_id: pet.id, message, form_data: formData });
+      // Upload documents after adoption is created — failures are non-fatal
+      for (const [docType, file] of Object.entries(files)) {
+        try {
+          await adoptionsApi.uploadDocument(result.id, docType, file);
+        } catch { /* non-fatal */ }
+      }
       setAdoption(result);
       setStep('submitted');
     } catch {

@@ -16,6 +16,7 @@ import {
   CalendarDays,
   History,
   Building2,
+  ScanLine,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -56,7 +57,8 @@ export type FoundationNavId =
   | 'add-pet'
   | 'requests'
   | 'schedule'
-  | 'history';
+  | 'history'
+  | 'verify';
 
 const PETS_ITEMS: { id: FoundationNavId; icon: typeof PawPrint; label: string }[] = [
   { id: 'my-pets', icon: List,     label: 'Mis mascotas'   },
@@ -66,6 +68,7 @@ const PETS_ITEMS: { id: FoundationNavId; icon: typeof PawPrint; label: string }[
 const ADOPTION_ITEMS: { id: FoundationNavId; icon: typeof PawPrint; label: string }[] = [
   { id: 'requests',  icon: ClipboardList, label: 'Solicitudes recibidas' },
   { id: 'schedule',  icon: CalendarDays,  label: 'Agendar un encuentro'  },
+  { id: 'verify',    icon: ScanLine,      label: 'Recibir adoptante'     },
   { id: 'history',   icon: History,       label: 'Historial'             },
 ];
 

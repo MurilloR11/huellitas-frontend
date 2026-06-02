@@ -18,4 +18,15 @@ export const adoptionsApi = {
     apiClient
       .post<AdoptionRequest>(`/adoptions/${adoptionId}/schedule`, { scheduled_at: scheduledAt })
       .then((r) => r.data),
+
+  uploadDocument: (adoptionId: number, docType: string, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('doc_type', docType);
+    return apiClient
+      .post<{ url: string }>(`/adoptions/${adoptionId}/documents`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data);
+  },
 };
