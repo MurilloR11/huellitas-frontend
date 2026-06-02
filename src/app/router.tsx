@@ -24,12 +24,12 @@ import ApplyPage from '../features/adoptions/pages/ApplyPage';
 import MyAdoptionsPage from '../features/adoptions/pages/MyAdoptionsPage';
 import TermsPage from '../features/legal/pages/TermsPage';
 import PrivacyPage from '../features/legal/pages/PrivacyPage';
+import NotFoundPage from '../shared/pages/NotFoundPage';
 
 const PetsList = () => <div className="p-8">Mascotas en adopción</div>;
 const PetDetail = () => <div className="p-8">Detalle de mascota</div>;
 const FoundationsList = () => <div className="p-8">Fundaciones</div>;
 const FoundationDetail = () => <div className="p-8">Detalle de fundación</div>;
-const NotFound = () => <div className="p-8 text-red-500">404 — Página no encontrada</div>;
 
 const Spinner = () => (
   <div className="flex h-screen items-center justify-center">
@@ -146,5 +146,5 @@ export const router = createBrowserRouter([
   },
   { path: '/terminos', element: <TermsPage /> },
   { path: '/privacidad', element: <PrivacyPage /> },
-  { path: '*', element: <NotFound /> },
+  { path: '*', element: <NotFoundPage /> },
 ]);
