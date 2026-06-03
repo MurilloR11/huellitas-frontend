@@ -251,6 +251,14 @@ function CreateKeyModal({ open, onOpenChange }: { open: boolean; onOpenChange: (
   const [newKey, setNewKey] = useState<CreatedApiKey | null>(null);
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    if (!open) {
+      setName('');
+      setNewKey(null);
+      setCopied(false);
+    }
+  }, [open]);
+
   const handleCreate = () => {
     if (!name.trim() || createMutation.isPending) return;
     createMutation.mutate(name.trim(), {
@@ -354,8 +362,8 @@ function CreateKeyModal({ open, onOpenChange }: { open: boolean; onOpenChange: (
                 className="p-6"
               >
                 <div className="flex items-start gap-3 mb-5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
-                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+                  <div className="w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center shrink-0">
+                    <Check className="w-4 h-4 text-brand" strokeWidth={2.5} />
                   </div>
                   <div>
                     <Dialog.Title className="text-[15px] font-bold tracking-tight text-stone-900 dark:text-zinc-100">
@@ -367,28 +375,28 @@ function CreateKeyModal({ open, onOpenChange }: { open: boolean; onOpenChange: (
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 px-3.5 py-2.5 mb-3">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" strokeWidth={2} />
-                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                <div className="flex items-center gap-2 rounded-xl bg-brand/5 border border-brand/20 px-3.5 py-2.5 mb-3">
+                  <AlertCircle className="w-3.5 h-3.5 text-brand shrink-0" strokeWidth={2} />
+                  <p className="text-xs text-brand/80">
                     Esta es la única vez que verás la clave completa.
                   </p>
                 </div>
 
-                <div className="relative bg-zinc-950 rounded-xl px-4 py-4 mb-4">
-                  <p className="text-[10px] font-mono font-bold tracking-[0.15em] text-zinc-500 uppercase mb-2">
+                <div className="relative bg-brand/5 border border-brand/15 rounded-xl px-4 py-4 mb-4">
+                  <p className="text-[10px] font-mono font-bold tracking-[0.15em] text-brand/50 uppercase mb-2">
                     x-api-key
                   </p>
-                  <code className="block text-sm font-mono text-emerald-400 break-all select-all leading-relaxed pr-8">
+                  <code className="block text-sm font-mono text-brand break-all select-all leading-relaxed pr-8">
                     {newKey.key}
                   </code>
                   <button
                     type="button"
                     onClick={handleCopy}
                     aria-label="Copiar clave"
-                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.08] transition-all"
+                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg text-brand/40 hover:text-brand hover:bg-brand/10 transition-all"
                   >
                     {copied
-                      ? <Check className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2.5} />
+                      ? <Check className="w-3.5 h-3.5 text-brand" strokeWidth={2.5} />
                       : <Copy className="w-3.5 h-3.5" strokeWidth={1.75} />
                     }
                   </button>
@@ -397,7 +405,7 @@ function CreateKeyModal({ open, onOpenChange }: { open: boolean; onOpenChange: (
                 <button
                   type="button"
                   onClick={() => onOpenChange(false)}
-                  className="w-full h-10 rounded-xl bg-stone-900 dark:bg-zinc-800 text-white text-sm font-semibold hover:bg-stone-800 dark:hover:bg-zinc-700 transition-all active:scale-[0.98]"
+                  className="w-full h-10 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand/90 transition-all active:scale-[0.98]"
                 >
                   {copied ? 'Clave copiada — listo' : 'Listo, ya la guardé'}
                 </button>
@@ -416,13 +424,6 @@ function ApiKeysPage() {
   const { data: keys = [], isLoading } = useApiKeys();
   const revokeMutation = useRevokeKey();
   const [modalOpen, setModalOpen] = useState(false);
-  const [copied, setCopied]       = useState<string | null>(null);
-
-  const handleCopy = (id: string, value: string) => {
-    navigator.clipboard.writeText(value).catch(() => {});
-    setCopied(id);
-    setTimeout(() => setCopied(null), 1500);
-  };
 
   return (
     <div className="px-6 sm:px-8 py-7 space-y-6">
@@ -442,14 +443,16 @@ function ApiKeysPage() {
             Genera y revoca claves para autenticarte en la API.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="shrink-0 flex items-center gap-1.5 h-9 px-4 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand/90 transition-all active:scale-[0.98] shadow-sm"
-        >
-          <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
-          Nueva key
-        </button>
+        {!isLoading && keys.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="shrink-0 flex items-center gap-1.5 h-9 px-4 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand/90 transition-all active:scale-[0.98] shadow-sm"
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+            Nueva key
+          </button>
+        )}
       </div>
 
       {/* Keys list */}
@@ -514,7 +517,6 @@ function ApiKeysPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs font-mono text-stone-400 dark:text-zinc-500 mb-1">{key.prefix}•••</p>
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="flex items-center gap-1 text-[11px] text-stone-300 dark:text-zinc-600">
                     <Clock className="w-3 h-3" strokeWidth={1.5} />
@@ -529,18 +531,6 @@ function ApiKeysPage() {
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => handleCopy(key.id, key.prefix)}
-                  className="flex items-center justify-center w-8 h-8 rounded-xl text-stone-400 dark:text-zinc-500 hover:bg-stone-100 dark:hover:bg-zinc-800 hover:text-stone-600 dark:hover:text-zinc-300 transition-all"
-                  aria-label="Copiar prefijo"
-                  title="Copiar prefijo"
-                >
-                  {copied === key.id
-                    ? <Check className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2.5} />
-                    : <Copy className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  }
-                </button>
                 {key.active && (
                   <button
                     type="button"
@@ -568,10 +558,10 @@ function ApiKeysPage() {
             Incluye el header en cada petición a la API.
           </p>
         </div>
-        <div className="bg-zinc-950 px-5 py-4">
+        <div className="bg-brand/5 px-5 py-4">
           <code className="text-sm font-mono">
-            <span className="text-stone-500">X-API-Key: </span>
-            <span className="text-emerald-400">hll_sk_TU_CLAVE</span>
+            <span className="text-stone-400">X-API-Key: </span>
+            <span className="text-brand">hll_sk_TU_CLAVE</span>
           </code>
         </div>
       </div>

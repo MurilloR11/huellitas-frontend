@@ -8,7 +8,6 @@ import {
   AlertCircle,
   ChevronsUpDown,
   UserRound,
-  Bell,
   LogOut,
   ChevronRight,
   PanelLeft,
@@ -386,10 +385,7 @@ export function DeveloperSidebar({
                       <UserRound className="w-4 h-4" />
                       Mi cuenta
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Bell className="w-4 h-4" />
-                      Notificaciones
-                    </DropdownMenuItem>
+
                   </DropdownMenuGroup>
 
                   <DropdownMenuSeparator />
