@@ -7,6 +7,8 @@ export interface AuthUser {
   role: Role;
   status?: 'pending' | 'approved' | 'rejected';
   avatar_url?: string;
+  phone?: string;
+  municipio?: string;
 }
 
 export interface LoginPayload {

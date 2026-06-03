@@ -17,4 +17,5 @@ export const ROUTES = {
   ACCOUNT: '/account',
   TERMS: '/terminos',
   PRIVACY: '/privacidad',
+  NOTIFICATIONS: '/notifications',
 } as const;

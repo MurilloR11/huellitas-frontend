@@ -4,6 +4,7 @@ import { Menu } from 'lucide-react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AdminSidebar } from '../components/AdminSidebar';
 import { AdminBreadcrumb } from '../components/AdminBreadcrumb';
+import { NotificationsBell } from '@/features/notifications/components/NotificationsBell';
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -21,8 +22,9 @@ export default function AdminLayout() {
 
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Desktop topbar */}
-          <header className="hidden md:flex items-center border-b border-stone-200 bg-white px-6 py-3.5">
+          <header className="hidden md:flex items-center gap-2 border-b border-stone-200 bg-white px-6 py-3.5">
             <AdminBreadcrumb />
+            <NotificationsBell className="ml-auto" />
           </header>
 
           {/* Mobile topbar */}
@@ -36,6 +38,7 @@ export default function AdminLayout() {
               <Menu className="h-5 w-5" />
             </button>
             <AdminBreadcrumb />
+            <NotificationsBell className="ml-auto" />
           </header>
 
           <main className="flex-1 overflow-y-auto">

@@ -10,7 +10,6 @@ import {
   MessageCircle,
   ChevronsUpDown,
   UserRound,
-  Bell,
   LogOut,
   ChevronRight,
   PanelLeft,
@@ -382,10 +381,7 @@ export function CitizenSidebar({ activeNav, onNavChange, collapsed, onToggle, mo
                     <UserRound className="w-4 h-4" />
                     Mi cuenta
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Bell className="w-4 h-4" />
-                    Notificaciones
-                  </DropdownMenuItem>
+
                 </DropdownMenuGroup>
 
                 <DropdownMenuSeparator />

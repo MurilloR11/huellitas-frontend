@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { adminApi } from '../services/adminApi';
 import type { AdminAdoption, RequestStatus, Species } from '../services/adminApi';
+import { supabase } from '@/shared/lib/supabaseClient';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -118,6 +119,21 @@ function stepLabelClass(label: string, date: string | null): string {
   return 'text-stone-700';
 }
 
+function RequesterAvatar({ userId, name }: { userId: string; name: string }) {
+  const avatarUrl = supabase.storage.from('avatars').getPublicUrl(`${userId}/avatar`).data.publicUrl;
+  return (
+    <div className="relative w-8 h-8 rounded-full bg-stone-100 text-stone-600 flex items-center justify-center text-xs font-bold shrink-0 select-none overflow-hidden">
+      {getInitials(name)}
+      <img
+        src={avatarUrl}
+        alt={name}
+        className="absolute inset-0 w-full h-full object-cover"
+        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+      />
+    </div>
+  );
+}
+
 function SkeletonRow() {
   return (
     <TableRow className="border-stone-100">
@@ -204,9 +220,7 @@ function RequestModal({
           <div className="space-y-3">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide">Solicitante</p>
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-stone-100 text-stone-600 flex items-center justify-center text-xs font-bold shrink-0 select-none">
-                {getInitials(request.requester_name)}
-              </div>
+              <RequesterAvatar userId={request.requester_id} name={request.requester_name} />
               <div className="min-w-0 space-y-1">
                 <p className="text-sm font-medium text-stone-800">{request.requester_name || '—'}</p>
                 <p className="text-xs text-stone-400 flex items-center gap-1.5">
@@ -461,9 +475,7 @@ export default function AdminAdoptionsPage() {
                     >
                       <TableCell className="pl-0 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-stone-100 text-stone-600 flex items-center justify-center text-xs font-bold shrink-0 select-none">
-                            {getInitials(r.requester_name)}
-                          </div>
+                          <RequesterAvatar userId={r.requester_id} name={r.requester_name} />
                           <div className="min-w-0">
                             <p className="font-medium text-stone-800 truncate">{r.requester_name || '—'}</p>
                             <p className="text-xs text-stone-400 truncate">{r.requester_email}</p>

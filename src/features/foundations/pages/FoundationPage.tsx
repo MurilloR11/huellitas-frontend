@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import type { Pet, PetStatus } from '@/features/pets/types';
 import type { FoundationAdoption, FoundationAdoptionStatus, CreatePetPayload } from '@/features/foundations/types';
 import { useRealtimeTable } from '@/shared/hooks/useRealtimeTable';
+import { NotificationsBell } from '@/features/notifications/components/NotificationsBell';
+import { supabase } from '@/shared/lib/supabaseClient';
 import { foundationsApi } from '../services/foundationsApi';
 import { petsApi } from '@/features/pets/services/petsApi';
 import { adoptionsApi } from '@/features/adoptions/services/adoptionsApi';
@@ -57,6 +59,21 @@ function formatDate(dateStr: string): string {
 
 function getInitials(name: string): string {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+function AdopterAvatar({ userId, name }: { userId: string; name: string }) {
+  const avatarUrl = supabase.storage.from('avatars').getPublicUrl(`${userId}/avatar`).data.publicUrl;
+  return (
+    <div className="relative w-10 h-10 rounded-full bg-brand-light dark:bg-brand/20 shrink-0 flex items-center justify-center mt-0.5 overflow-hidden">
+      <span className="text-xs font-bold text-brand select-none">{getInitials(name)}</span>
+      <img
+        src={avatarUrl}
+        alt={name}
+        className="absolute inset-0 w-full h-full object-cover"
+        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+      />
+    </div>
+  );
 }
 
 // ─── Shared empty/error states ─────────────────────────────────────────────────
@@ -1128,9 +1145,7 @@ function RequestsPage({
               <div key={req.id} className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-4">
                 {/* ── Header row ── */}
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-brand-light dark:bg-brand/20 shrink-0 flex items-center justify-center mt-0.5">
-                    <span className="text-xs font-bold text-brand select-none">{getInitials(req.adopter_name || 'U')}</span>
-                  </div>
+                  <AdopterAvatar userId={req.adopter_id} name={req.adopter_name || 'U'} />
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -1485,12 +1500,14 @@ function AdopteeModal({
   onClose,
   onComplete,
   completing,
+  completeError,
 }: {
   adoption: FoundationAdoption;
   searchCode: string;
   onClose: () => void;
   onComplete: () => void;
   completing: boolean;
+  completeError: string | null;
 }) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -1617,6 +1634,13 @@ function AdopteeModal({
             </div>
           )}
 
+          {completeError && (
+            <div className="flex items-center gap-3 p-3.5 mb-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" strokeWidth={1.75} />
+              <p className="text-sm text-red-600 dark:text-red-400">{completeError}</p>
+            </div>
+          )}
+
           {canComplete && (
             <button
               onClick={onComplete}
@@ -1642,11 +1666,12 @@ function VerifyPage({
   onUpdateStatus: (id: number, status: FoundationAdoptionStatus) => Promise<unknown>;
 }) {
   const qc = useQueryClient();
-  const [input, setInput]           = useState('');
-  const [searchCode, setSearchCode] = useState('');
-  const [showModal, setShowModal]   = useState(false);
-  const [completing, setCompleting] = useState(false);
-  const [toast, setToast]           = useState<{ petName: string; adopterName: string } | null>(null);
+  const [input, setInput]             = useState('');
+  const [searchCode, setSearchCode]   = useState('');
+  const [showModal, setShowModal]     = useState(false);
+  const [completing, setCompleting]   = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
+  const [toast, setToast]             = useState<{ petName: string; adopterName: string } | null>(null);
 
   const { data: adoption, isFetching, isError, error } = useQuery({
     queryKey: ['verify-code', searchCode],
@@ -1657,27 +1682,34 @@ function VerifyPage({
   });
 
   useEffect(() => {
-    if (adoption && !isFetching && !toast) {
+    if (adoption && !isFetching && searchCode) {
       setShowModal(true);
     }
-  }, [adoption, isFetching, toast]);
+  }, [adoption, isFetching, searchCode]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const code = input.trim().toUpperCase();
     if (!code) return;
     setShowModal(false);
+    setCompleteError(null);
     setSearchCode(code);
   };
 
   const handleComplete = async () => {
     if (!adoption) return;
     setCompleting(true);
+    setCompleteError(null);
     try {
       await onUpdateStatus(adoption.id, 'completed');
       setShowModal(false);
       setToast({ petName: adoption.pet_name, adopterName: adoption.adopter_name || 'el adoptante' });
-      qc.invalidateQueries({ queryKey: ['verify-code', searchCode] });
+      // Clear search state so adoption data is removed — prevents modal from reopening when toast closes
+      qc.removeQueries({ queryKey: ['verify-code', searchCode] });
+      setSearchCode('');
+      setInput('');
+    } catch {
+      setCompleteError('No se pudo completar la adopción. Verifica tu conexión e intenta de nuevo.');
     } finally {
       setCompleting(false);
     }
@@ -1754,6 +1786,7 @@ function VerifyPage({
           onClose={() => setShowModal(false)}
           onComplete={handleComplete}
           completing={completing}
+          completeError={completeError}
         />
       )}
 
@@ -2063,6 +2096,7 @@ export default function FoundationPage() {
               ))}
             </ol>
           </nav>
+          <NotificationsBell className="ml-auto" />
         </header>
 
         <div className="flex-1 min-h-0 overflow-y-auto">

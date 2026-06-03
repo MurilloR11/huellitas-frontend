@@ -16,6 +16,7 @@ import {
   Loader2,
   Check,
   X,
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -75,23 +76,35 @@ function FieldRow({
 }: {
   label: string;
   value: string;
-  onSave?: (v: string) => void;
+  onSave?: (v: string) => Promise<void>;
   placeholder?: string;
   type?: string;
   masked?: boolean;
 }) {
-  const [editing,  setEditing]  = useState(false);
-  const [draft,    setDraft]    = useState(value);
-  const [revealed, setRevealed] = useState(false);
+  const [editing,   setEditing]   = useState(false);
+  const [draft,     setDraft]     = useState(value);
+  const [revealed,  setRevealed]  = useState(false);
+  const [saving,    setSaving]    = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  function handleSave() {
-    onSave?.(draft);
-    setEditing(false);
+  async function handleSave() {
+    if (!onSave) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onSave(draft);
+      setEditing(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function handleCancel() {
     setDraft(value);
     setEditing(false);
+    setSaveError(null);
   }
 
   return (
@@ -99,35 +112,49 @@ function FieldRow({
       <div className="min-w-0 flex-1">
         <p className="text-sm text-stone-500">{label}</p>
         {editing ? (
-          <div className="flex items-center gap-2 mt-2">
-            <Input
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              type={type}
-              autoFocus
-              className="h-8 text-sm max-w-xs"
-              onKeyDown={e => {
-                if (e.key === 'Enter') handleSave();
-                if (e.key === 'Escape') handleCancel();
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleSave}
-              aria-label="Guardar"
-              className="flex items-center justify-center w-8 h-8 rounded-md text-white transition-colors"
-              style={{ background: 'var(--color-brand)' }}
-            >
-              <Check className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              aria-label="Cancelar"
-              className="flex items-center justify-center w-8 h-8 rounded-md border border-stone-200 text-stone-500 hover:bg-stone-50 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-2">
+              <Input
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                type={type}
+                autoFocus
+                disabled={saving}
+                className="h-8 text-sm max-w-xs"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleSave();
+                  if (e.key === 'Escape') handleCancel();
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                aria-label="Guardar"
+                className="flex items-center justify-center w-8 h-8 rounded-md text-white transition-colors disabled:opacity-60"
+                style={{ background: 'var(--color-brand)' }}
+              >
+                {saving
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Check className="w-4 h-4" />
+                }
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={saving}
+                aria-label="Cancelar"
+                className="flex items-center justify-center w-8 h-8 rounded-md border border-stone-200 text-stone-500 hover:bg-stone-50 transition-colors disabled:opacity-60"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {saveError && (
+              <div className="flex items-center gap-1.5 text-xs text-red-500">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {saveError}
+              </div>
+            )}
           </div>
         ) : value ? (
           <div className="flex items-center gap-1.5 mt-0.5">
@@ -153,7 +180,7 @@ function FieldRow({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setEditing(true)}
+          onClick={() => { setDraft(value); setEditing(true); setSaveError(null); }}
           className="shrink-0 text-xs border-stone-200 mt-0.5"
         >
           Cambiar
@@ -223,7 +250,7 @@ function PasswordField({
 
 export default function AccountPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [activeSection, setActiveSection] = useState<Section>('cuenta');
 
   const initials = user ? getInitials(user.full_name) : '--';
@@ -239,10 +266,13 @@ export default function AccountPage() {
     setAvatarPreview(URL.createObjectURL(file));
     setUploadingAvatar(true);
     try {
-      await authApi.uploadAvatar(user.id, file);
+      const avatarUrl = await authApi.uploadAvatar(user.id, file);
+      updateUser({ ...user, avatar_url: avatarUrl });
+      setAvatarPreview(null);
       toast.success('Foto de perfil actualizada');
-    } catch {
-      toast.error('No se pudo subir la imagen');
+    } catch (err) {
+      console.error('[uploadAvatar]', err);
+      toast.error(err instanceof Error ? err.message : 'No se pudo subir la imagen');
       setAvatarPreview(null);
     } finally {
       setUploadingAvatar(false);
@@ -250,9 +280,23 @@ export default function AccountPage() {
     }
   }
 
-  const [fullName, setFullName] = useState(user?.full_name ?? '');
-  const [phone, setPhone]       = useState('');
-  const [city, setCity]         = useState('');
+  async function handleSaveFullName(v: string): Promise<void> {
+    const updated = await authApi.updateProfile({ full_name: v });
+    updateUser(updated);
+    toast.success('Nombre actualizado');
+  }
+
+  async function handleSavePhone(v: string): Promise<void> {
+    const updated = await authApi.updateProfile({ phone: v });
+    updateUser(updated);
+    toast.success('Teléfono actualizado');
+  }
+
+  async function handleSaveCity(v: string): Promise<void> {
+    const updated = await authApi.updateProfile({ municipio: v });
+    updateUser(updated);
+    toast.success('Ciudad actualizada');
+  }
 
   const [currentPassword,  setCurrentPassword]  = useState('');
   const [newPassword,      setNewPassword]      = useState('');
@@ -399,8 +443,8 @@ export default function AccountPage() {
 
                 <FieldRow
                   label="Nombre completo"
-                  value={fullName}
-                  onSave={v => { setFullName(v); toast.success('Nombre actualizado'); }}
+                  value={user?.full_name ?? ''}
+                  onSave={handleSaveFullName}
                 />
                 <FieldRow
                   label="Correo electrónico"
@@ -410,17 +454,17 @@ export default function AccountPage() {
                 />
                 <FieldRow
                   label="Teléfono"
-                  value={phone}
+                  value={user?.phone ?? ''}
                   placeholder="+57 300 000 0000"
                   type="tel"
                   masked
-                  onSave={v => { setPhone(v); toast.success('Teléfono actualizado'); }}
+                  onSave={handleSavePhone}
                 />
                 <FieldRow
                   label="Ciudad"
-                  value={city}
+                  value={user?.municipio ?? ''}
                   placeholder="Tu ciudad"
-                  onSave={v => { setCity(v); toast.success('Ciudad actualizada'); }}
+                  onSave={handleSaveCity}
                 />
               </>
             )}

@@ -49,6 +49,7 @@ export type RequestStatus = 'pending' | 'reviewing' | 'approved' | 'rejected' | 
 export interface AdminAdoption {
   id:              number;
   code:            string;
+  requester_id:    string;
   requester_name:  string;
   requester_email: string;
   requester_phone: string;

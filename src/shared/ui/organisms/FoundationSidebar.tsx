@@ -4,7 +4,6 @@ import {
   PawPrint,
   LayoutDashboard,
   ClipboardList,
-  Bell,
   LogOut,
   UserRound,
   ChevronRight,
@@ -399,10 +398,6 @@ export function FoundationSidebar({
                     <DropdownMenuItem onClick={() => navigate('/account')}>
                       <UserRound className="w-4 h-4" />
                       Mi cuenta
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Bell className="w-4 h-4" />
-                      Notificaciones
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
 

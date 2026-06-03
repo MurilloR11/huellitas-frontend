@@ -20,6 +20,8 @@ export function buildAuthUser(user: User): AuthUser {
     role: meta.role ?? 'ciudadano',
     status: meta.status,
     avatar_url: meta.avatar_url,
+    phone: meta.phone,
+    municipio: meta.municipio,
   };
 }
 
@@ -63,14 +65,13 @@ export const authApi = {
   },
 
   async uploadAvatar(userId: string, file: File): Promise<string> {
-    const ext = file.name.split('.').pop() ?? 'jpg';
-    const path = `${userId}/avatar.${ext}`;
+    const path = `${userId}/avatar`;
 
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(path, file, { upsert: true, contentType: file.type });
 
-    if (uploadError) throw new Error('Error al subir la imagen');
+    if (uploadError) throw new Error(`Error al subir la imagen: ${uploadError.message}`);
 
     const { data } = supabase.storage.from('avatars').getPublicUrl(path);
 
@@ -78,9 +79,23 @@ export const authApi = {
       data: { avatar_url: data.publicUrl },
     });
 
-    if (updateError) throw new Error('Error al actualizar el perfil');
+    if (updateError) throw new Error(`Error al actualizar el perfil: ${updateError.message}`);
 
     return data.publicUrl;
+  },
+
+  async updateProfile(data: { full_name?: string; phone?: string; municipio?: string }): Promise<AuthUser> {
+    const { data: updated, error } = await supabase.auth.updateUser({ data });
+    if (error) throw new Error('No se pudo actualizar el perfil');
+    if (!updated.user) throw new Error('No se pudo actualizar el perfil');
+    // Build from Supabase (source of truth for metadata fields)
+    const supabaseProfile = buildAuthUser(updated.user);
+    try {
+      const { data: backendProfile } = await apiClient.get<AuthUser>('/auth/me');
+      return { ...supabaseProfile, role: backendProfile.role, status: backendProfile.status };
+    } catch {
+      return supabaseProfile;
+    }
   },
 
   async logout(): Promise<void> {

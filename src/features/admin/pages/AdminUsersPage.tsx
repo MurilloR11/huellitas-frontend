@@ -26,6 +26,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { adminApi, type AdminUser, type UserRole, type UserStatus } from '../services/adminApi';
+import { supabase } from '@/shared/lib/supabaseClient';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,22 @@ const AVATAR_BG: Record<UserRole, string> = {
   admin:     'bg-teal-100 text-teal-700',
   developer: 'bg-orange-100 text-orange-700',
 };
+
+function UserAvatar({ userId, name, role, size = 'sm' }: { userId: string; name: string; role: UserRole; size?: 'sm' | 'lg' }) {
+  const avatarUrl = supabase.storage.from('avatars').getPublicUrl(`${userId}/avatar`).data.publicUrl;
+  const sizeClass = size === 'lg' ? 'w-14 h-14 rounded-xl text-lg font-semibold' : 'w-8 h-8 rounded-full text-xs font-semibold';
+  return (
+    <div className={`relative flex items-center justify-center shrink-0 overflow-hidden ${sizeClass} ${AVATAR_BG[role]}`}>
+      {getInitials(name)}
+      <img
+        src={avatarUrl}
+        alt={name}
+        className="absolute inset-0 w-full h-full object-cover"
+        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+      />
+    </div>
+  );
+}
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -127,9 +144,7 @@ function UserModal({
 
         <div className="bg-stone-50 px-6 pt-6 pb-5 border-b border-stone-100">
           <div className="flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 text-lg font-semibold ${AVATAR_BG[user.role]}`}>
-              {getInitials(user.name)}
-            </div>
+            <UserAvatar userId={user.id} name={user.name} role={user.role} size="lg" />
             <div className="min-w-0">
               <DialogTitle className="text-base text-stone-900 leading-snug">{user.name}</DialogTitle>
               <DialogDescription className="sr-only">Perfil y detalles del usuario</DialogDescription>
@@ -315,9 +330,7 @@ export default function AdminUsersPage() {
 
                       <TableCell className="pl-0 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${AVATAR_BG[u.role]}`}>
-                            {getInitials(u.name)}
-                          </div>
+                          <UserAvatar userId={u.id} name={u.name} role={u.role} />
                           <div className="min-w-0">
                             <p className="font-medium text-stone-800 truncate">{u.name}</p>
                             <p className="text-xs text-stone-400 truncate">{u.email}</p>

@@ -11,6 +11,7 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<AuthUser>;
   commitLogin: (profile: AuthUser) => void;
+  updateUser: (profile: AuthUser) => void;
   logout: () => Promise<void>;
 }
 
@@ -21,12 +22,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  async function fetchProfile(fallbackUser: import('@supabase/supabase-js').User): Promise<AuthUser> {
+  async function fetchProfile(supaUser: import('@supabase/supabase-js').User): Promise<AuthUser> {
+    // Supabase user_metadata is authoritative for name/phone/municipio/avatar.
+    // Backend /auth/me is authoritative for role and status.
+    const supabaseProfile = buildAuthUser(supaUser);
     try {
       const { data } = await apiClient.get<AuthUser>('/auth/me');
-      return data;
+      return { ...supabaseProfile, role: data.role, status: data.status };
     } catch {
-      return buildAuthUser(fallbackUser);
+      return supabaseProfile;
     }
   }
 
@@ -73,13 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(profile);
   }
 
+  function updateUser(profile: AuthUser): void {
+    setUser(profile);
+  }
+
   async function logout(): Promise<void> {
     await authApi.logout();
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: user !== null, isLoading, login, commitLogin, logout }}
+      value={{ user, isAuthenticated: user !== null, isLoading, login, commitLogin, updateUser, logout }}
     >
       {children}
     </AuthContext.Provider>

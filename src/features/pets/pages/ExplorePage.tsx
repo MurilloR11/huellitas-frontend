@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { NotificationsBell } from '@/features/notifications/components/NotificationsBell';
 import RequirementsPage from '@/features/adoptions/pages/RequirementsPage';
 import ApplyPage from '@/features/adoptions/pages/ApplyPage';
 import StatusPage from '@/features/adoptions/pages/StatusPage';
@@ -95,6 +96,7 @@ function mapStatus(s: string): AdoptionStatus {
   if (s === 'in_process') return 'Pending';
   return 'Adopted';
 }
+
 
 function mapPet(pet: Pet): Animal {
   return {
@@ -751,6 +753,8 @@ export default function ExplorePage() {
               ))}
             </ol>
           </nav>
+
+          <NotificationsBell className="ml-auto" />
         </header>
 
         <div className="flex-1 min-h-0 overflow-y-auto">

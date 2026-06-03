@@ -218,7 +218,8 @@ export const huellitasApiSpec = {
         summary: 'Disponibilidad de visitas',
         description:
           'Retorna los días y horarios en que la fundación acepta visitas para conocer sus mascotas. ' +
-          'Si no se indica `from_date`, devuelve disponibilidad desde hoy.',
+          'Si no se indica `from_date`, devuelve disponibilidad desde hoy. ' +
+          'Retorna un array vacío `[]` si la fundación no ha configurado horarios de visita.',
         parameters: [
           { name: 'id', in: 'path', required: true, description: 'UUID de la fundación', schema: { type: 'string', format: 'uuid' } },
           { name: 'from_date', in: 'query', description: 'Fecha de inicio en formato YYYY-MM-DD (por defecto: hoy)', schema: { type: 'string', format: 'date', example: '2026-06-10' } },

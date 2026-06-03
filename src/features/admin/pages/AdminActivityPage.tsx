@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/shared/lib/supabaseClient';
 import {
   Table,
   TableBody,
@@ -74,6 +75,21 @@ const AVATAR_BG: Record<Activity['user_role'], string> = {
   admin:     'bg-teal-100 text-teal-700',
   developer: 'bg-orange-100 text-orange-700',
 };
+
+function ActivityAvatar({ userId, name, role }: { userId: string; name: string; role: Activity['user_role'] }) {
+  const avatarUrl = supabase.storage.from('avatars').getPublicUrl(`${userId}/avatar`).data.publicUrl;
+  return (
+    <div className={`relative w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold overflow-hidden ${AVATAR_BG[role]}`}>
+      {getInitials(name)}
+      <img
+        src={avatarUrl}
+        alt={name}
+        className="absolute inset-0 w-full h-full object-cover"
+        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+      />
+    </div>
+  );
+}
 
 const ACTION_LABELS: Record<ActivityType, string> = {
   login:                   'Inicio sesión',
@@ -273,9 +289,7 @@ export default function AdminActivityPage() {
 
                       <TableCell className="pl-0 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${AVATAR_BG[a.user_role]}`}>
-                            {getInitials(a.user_name)}
-                          </div>
+                          <ActivityAvatar userId={a.user_id} name={a.user_name} role={a.user_role} />
                           <div className="min-w-0">
                             <p className="font-medium text-stone-800 truncate">{a.user_name}</p>
                             <p className="text-xs text-stone-400 truncate">{a.user_email}</p>
