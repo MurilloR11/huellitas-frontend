@@ -11,8 +11,7 @@ import {
   Trash2,
   Copy,
   Check,
-  Eye,
-  EyeOff,
+  X,
   AlertCircle,
   Zap,
   Clock,
@@ -20,8 +19,12 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import * as Dialog from '@radix-ui/react-dialog';
+import { motion, AnimatePresence } from 'framer-motion';
 import { huellitasApiSpec } from '../openapi-spec';
 import '../swagger-overrides.css';
+import { useApiKeys, useCreateKey, useRevokeKey, useStats } from '../hooks/useApiKeys';
+import type { ApiKey, CreatedApiKey } from '../services/developerApi';
 
 // ─── Breadcrumb map ────────────────────────────────────────────────────────────
 
@@ -32,72 +35,29 @@ const BREADCRUMBS: Record<DevNavId, string[]> = {
   stats:     ['Errores', 'Registro'],
 };
 
-// ─── Static data ───────────────────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
-interface ApiKey {
-  id: string;
-  name: string;
-  prefix: string;
-  createdAt: string;
-  lastUsed: string | null;
-  callsTotal: number;
-  active: boolean;
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-const STATIC_KEYS: ApiKey[] = [
-  { id: '1', name: 'App principal',    prefix: 'hll_sk_A4x2',  createdAt: '2026-04-10', lastUsed: '2026-05-16', callsTotal: 8420,  active: true  },
-  { id: '2', name: 'Bot de Telegram',  prefix: 'hll_sk_B9z1',  createdAt: '2026-05-01', lastUsed: '2026-05-15', callsTotal: 312,   active: true  },
-  { id: '3', name: 'Script de prueba', prefix: 'hll_sk_C0m3',  createdAt: '2026-03-22', lastUsed: null,         callsTotal: 47,    active: false },
-];
-
-
-interface DailyUsage {
-  date: string;
-  calls: number;
-  errors: number;
+function fmtDateTime(iso: string) {
+  return new Date(iso).toLocaleString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-const STATIC_USAGE: DailyUsage[] = [
-  { date: '10 May', calls: 320,  errors: 2  },
-  { date: '11 May', calls: 410,  errors: 0  },
-  { date: '12 May', calls: 380,  errors: 5  },
-  { date: '13 May', calls: 540,  errors: 1  },
-  { date: '14 May', calls: 620,  errors: 3  },
-  { date: '15 May', calls: 710,  errors: 0  },
-  { date: '16 May', calls: 490,  errors: 2  },
-];
 
-interface ErrorLog {
-  id: string;
-  status: number;
-  method: 'GET' | 'POST';
-  path: string;
-  keyName: string;
-  ts: string;
-  message: string;
-}
-
-const STATIC_ERRORS: ErrorLog[] = [
-  { id: 'e1', status: 404, method: 'GET', path: '/api/pets/xyz999',          keyName: 'App principal',    ts: '16 May, 18:47', message: 'Pet not found'             },
-  { id: 'e2', status: 429, method: 'GET', path: '/api/pets?species=dog',     keyName: 'Bot de Telegram',  ts: '16 May, 14:22', message: 'Rate limit exceeded'       },
-  { id: 'e3', status: 404, method: 'GET', path: '/api/foundations/f99',      keyName: 'App principal',    ts: '15 May, 11:03', message: 'Foundation not found'      },
-  { id: 'e4', status: 500, method: 'GET', path: '/api/pets',                 keyName: 'App principal',    ts: '14 May, 09:51', message: 'Internal server error'     },
-  { id: 'e5', status: 404, method: 'GET', path: '/api/pets/abc000',          keyName: 'Script de prueba', ts: '13 May, 22:30', message: 'Pet not found'             },
-  { id: 'e6', status: 404, method: 'GET', path: '/api/pets/abc001',          keyName: 'Script de prueba', ts: '13 May, 22:29', message: 'Pet not found'             },
-  { id: 'e7', status: 429, method: 'GET', path: '/api/foundations',          keyName: 'Bot de Telegram',  ts: '12 May, 16:14', message: 'Rate limit exceeded'       },
-  { id: 'e8', status: 500, method: 'GET', path: '/api/pets?city=Medellin',   keyName: 'App principal',    ts: '12 May, 08:05', message: 'Upstream timeout'          },
-  { id: 'e9', status: 404, method: 'GET', path: '/api/pets/old-id-33',       keyName: 'App principal',    ts: '10 May, 19:17', message: 'Pet not found'             },
-  { id: 'e10',status: 404, method: 'GET', path: '/api/foundations/old-22',   keyName: 'App principal',    ts: '10 May, 19:16', message: 'Foundation not found'      },
-];
 
 // ─── Overview ──────────────────────────────────────────────────────────────────
 
 function OverviewPage({ onNavigate }: { onNavigate: (id: DevNavId) => void }) {
-  const totalCalls  = STATIC_KEYS.reduce((s, k) => s + k.callsTotal, 0);
-  const activeKeys  = STATIC_KEYS.filter(k => k.active).length;
-  const todayCalls  = STATIC_USAGE[STATIC_USAGE.length - 1].calls;
-  const todayErrors = STATIC_USAGE[STATIC_USAGE.length - 1].errors;
-  const maxCalls    = Math.max(...STATIC_USAGE.map(d => d.calls));
+  const { data: keys = [], isLoading: keysLoading } = useApiKeys();
+  const { data: stats } = useStats();
+  const activeKeys  = keys.filter((k: ApiKey) => k.active).length;
+  const daily       = stats?.daily ?? [];
+  const todayCalls  = daily[daily.length - 1]?.calls ?? 0;
+  const todayErrors = daily[daily.length - 1]?.errors ?? 0;
+  const maxCalls    = Math.max(...daily.map(d => d.calls), 1);
+  const totalCalls  = stats?.total_calls_all ?? 0;
 
   return (
     <div className="px-6 sm:px-8 py-7 space-y-4">
@@ -120,7 +80,7 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: DevNavId) => void }) {
 
           {/* Mini sparkline */}
           <div className="flex items-end gap-0.5 mt-4 h-9">
-            {STATIC_USAGE.map((day) => (
+            {daily.map((day) => (
               <div
                 key={day.date}
                 className="flex-1 rounded-sm bg-brand/20 dark:bg-brand/15 hover:bg-brand/45 transition-colors duration-200"
@@ -153,10 +113,14 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: DevNavId) => void }) {
             <ShieldCheck className="w-3.5 h-3.5 text-violet-400 shrink-0" strokeWidth={2} />
           </div>
           <div className="mt-4">
-            <p className="text-2xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">
-              {activeKeys}
-              <span className="text-base font-normal text-stone-300 dark:text-zinc-600">/{STATIC_KEYS.length}</span>
-            </p>
+            {keysLoading ? (
+              <div className="h-7 w-12 bg-stone-100 dark:bg-zinc-800 rounded animate-pulse" />
+            ) : (
+              <p className="text-2xl font-bold tabular-nums text-stone-900 dark:text-zinc-100">
+                {activeKeys}
+                <span className="text-base font-normal text-stone-300 dark:text-zinc-600">/{keys.length}</span>
+              </p>
+            )}
             <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-1">activas</p>
           </div>
         </div>
@@ -249,21 +213,28 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: DevNavId) => void }) {
             </button>
           </div>
           <div className="space-y-4">
-            {STATIC_KEYS.map(key => (
-              <div key={key.id} className="flex items-center gap-3 group">
-                <span className={cn(
-                  'w-1.5 h-1.5 rounded-full shrink-0 transition-transform duration-150 group-hover:scale-[1.6]',
-                  key.active ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-zinc-600',
-                )} />
-                <span className="text-sm text-stone-700 dark:text-zinc-300 flex-1 truncate">{key.name}</span>
-                <div className="text-right shrink-0">
-                  <span className="block text-[11px] font-mono text-stone-300 dark:text-zinc-600">{key.prefix}•••</span>
-                  <span className="block text-[10px] tabular-nums text-stone-400 dark:text-zinc-500">
-                    {key.callsTotal.toLocaleString()} calls
-                  </span>
+            {keysLoading ? (
+              [1, 2].map(i => (
+                <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div className="w-1.5 h-1.5 rounded-full bg-stone-200 dark:bg-zinc-700 shrink-0" />
+                  <div className="flex-1 h-3 bg-stone-100 dark:bg-zinc-800 rounded" />
+                  <div className="h-3 w-20 bg-stone-100 dark:bg-zinc-800 rounded" />
                 </div>
-              </div>
-            ))}
+              ))
+            ) : keys.length === 0 ? (
+              <p className="text-xs text-stone-400 dark:text-zinc-500">Aún no tienes keys.</p>
+            ) : (
+              keys.slice(0, 3).map((key: ApiKey) => (
+                <div key={key.id} className="flex items-center gap-3 group">
+                  <span className={cn(
+                    'w-1.5 h-1.5 rounded-full shrink-0 transition-transform duration-150 group-hover:scale-[1.6]',
+                    key.active ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-zinc-600',
+                  )} />
+                  <span className="text-sm text-stone-700 dark:text-zinc-300 flex-1 truncate">{key.name || '(sin nombre)'}</span>
+                  <span className="text-[11px] font-mono text-stone-300 dark:text-zinc-600 shrink-0">{key.prefix}•••</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -272,17 +243,180 @@ function OverviewPage({ onNavigate }: { onNavigate: (id: DevNavId) => void }) {
   );
 }
 
+// ─── Create Key Modal ──────────────────────────────────────────────────────────
+
+function CreateKeyModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const createMutation = useCreateKey();
+  const [name, setName]     = useState('');
+  const [newKey, setNewKey] = useState<CreatedApiKey | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCreate = () => {
+    if (!name.trim() || createMutation.isPending) return;
+    createMutation.mutate(name.trim(), {
+      onSuccess: (data) => setNewKey(data),
+    });
+  };
+
+  const handleCopy = () => {
+    if (!newKey) return;
+    navigator.clipboard.writeText(newKey.key).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/25 backdrop-blur-[2px] z-40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200" />
+        <Dialog.Content
+          onInteractOutside={(e) => { if (newKey) e.preventDefault(); }}
+          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-[420px] bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 shadow-2xl focus:outline-none overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-top-[48%] data-[state=closed]:slide-out-to-top-[48%] duration-200"
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {!newKey ? (
+              <motion.div
+                key="step-create"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15 }}
+                className="p-6"
+              >
+                <div className="flex items-start justify-between mb-5">
+                  <div>
+                    <Dialog.Title className="text-[15px] font-bold tracking-tight text-stone-900 dark:text-zinc-100">
+                      Nueva API Key
+                    </Dialog.Title>
+                    <Dialog.Description className="text-xs text-stone-400 dark:text-zinc-500 mt-1 leading-relaxed">
+                      Dale un nombre para identificar para qué app o proyecto usarás esta clave.
+                    </Dialog.Description>
+                  </div>
+                  <Dialog.Close asChild>
+                    <button
+                      type="button"
+                      className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+                      aria-label="Cerrar"
+                    >
+                      <X className="w-3.5 h-3.5" strokeWidth={2} />
+                    </button>
+                  </Dialog.Close>
+                </div>
+
+                <div className="space-y-1.5 mb-5">
+                  <label className="block text-xs font-semibold text-stone-600 dark:text-zinc-400">
+                    Nombre
+                  </label>
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="ej. App de adopción · Script de pruebas"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
+                    maxLength={50}
+                    className="w-full h-10 px-3.5 rounded-xl bg-stone-50 dark:bg-zinc-800/80 border border-stone-200 dark:border-zinc-700 text-sm text-stone-900 dark:text-zinc-100 placeholder:text-stone-300 dark:placeholder:text-zinc-600 outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all"
+                  />
+                  {createMutation.isError && (
+                    <p className="flex items-center gap-1.5 text-xs text-red-500 pt-0.5">
+                      <AlertCircle className="w-3 h-3 shrink-0" strokeWidth={2} />
+                      Error al crear la key. Inténtalo de nuevo.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 justify-end">
+                  <Dialog.Close asChild>
+                    <button
+                      type="button"
+                      className="h-9 px-4 rounded-xl text-sm text-stone-500 dark:text-zinc-400 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  </Dialog.Close>
+                  <button
+                    type="button"
+                    onClick={handleCreate}
+                    disabled={!name.trim() || createMutation.isPending}
+                    className="h-9 px-5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+                  >
+                    {createMutation.isPending ? 'Creando...' : 'Crear key'}
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="step-reveal"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15 }}
+                className="p-6"
+              >
+                <div className="flex items-start gap-3 mb-5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <Dialog.Title className="text-[15px] font-bold tracking-tight text-stone-900 dark:text-zinc-100">
+                      Tu clave está lista
+                    </Dialog.Title>
+                    <Dialog.Description className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">
+                      Cópiala ahora — no la volveremos a mostrar.
+                    </Dialog.Description>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 px-3.5 py-2.5 mb-3">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" strokeWidth={2} />
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Esta es la única vez que verás la clave completa.
+                  </p>
+                </div>
+
+                <div className="relative bg-zinc-950 rounded-xl px-4 py-4 mb-4">
+                  <p className="text-[10px] font-mono font-bold tracking-[0.15em] text-zinc-500 uppercase mb-2">
+                    x-api-key
+                  </p>
+                  <code className="block text-sm font-mono text-emerald-400 break-all select-all leading-relaxed pr-8">
+                    {newKey.key}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    aria-label="Copiar clave"
+                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.08] transition-all"
+                  >
+                    {copied
+                      ? <Check className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2.5} />
+                      : <Copy className="w-3.5 h-3.5" strokeWidth={1.75} />
+                    }
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="w-full h-10 rounded-xl bg-stone-900 dark:bg-zinc-800 text-white text-sm font-semibold hover:bg-stone-800 dark:hover:bg-zinc-700 transition-all active:scale-[0.98]"
+                >
+                  {copied ? 'Clave copiada — listo' : 'Listo, ya la guardé'}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
 // ─── API Keys ──────────────────────────────────────────────────────────────────
 
 function ApiKeysPage() {
-  const [keys, setKeys]           = useState<ApiKey[]>(STATIC_KEYS);
-  const [revealed, setRevealed]   = useState<Set<string>>(new Set());
+  const { data: keys = [], isLoading } = useApiKeys();
+  const revokeMutation = useRevokeKey();
+  const [modalOpen, setModalOpen] = useState(false);
   const [copied, setCopied]       = useState<string | null>(null);
-  const [creating, setCreating]   = useState(false);
-  const [newName, setNewName]     = useState('');
-
-  const toggleReveal = (id: string) =>
-    setRevealed(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const handleCopy = (id: string, value: string) => {
     navigator.clipboard.writeText(value).catch(() => {});
@@ -290,149 +424,156 @@ function ApiKeysPage() {
     setTimeout(() => setCopied(null), 1500);
   };
 
-  const handleCreate = () => {
-    if (!newName.trim()) return;
-    const id = String(Date.now());
-    setKeys(prev => [...prev, {
-      id,
-      name: newName.trim(),
-      prefix: 'hll_sk_' + Math.random().toString(36).slice(2, 6).toUpperCase(),
-      createdAt: new Date().toISOString().slice(0, 10),
-      lastUsed: null,
-      callsTotal: 0,
-      active: true,
-    }]);
-    setNewName('');
-    setCreating(false);
-  };
-
-  const handleRevoke = (id: string) =>
-    setKeys(prev => prev.map(k => k.id === id ? { ...k, active: false } : k));
-
   return (
-    <div className="px-6 sm:px-8 py-6 space-y-4">
+    <div className="px-6 sm:px-8 py-7 space-y-6">
 
-      <div className="flex items-center justify-between">
+      <CreateKeyModal open={modalOpen} onOpenChange={setModalOpen} />
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-base font-bold text-stone-900 dark:text-zinc-100">API Keys</h1>
-          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">Genera y revoca claves para autenticarte en la API.</p>
+          <p className="text-[10px] font-mono font-bold tracking-[0.12em] text-stone-400 dark:text-zinc-500 uppercase mb-1">
+            Autenticación
+          </p>
+          <h1 className="text-xl font-bold tracking-tight text-stone-900 dark:text-zinc-100">
+            API Keys
+          </h1>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5 max-w-xs leading-relaxed">
+            Genera y revoca claves para autenticarte en la API.
+          </p>
         </div>
         <button
           type="button"
-          onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-brand text-white text-xs font-medium hover:bg-brand/90 transition-colors"
+          onClick={() => setModalOpen(true)}
+          className="shrink-0 flex items-center gap-1.5 h-9 px-4 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand/90 transition-all active:scale-[0.98] shadow-sm"
         >
           <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
           Nueva key
         </button>
       </div>
 
-      {/* Create form */}
-      {creating && (
-        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 p-4 flex items-center gap-3">
-          <Key className="w-4 h-4 text-stone-400 dark:text-zinc-500 shrink-0" strokeWidth={1.75} />
-          <input
-            autoFocus
-            type="text"
-            placeholder="Nombre de la key (ej. App de adopción)"
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setCreating(false); }}
-            className="flex-1 bg-transparent text-sm text-stone-800 dark:text-zinc-100 placeholder:text-stone-300 dark:placeholder:text-zinc-600 outline-none"
-          />
+      {/* Keys list */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex items-center gap-4 py-3 animate-pulse">
+              <div className="w-8 h-8 rounded-xl bg-stone-100 dark:bg-zinc-800 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-28 bg-stone-100 dark:bg-zinc-800 rounded-md" />
+                <div className="h-2.5 w-20 bg-stone-50 dark:bg-zinc-800/60 rounded-md" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : keys.length === 0 ? (
+        <div className="py-16 flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-2xl bg-stone-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+            <Key className="w-5 h-5 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
+          </div>
+          <p className="text-sm font-semibold text-stone-700 dark:text-zinc-300 mb-1">Sin API Keys</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 max-w-[24ch] leading-relaxed mb-5">
+            Crea tu primera clave para conectar tu app a la API.
+          </p>
           <button
             type="button"
-            onClick={handleCreate}
-            disabled={!newName.trim()}
-            className="h-7 px-3 rounded-lg bg-brand text-white text-xs font-medium hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand/90 transition-all active:scale-[0.98]"
           >
-            Crear
-          </button>
-          <button
-            type="button"
-            onClick={() => { setCreating(false); setNewName(''); }}
-            className="h-7 px-2 rounded-lg text-xs text-stone-400 hover:text-stone-600 dark:hover:text-zinc-300 transition-colors"
-          >
-            Cancelar
+            <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+            Crear primera key
           </button>
         </div>
-      )}
-
-      {/* Keys list */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-stone-200 dark:border-zinc-800 overflow-hidden">
-        <div className="divide-y divide-stone-50 dark:divide-zinc-800/60">
-          {keys.map(key => (
+      ) : (
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 divide-y divide-stone-100 dark:divide-zinc-800/60 overflow-hidden">
+          {keys.map((key: ApiKey) => (
             <div key={key.id} className="flex items-center gap-4 px-5 py-4">
-              <span className={cn('w-2 h-2 rounded-full shrink-0', key.active ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-zinc-600')} />
 
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-medium text-stone-800 dark:text-zinc-100">{key.name}</p>
-                  {!key.active && (
-                    <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-400 dark:bg-zinc-800 dark:text-zinc-500">
+              <div className={cn(
+                'w-8 h-8 rounded-xl flex items-center justify-center shrink-0',
+                key.active ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-stone-100 dark:bg-zinc-800'
+              )}>
+                <Key
+                  className={cn('w-3.5 h-3.5', key.active ? 'text-emerald-500' : 'text-stone-300 dark:text-zinc-600')}
+                  strokeWidth={1.75}
+                />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                  <p className="text-sm font-semibold text-stone-800 dark:text-zinc-100 truncate">
+                    {key.name || '(sin nombre)'}
+                  </p>
+                  {key.active ? (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tracking-wide">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Activa
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-400 dark:bg-zinc-800 dark:text-zinc-500 tracking-wide uppercase">
                       Revocada
                     </span>
                   )}
                 </div>
-                <p className="text-xs font-mono text-stone-400 dark:text-zinc-500">
-                  {revealed.has(key.id) ? `${key.prefix}••••••••••••••••••••` : `${key.prefix}•••`}
-                </p>
-                <div className="flex items-center gap-3">
+                <p className="text-xs font-mono text-stone-400 dark:text-zinc-500 mb-1">{key.prefix}•••</p>
+                <div className="flex items-center gap-3 flex-wrap">
                   <span className="flex items-center gap-1 text-[11px] text-stone-300 dark:text-zinc-600">
                     <Clock className="w-3 h-3" strokeWidth={1.5} />
-                    Creada {key.createdAt}
+                    Creada {fmtDate(key.created_at)}
                   </span>
-                  {key.lastUsed && (
+                  {key.last_used_at && (
                     <span className="text-[11px] text-stone-300 dark:text-zinc-600">
-                      · Último uso {key.lastUsed}
+                      · Último uso {fmtDate(key.last_used_at)}
                     </span>
                   )}
-                  <span className="text-[11px] text-stone-300 dark:text-zinc-600">
-                    · {key.callsTotal.toLocaleString()} calls
-                  </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
-                  onClick={() => toggleReveal(key.id)}
-                  className="flex items-center justify-center w-7 h-7 rounded-lg text-stone-400 dark:text-zinc-500 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
-                  aria-label={revealed.has(key.id) ? 'Ocultar' : 'Mostrar'}
+                  onClick={() => handleCopy(key.id, key.prefix)}
+                  className="flex items-center justify-center w-8 h-8 rounded-xl text-stone-400 dark:text-zinc-500 hover:bg-stone-100 dark:hover:bg-zinc-800 hover:text-stone-600 dark:hover:text-zinc-300 transition-all"
+                  aria-label="Copiar prefijo"
+                  title="Copiar prefijo"
                 >
-                  {revealed.has(key.id) ? <EyeOff className="w-3.5 h-3.5" strokeWidth={1.75} /> : <Eye className="w-3.5 h-3.5" strokeWidth={1.75} />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(key.id, `${key.prefix}...`)}
-                  className="flex items-center justify-center w-7 h-7 rounded-lg text-stone-400 dark:text-zinc-500 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
-                  aria-label="Copiar"
-                >
-                  {copied === key.id ? <Check className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2.5} /> : <Copy className="w-3.5 h-3.5" strokeWidth={1.75} />}
+                  {copied === key.id
+                    ? <Check className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2.5} />
+                    : <Copy className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  }
                 </button>
                 {key.active && (
                   <button
                     type="button"
-                    onClick={() => handleRevoke(key.id)}
-                    className="flex items-center justify-center w-7 h-7 rounded-lg text-stone-400 dark:text-zinc-500 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"
-                    aria-label="Revocar"
+                    onClick={() => revokeMutation.mutate(key.id)}
+                    disabled={revokeMutation.isPending}
+                    className="flex items-center justify-center w-8 h-8 rounded-xl text-stone-400 dark:text-zinc-500 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400 disabled:opacity-40 transition-all"
+                    aria-label="Revocar key"
+                    title="Revocar key"
                   >
                     <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
                   </button>
                 )}
               </div>
+
             </div>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* Auth info */}
-      <div className="bg-stone-50 dark:bg-zinc-900/50 border border-stone-200 dark:border-zinc-800 rounded-xl px-5 py-4 space-y-1.5">
-        <p className="text-xs font-semibold text-stone-500 dark:text-zinc-400">Cómo autenticarte</p>
-        <p className="text-xs text-stone-400 dark:text-zinc-500">Incluye el header en cada petición a la API:</p>
-        <code className="block text-xs font-mono text-brand bg-brand-light dark:bg-brand/10 rounded px-3 py-2">
-          X-API-Key: hll_sk_TU_CLAVE
-        </code>
+      {/* Auth info — terminal style */}
+      <div className="rounded-2xl border border-stone-200 dark:border-zinc-800 overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-stone-100 dark:border-zinc-800/60">
+          <p className="text-xs font-semibold text-stone-700 dark:text-zinc-300">Cómo autenticarte</p>
+          <p className="text-xs text-stone-400 dark:text-zinc-500 mt-0.5">
+            Incluye el header en cada petición a la API.
+          </p>
+        </div>
+        <div className="bg-zinc-950 px-5 py-4">
+          <code className="text-sm font-mono">
+            <span className="text-stone-500">X-API-Key: </span>
+            <span className="text-emerald-400">hll_sk_TU_CLAVE</span>
+          </code>
+        </div>
       </div>
 
     </div>
@@ -533,12 +674,16 @@ function statusMeta(code: number): { label: string; bg: string; text: string } {
 }
 
 function StatsPage() {
-  const totalErrors  = STATIC_ERRORS.length;
-  const totalCalls   = STATIC_USAGE.reduce((s, d) => s + d.calls, 0);
-  const errorRate    = ((totalErrors / totalCalls) * 100).toFixed(1);
-  const errors404    = STATIC_ERRORS.filter(e => e.status === 404).length;
-  const errors429    = STATIC_ERRORS.filter(e => e.status === 429).length;
-  const errors5xx    = STATIC_ERRORS.filter(e => e.status >= 500).length;
+  const { data: stats } = useStats();
+  const daily        = stats?.daily ?? [];
+  const totalCalls   = stats?.total_calls_7d ?? 0;
+  const totalErrors  = stats?.total_errors_7d ?? 0;
+  const errorRate    = totalCalls > 0 ? ((totalErrors / totalCalls) * 100).toFixed(1) : '0.0';
+  const errors404    = stats?.errors_by_code['404'] ?? 0;
+  const errors429    = stats?.errors_by_code['429'] ?? 0;
+  const errors5xx    = stats?.errors_by_code['5xx'] ?? 0;
+  const recentErrors = stats?.recent_errors ?? [];
+  const maxErrors    = Math.max(...daily.map(d => d.errors), 1);
 
   return (
     <div className="px-6 sm:px-8 py-6 space-y-4">
@@ -559,11 +704,11 @@ function StatsPage() {
           </p>
           {/* Mini bar: proporción errores por día */}
           <div className="flex items-end gap-0.5 mt-4 h-8">
-            {STATIC_USAGE.map(day => (
+            {daily.map(day => (
               <div key={day.date} className="flex-1 flex flex-col justify-end gap-px">
                 <div
                   className="w-full rounded-sm bg-red-400/70 dark:bg-red-500/50 transition-all"
-                  style={{ height: day.errors > 0 ? `${Math.max((day.errors / 5) * 100, 20)}%` : '8%' }}
+                  style={{ height: day.errors > 0 ? `${Math.max((day.errors / maxErrors) * 100, 20)}%` : '8%' }}
                   title={`${day.date}: ${day.errors} errores`}
                 />
               </div>
@@ -604,28 +749,26 @@ function StatsPage() {
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 overflow-hidden">
         <div className="px-5 pt-5 pb-3 border-b border-stone-100 dark:border-zinc-800">
           <p className="text-sm font-semibold text-stone-800 dark:text-zinc-100">Errores recientes</p>
-          <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-0.5">Últimas {STATIC_ERRORS.length} peticiones con error</p>
+          <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-0.5">Últimas {recentErrors.length} peticiones con error</p>
         </div>
         <div className="divide-y divide-stone-100 dark:divide-zinc-800">
-          {STATIC_ERRORS.map(err => {
+          {recentErrors.length === 0 ? (
+            <p className="px-5 py-8 text-center text-xs text-stone-400 dark:text-zinc-500">Sin errores recientes.</p>
+          ) : recentErrors.map(err => {
             const meta = statusMeta(err.status);
             return (
               <div key={err.id} className="group flex items-start gap-3 px-5 py-3 hover:bg-stone-50 dark:hover:bg-zinc-800/50 transition-colors">
-                {/* Status badge */}
                 <span className={cn('shrink-0 mt-0.5 inline-block rounded-md px-2 py-0.5 text-[11px] font-mono font-bold', meta.bg, meta.text)}>
                   {meta.label}
                 </span>
-                {/* Path + key */}
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-mono text-stone-700 dark:text-zinc-300 truncate">
                     <span className="text-stone-400 dark:text-zinc-500">{err.method} </span>{err.path}
                   </p>
-                  <p className="text-[11px] text-stone-400 dark:text-zinc-500 mt-0.5">{err.message}</p>
                 </div>
-                {/* Key + timestamp */}
                 <div className="shrink-0 text-right hidden sm:block">
-                  <p className="text-[11px] text-stone-500 dark:text-zinc-400">{err.keyName}</p>
-                  <p className="text-[10px] text-stone-300 dark:text-zinc-600 mt-0.5 font-mono">{err.ts}</p>
+                  <p className="text-[11px] text-stone-500 dark:text-zinc-400">{err.key_name}</p>
+                  <p className="text-[10px] text-stone-300 dark:text-zinc-600 mt-0.5 font-mono">{fmtDateTime(err.created_at)}</p>
                 </div>
               </div>
             );
