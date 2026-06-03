@@ -160,11 +160,11 @@ export default function TermsPage() {
               Si tienes preguntas sobre estos Términos de Uso, puedes comunicarte con nosotros a través del
               correo electrónico:{' '}
               <a
-                href="mailto:soporte@huellitas.app"
+                href="mailto:huellitasapisoporte@gmail.com"
                 className="font-medium underline underline-offset-2"
                 style={{ color: 'var(--color-brand)' }}
               >
-                soporte@huellitas.app
+                huellitasapisoporte@gmail.com
               </a>
             </p>
           </Section>

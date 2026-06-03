@@ -10,6 +10,7 @@ const ROUTE_MAP: Record<string, Crumb[]> = {
   '/admin/usuarios':    [{ label: 'Gestión' }, { label: 'Usuarios' }],
   '/admin/mascotas':    [{ label: 'Plataforma' }, { label: 'Mascotas' }],
   '/admin/solicitudes': [{ label: 'Plataforma' }, { label: 'Solicitudes' }],
+  '/admin/actividad':   [{ label: 'Actividad' }],
 };
 
 export function AdminBreadcrumb() {

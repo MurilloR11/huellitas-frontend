@@ -18,6 +18,7 @@ import AdminFoundationsPage from '../features/admin/pages/AdminFoundationsPage';
 import AdminUsersPage from '../features/admin/pages/AdminUsersPage';
 import AdminPetsPage from '../features/admin/pages/AdminPetsPage';
 import AdminAdoptionsPage from '../features/admin/pages/AdminAdoptionsPage';
+import AdminActivityPage from '../features/admin/pages/AdminActivityPage';
 import FoundationPage from '../features/foundations/pages/FoundationPage';
 import DeveloperPage from '../features/developer/pages/DeveloperPage';
 import ApplyPage from '../features/adoptions/pages/ApplyPage';
@@ -134,6 +135,7 @@ export const router = createBrowserRouter([
       { path: 'usuarios',         element: <AdminUsersPage />       },
       { path: 'mascotas',         element: <AdminPetsPage />        },
       { path: 'solicitudes',      element: <AdminAdoptionsPage />   },
+      { path: 'actividad',        element: <AdminActivityPage />    },
     ],
   },
   {

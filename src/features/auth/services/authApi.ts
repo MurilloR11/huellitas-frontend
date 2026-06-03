@@ -32,6 +32,8 @@ export const authApi = {
     if (error) throw new Error(mapError(error.message));
     // Lee el perfil desde el backend (fuente de verdad del rol, no user_metadata)
     const { data: profile } = await apiClient.get<AuthUser>('/auth/me');
+    // Fire-and-forget: log the login event; failure must never break the login flow
+    apiClient.post('/auth/activity', { action: 'login' }).catch(() => {});
     return profile;
   },
 
@@ -45,7 +47,9 @@ export const authApi = {
           role: payload.role,
           ...(payload.municipio ? { municipio: payload.municipio } : {}),
           ...(payload.phone ? { phone: payload.phone } : {}),
-          ...(payload.role === 'fundacion' ? { status: 'pending' } : {}),
+          ...(payload.role === 'fundacion'
+            ? { org_name: payload.full_name, status: 'pending' }
+            : {}),
         },
       },
     });
@@ -80,6 +84,8 @@ export const authApi = {
   },
 
   async logout(): Promise<void> {
+    // Log before signOut so the JWT is still valid for the request
+    await apiClient.post('/auth/activity', { action: 'logout' }).catch(() => {});
     await supabase.auth.signOut();
   },
 

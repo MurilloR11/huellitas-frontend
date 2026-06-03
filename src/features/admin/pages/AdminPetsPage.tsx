@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { PawPrint, Search, Calendar, Eye, Power, ChevronLeft, ChevronRight, Building2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { PawPrint, Search, Calendar, Eye, Power, ChevronLeft, ChevronRight, Building2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,60 +25,23 @@ import {
   DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog';
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-
-type Species   = 'dog' | 'cat' | 'other';
-type PetStatus = 'available' | 'in_process' | 'adopted' | 'suspended';
-
-interface AdminPet {
-  id:           number;
-  code:         string;
-  name:         string;
-  species:      Species;
-  breed:        string;
-  age:          string;
-  foundation:   string;
-  status:       PetStatus;
-  published_at: string;
-}
-
-// ─── Static data ───────────────────────────────────────────────────────────────
-
-const INITIAL: AdminPet[] = [
-  { id: 1,  code: 'HU-0001', name: 'Max',      species: 'dog',   breed: 'Labrador Retriever', age: '2 años',   foundation: 'Fundación Vida Animal',  status: 'available',  published_at: '2026-04-01' },
-  { id: 2,  code: 'HU-0002', name: 'Luna',     species: 'dog',   breed: 'Mestizo',            age: '1 año',    foundation: 'Animal SOS',             status: 'available',  published_at: '2026-04-05' },
-  { id: 3,  code: 'HU-0003', name: 'Rocky',    species: 'dog',   breed: 'Beagle',             age: '3 años',   foundation: 'Colitas Felices',        status: 'available',  published_at: '2026-04-08' },
-  { id: 4,  code: 'HU-0004', name: 'Bella',    species: 'dog',   breed: 'Golden Retriever',   age: '4 años',   foundation: 'Refugio San Francisco',  status: 'available',  published_at: '2026-04-10' },
-  { id: 5,  code: 'HU-0005', name: 'Bruno',    species: 'dog',   breed: 'Bulldog Francés',    age: '1 año',    foundation: 'Animales del Valle',     status: 'available',  published_at: '2026-04-12' },
-  { id: 6,  code: 'HU-0006', name: 'Mía',      species: 'cat',   breed: 'Mestizo',            age: '2 años',   foundation: 'Rescate Antioquia',      status: 'available',  published_at: '2026-04-03' },
-  { id: 7,  code: 'HU-0007', name: 'Simba',    species: 'cat',   breed: 'Siamés',             age: '3 años',   foundation: 'Fundación Pelaje',       status: 'available',  published_at: '2026-04-14' },
-  { id: 8,  code: 'HU-0008', name: 'Cleo',     species: 'cat',   breed: 'Persa',              age: '5 años',   foundation: 'Patas y Colitas',        status: 'available',  published_at: '2026-04-18' },
-  { id: 9,  code: 'HU-0009', name: 'Toby',     species: 'dog',   breed: 'Schnauzer',          age: '2 años',   foundation: 'Animal SOS',             status: 'in_process', published_at: '2026-03-20' },
-  { id: 10, code: 'HU-0010', name: 'Nala',     species: 'dog',   breed: 'Mestizo',            age: '6 meses',  foundation: 'Colitas Felices',        status: 'in_process', published_at: '2026-03-25' },
-  { id: 11, code: 'HU-0011', name: 'Oliver',   species: 'cat',   breed: 'Mestizo',            age: '1 año',    foundation: 'Fundación Vida Animal',  status: 'in_process', published_at: '2026-03-28' },
-  { id: 12, code: 'HU-0012', name: 'Lola',     species: 'dog',   breed: 'Poodle',             age: '3 años',   foundation: 'Refugio Los Andes',      status: 'in_process', published_at: '2026-04-02' },
-  { id: 13, code: 'HU-0013', name: 'Manchas',  species: 'dog',   breed: 'Dálmata',            age: '2 años',   foundation: 'Animal SOS',             status: 'in_process', published_at: '2026-04-15' },
-  { id: 14, code: 'HU-0014', name: 'Rex',      species: 'dog',   breed: 'Pastor Alemán',      age: '4 años',   foundation: 'Refugio San Francisco',  status: 'adopted',    published_at: '2026-02-10' },
-  { id: 15, code: 'HU-0015', name: 'Coco',     species: 'dog',   breed: 'Mestizo',            age: '2 años',   foundation: 'Animales del Valle',     status: 'adopted',    published_at: '2026-02-15' },
-  { id: 16, code: 'HU-0016', name: 'Kitty',    species: 'cat',   breed: 'Angora',             age: '3 años',   foundation: 'Rescate Antioquia',      status: 'adopted',    published_at: '2026-02-20' },
-  { id: 17, code: 'HU-0017', name: 'Thor',     species: 'dog',   breed: 'Rottweiler',         age: '5 años',   foundation: 'Patas y Colitas',        status: 'adopted',    published_at: '2026-03-01' },
-  { id: 18, code: 'HU-0018', name: 'Milo',     species: 'cat',   breed: 'Mestizo',            age: '1 año',    foundation: 'Animal SOS',             status: 'adopted',    published_at: '2026-03-05' },
-  { id: 19, code: 'HU-0019', name: 'Daisy',    species: 'dog',   breed: 'Chihuahua',          age: '2 años',   foundation: 'Fundación Pelaje',       status: 'adopted',    published_at: '2026-03-10' },
-  { id: 20, code: 'HU-0020', name: 'Spike',    species: 'dog',   breed: 'Mestizo',            age: '3 años',   foundation: 'Huellitas del Pacífico', status: 'suspended',  published_at: '2026-03-15' },
-  { id: 21, code: 'HU-0021', name: 'Whiskers', species: 'cat',   breed: 'Mestizo',            age: '4 años',   foundation: 'Patas y Colitas',        status: 'suspended',  published_at: '2026-03-18' },
-  { id: 22, code: 'HU-0022', name: 'Bugs',     species: 'other', breed: 'Conejo',             age: '1 año',    foundation: 'Animal SOS',             status: 'available',  published_at: '2026-04-20' },
-  { id: 23, code: 'HU-0023', name: 'Tweety',   species: 'other', breed: 'Pájaro',             age: '2 años',   foundation: 'Colitas Felices',        status: 'available',  published_at: '2026-04-22' },
-  { id: 24, code: 'HU-0024', name: 'Kira',     species: 'dog',   breed: 'Shih Tzu',           age: '1 año',    foundation: 'Fundación Vida Animal',  status: 'available',  published_at: '2026-04-25' },
-  { id: 25, code: 'HU-0025', name: 'Pelusa',   species: 'cat',   breed: 'Maine Coon',         age: '6 meses',  foundation: 'Rescate Antioquia',      status: 'available',  published_at: '2026-04-26' },
-];
+import { adminApi } from '../services/adminApi';
+import type { AdminPet, Species, PetStatus } from '../services/adminApi';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-const PAGE_SIZE   = 7;
-const FOUNDATIONS = [...new Set(INITIAL.map(p => p.foundation))].sort();
+const PAGE_SIZE = 15;
 
-function formatDate(iso: string, month: 'short' | 'long' = 'short') {
+function formatAge(months: number | null | undefined): string {
+  if (months == null) return '—';
+  if (months === 0) return '< 1 mes';
+  if (months < 12) return months === 1 ? '1 mes' : `${months} meses`;
+  const years = Math.floor(months / 12);
+  return years === 1 ? '1 año' : `${years} años`;
+}
+
+function formatDate(iso: string | null | undefined, month: 'short' | 'long' = 'short'): string {
+  if (!iso) return '—';
   return new Date(iso).toLocaleDateString('es-CO', {
     day: 'numeric', month, year: 'numeric',
   });
@@ -113,12 +77,26 @@ const AVATAR_BG: Record<Species, string> = {
   other: 'bg-stone-100 text-stone-500',
 };
 
-function SpeciesBadge({ species }: { species: Species }) {
-  return <Pill {...SPECIES_PILL[species]} />;
-}
-
-function StatusBadge({ status }: { status: PetStatus }) {
-  return <Pill {...STATUS_PILL[status]} />;
+function SkeletonRow() {
+  return (
+    <TableRow className="border-stone-100">
+      <TableCell className="pl-0 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-stone-100 animate-pulse" />
+          <div className="space-y-1.5">
+            <div className="h-3.5 w-24 bg-stone-100 rounded animate-pulse" />
+            <div className="h-3 w-16 bg-stone-100 rounded animate-pulse" />
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="py-4 hidden sm:table-cell"><div className="h-5 w-16 bg-stone-100 rounded-full animate-pulse" /></TableCell>
+      <TableCell className="py-4 hidden md:table-cell"><div className="h-3.5 w-12 bg-stone-100 rounded animate-pulse" /></TableCell>
+      <TableCell className="py-4 hidden lg:table-cell"><div className="h-3.5 w-32 bg-stone-100 rounded animate-pulse" /></TableCell>
+      <TableCell className="py-4 hidden md:table-cell"><div className="h-3.5 w-24 bg-stone-100 rounded animate-pulse" /></TableCell>
+      <TableCell className="py-4"><div className="h-5 w-20 bg-stone-100 rounded-full animate-pulse" /></TableCell>
+      <TableCell className="py-4 text-right"><div className="h-7 w-16 bg-stone-100 rounded animate-pulse ml-auto" /></TableCell>
+    </TableRow>
+  );
 }
 
 // ─── PetModal ──────────────────────────────────────────────────────────────────
@@ -128,11 +106,13 @@ function PetModal({
   open,
   onClose,
   onToggle,
+  isPending,
 }: {
-  pet:      AdminPet | null;
-  open:     boolean;
-  onClose:  () => void;
-  onToggle: () => void;
+  pet:       AdminPet | null;
+  open:      boolean;
+  onClose:   () => void;
+  onToggle:  () => void;
+  isPending: boolean;
 }) {
   if (!pet) return null;
 
@@ -143,7 +123,6 @@ function PetModal({
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="max-w-sm p-0 overflow-hidden bg-white border border-stone-200 shadow-xl">
 
-        {/* Header */}
         <div className="bg-stone-50 px-6 pt-6 pb-5 border-b border-stone-100">
           <div className="flex items-center gap-4">
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${AVATAR_BG[pet.species]}`}>
@@ -153,63 +132,56 @@ function PetModal({
               <DialogTitle className="text-base text-stone-900 leading-snug">{pet.name}</DialogTitle>
               <DialogDescription className="sr-only">Detalles de la mascota</DialogDescription>
               <div className="mt-1.5 flex items-center gap-2">
-                <SpeciesBadge species={pet.species} />
-                <StatusBadge status={pet.status} />
+                <Pill {...SPECIES_PILL[pet.species]} />
+                <Pill {...STATUS_PILL[pet.status]} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Body */}
         <div className="px-6 py-5 space-y-4">
           <div className="space-y-1">
             <p className="text-xs text-stone-400">Código</p>
             <p className="text-sm text-stone-700 font-mono">{pet.code}</p>
           </div>
-
           <div className="space-y-1">
             <p className="text-xs text-stone-400">Raza</p>
-            <p className="text-sm text-stone-700">{pet.breed}</p>
+            <p className="text-sm text-stone-700">{pet.breed || '—'}</p>
           </div>
-
           <div className="space-y-1">
             <p className="text-xs text-stone-400">Edad</p>
-            <p className="text-sm text-stone-700">{pet.age}</p>
+            <p className="text-sm text-stone-700">{formatAge(pet.age_months)}</p>
           </div>
-
           <div className="space-y-1">
             <p className="text-xs text-stone-400">Fundación</p>
             <p className="text-sm text-stone-700 flex items-center gap-2">
               <Building2 className="w-3.5 h-3.5 text-stone-300 shrink-0" />
-              {pet.foundation}
+              {pet.foundation_name || '—'}
             </p>
           </div>
-
           <div className="space-y-1">
             <p className="text-xs text-stone-400">Publicada</p>
             <p className="text-sm text-stone-700 flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-stone-300 shrink-0" />
-              {formatDate(pet.published_at, 'long')}
+              {formatDate(pet.created_at, 'long')}
             </p>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-stone-100 flex items-center justify-between">
           {canToggle ? (
-            <DialogClose asChild>
-              <Button
-                size="sm"
-                onClick={onToggle}
-                className={isSuspended
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                  : 'bg-red-500 hover:bg-red-600 text-white'
-                }
-              >
-                <Power className="w-3.5 h-3.5 mr-1" />
-                {isSuspended ? 'Reactivar publicación' : 'Suspender publicación'}
-              </Button>
-            </DialogClose>
+            <Button
+              size="sm"
+              disabled={isPending}
+              onClick={onToggle}
+              className={isSuspended
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-white'
+              }
+            >
+              <Power className="w-3.5 h-3.5 mr-1" />
+              {isSuspended ? 'Reactivar publicación' : 'Suspender publicación'}
+            </Button>
           ) : (
             <span className="text-xs text-stone-400">Mascota adoptada — sin acciones disponibles.</span>
           )}
@@ -228,7 +200,8 @@ function PetModal({
 // ─── AdminPetsPage ─────────────────────────────────────────────────────────────
 
 export default function AdminPetsPage() {
-  const [pets, setPets]                         = useState<AdminPet[]>(INITIAL);
+  const queryClient = useQueryClient();
+
   const [search, setSearch]                     = useState('');
   const [speciesFilter, setSpeciesFilter]       = useState<Species | 'all'>('all');
   const [statusFilter, setStatusFilter]         = useState<PetStatus | 'all'>('all');
@@ -236,33 +209,54 @@ export default function AdminPetsPage() {
   const [selected, setSelected]                 = useState<AdminPet | null>(null);
   const [page, setPage]                         = useState(1);
 
-  const filtered = pets.filter(p => {
-    const matchesSearch     = p.code.toLowerCase().includes(search.toLowerCase());
-    const matchesSpecies    = speciesFilter === 'all' || p.species === speciesFilter;
-    const matchesStatus     = statusFilter === 'all' || p.status === statusFilter;
-    const matchesFoundation = foundationFilter === 'all' || p.foundation === foundationFilter;
-    return matchesSearch && matchesSpecies && matchesStatus && matchesFoundation;
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['admin-pets'],
+    queryFn:  () => adminApi.listPets(),
+    staleTime: 5 * 60 * 1000,
   });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, suspend }: { id: number; suspend: boolean }) =>
+      suspend ? adminApi.suspendPet(id) : adminApi.unsuspendPet(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-pets'] }),
+  });
+
+  const foundations = useMemo(
+    () => [...new Set((data?.data ?? []).map(p => p.foundation_name))].filter(Boolean).sort(),
+    [data],
+  );
+
+  const filtered = useMemo(() => {
+    const s = search.toLowerCase();
+    let list = data?.data ?? [];
+    if (s) list = list.filter(p =>
+      p.code.toLowerCase().includes(s) || p.name.toLowerCase().includes(s)
+    );
+    if (speciesFilter    !== 'all') list = list.filter(p => p.species        === speciesFilter);
+    if (statusFilter     !== 'all') list = list.filter(p => p.status         === statusFilter);
+    if (foundationFilter !== 'all') list = list.filter(p => p.foundation_name === foundationFilter);
+    return list;
+  }, [data, search, speciesFilter, statusFilter, foundationFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  function toggleStatus(id: number) {
-    setPets(prev => prev.map(p =>
-      p.id === id ? { ...p, status: p.status === 'suspended' ? 'available' : 'suspended' } : p
-    ));
+  function handleToggle() {
+    if (!selected) return;
+    const suspend = selected.status !== 'suspended';
+    toggleMutation.mutate({ id: selected.id, suspend });
     setSelected(null);
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
+    <div className="p-6 space-y-6">
 
       {/* ── Filtros ────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
           <Input
-            placeholder="Buscar por código (HU-0001)..."
+            placeholder="Buscar por código o nombre..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             className="pl-9 h-9 text-sm border-stone-200 bg-white"
@@ -300,140 +294,154 @@ export default function AdminPetsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las fundaciones</SelectItem>
-            {FOUNDATIONS.map(f => (
+            {foundations.map(f => (
               <SelectItem key={f} value={f}>{f}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* ── Tabla ──────────────────────────────────────────────────────── */}
-      {filtered.length === 0 ? (
-        <div className="py-20 text-center">
-          <p className="text-sm text-stone-400">Sin resultados para los filtros aplicados.</p>
+      {/* ── Error ──────────────────────────────────────────────────────── */}
+      {isError && (
+        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          No se pudo cargar la lista de mascotas. Intenta de nuevo.
         </div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow className="border-stone-200 hover:bg-transparent">
-              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 pl-0">Mascota</TableHead>
-              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden sm:table-cell">Especie</TableHead>
-              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden md:table-cell">Edad</TableHead>
-              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden lg:table-cell">Fundación</TableHead>
-              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden md:table-cell">Publicada</TableHead>
-              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9">Estado</TableHead>
-              <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginated.map(p => (
-              <TableRow
-                key={p.id}
-                className={`border-stone-100 hover:bg-stone-50/60 ${p.status === 'suspended' ? 'opacity-60' : ''}`}
-              >
-
-                <TableCell className="pl-0 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${AVATAR_BG[p.species]}`}>
-                      <PawPrint className="w-4 h-4" strokeWidth={1.75} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-stone-800 truncate">{p.name}</p>
-                      <p className="text-xs text-stone-400 font-mono truncate">{p.code}</p>
-                    </div>
-                  </div>
-                </TableCell>
-
-                <TableCell className="py-4 hidden sm:table-cell">
-                  <SpeciesBadge species={p.species} />
-                </TableCell>
-
-                <TableCell className="py-4 hidden md:table-cell">
-                  <span className="text-stone-500 text-sm">{p.age}</span>
-                </TableCell>
-
-                <TableCell className="py-4 hidden lg:table-cell">
-                  <span className="flex items-center gap-1.5 text-stone-500 text-sm">
-                    <Building2 className="w-3.5 h-3.5 text-stone-300 shrink-0" />
-                    {p.foundation}
-                  </span>
-                </TableCell>
-
-                <TableCell className="py-4 hidden md:table-cell">
-                  <span className="flex items-center gap-1.5 text-stone-400 text-xs">
-                    <Calendar className="w-3.5 h-3.5 text-stone-300 shrink-0" />
-                    {formatDate(p.published_at)}
-                  </span>
-                </TableCell>
-
-                <TableCell className="py-4">
-                  <StatusBadge status={p.status} />
-                </TableCell>
-
-                <TableCell className="py-4 text-right">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelected(p)}
-                    className="h-7 px-3 text-xs border-stone-200 text-stone-600 hover:bg-stone-50"
-                  >
-                    <Eye className="w-3.5 h-3.5 mr-1" />
-                    Ver
-                  </Button>
-                </TableCell>
-
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
       )}
 
-      {/* ── Paginación ─────────────────────────────────────────────────── */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center pt-2">
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => p - 1)}
-              disabled={page === 1}
-              className="h-8 w-8 p-0 border-stone-200 text-stone-500 disabled:opacity-40"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-              <Button
-                key={n}
-                variant={n === page ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setPage(n)}
-                className={`h-8 w-8 p-0 text-xs ${
-                  n === page
-                    ? 'bg-stone-800 hover:bg-stone-700 text-white'
-                    : 'text-stone-500 hover:bg-stone-100'
-                }`}
-              >
-                {n}
-              </Button>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => p + 1)}
-              disabled={page === totalPages}
-              className="h-8 w-8 p-0 border-stone-200 text-stone-500 disabled:opacity-40"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+      {/* ── Tabla ──────────────────────────────────────────────────────── */}
+      {!isError && (
+        <>
+          {!isLoading && filtered.length === 0 ? (
+            <div className="py-20 text-center">
+              <p className="text-sm text-stone-400">Sin resultados para los filtros aplicados.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-stone-200 hover:bg-transparent">
+                  <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 pl-0">Mascota</TableHead>
+                  <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden sm:table-cell">Especie</TableHead>
+                  <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden md:table-cell">Edad</TableHead>
+                  <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden lg:table-cell">Fundación</TableHead>
+                  <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 hidden md:table-cell">Publicada</TableHead>
+                  <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9">Estado</TableHead>
+                  <TableHead className="text-xs font-semibold text-stone-400 uppercase tracking-wide h-9 text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading
+                  ? Array.from({ length: PAGE_SIZE }, (_, i) => <SkeletonRow key={i} />)
+                  : paginated.map(p => (
+                    <TableRow
+                      key={p.id}
+                      className={`border-stone-100 hover:bg-stone-50/60 ${p.status === 'suspended' ? 'opacity-60' : ''}`}
+                    >
+                      <TableCell className="pl-0 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${AVATAR_BG[p.species]}`}>
+                            <PawPrint className="w-4 h-4" strokeWidth={1.75} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-stone-800 truncate">{p.name}</p>
+                            <p className="text-xs text-stone-400 font-mono truncate">{p.code}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="py-4 hidden sm:table-cell">
+                        <Pill {...SPECIES_PILL[p.species]} />
+                      </TableCell>
+
+                      <TableCell className="py-4 hidden md:table-cell">
+                        <span className="text-stone-500 text-sm">{formatAge(p.age_months)}</span>
+                      </TableCell>
+
+                      <TableCell className="py-4 hidden lg:table-cell">
+                        <span className="flex items-center gap-1.5 text-stone-500 text-sm">
+                          <Building2 className="w-3.5 h-3.5 text-stone-300 shrink-0" />
+                          {p.foundation_name || '—'}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="py-4 hidden md:table-cell">
+                        <span className="flex items-center gap-1.5 text-stone-400 text-xs">
+                          <Calendar className="w-3.5 h-3.5 text-stone-300 shrink-0" />
+                          {formatDate(p.created_at)}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="py-4">
+                        <Pill {...STATUS_PILL[p.status]} />
+                      </TableCell>
+
+                      <TableCell className="py-4 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelected(p)}
+                          className="h-7 px-3 text-xs border-stone-200 text-stone-600 hover:bg-stone-50"
+                        >
+                          <Eye className="w-3.5 h-3.5 mr-1" />
+                          Ver
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                }
+              </TableBody>
+            </Table>
+          )}
+
+          {/* ── Paginación ─────────────────────────────────────────────── */}
+          {!isLoading && totalPages > 1 && (
+            <div className="flex items-center justify-center pt-2">
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => p - 1)}
+                  disabled={page === 1}
+                  className="h-8 w-8 p-0 border-stone-200 text-stone-500 disabled:opacity-40"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                  <Button
+                    key={n}
+                    variant={n === page ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setPage(n)}
+                    className={`h-8 w-8 p-0 text-xs ${
+                      n === page
+                        ? 'bg-stone-800 hover:bg-stone-700 text-white'
+                        : 'text-stone-500 hover:bg-stone-100'
+                    }`}
+                  >
+                    {n}
+                  </Button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => p + 1)}
+                  disabled={page === totalPages}
+                  className="h-8 w-8 p-0 border-stone-200 text-stone-500 disabled:opacity-40"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <PetModal
         pet={selected}
         open={!!selected}
         onClose={() => setSelected(null)}
-        onToggle={() => selected && toggleStatus(selected.id)}
+        onToggle={handleToggle}
+        isPending={toggleMutation.isPending}
       />
 
     </div>

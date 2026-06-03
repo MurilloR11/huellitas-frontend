@@ -6,6 +6,8 @@ import {
   Users,
   PawPrint,
   ClipboardList,
+  Activity,
+  ShieldCheck,
   LogOut,
   PanelLeft,
   ChevronRight,
@@ -211,7 +213,7 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen = false, onMobile
           <div className="flex items-center gap-3">
             {!effectiveCollapsed && (
               <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-primary shrink-0">
-                <PawPrint className="w-5 h-5 text-sidebar-primary-foreground" strokeWidth={2} />
+                <ShieldCheck className="w-5 h-5 text-sidebar-primary-foreground" strokeWidth={2} />
               </div>
             )}
 
@@ -305,6 +307,39 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen = false, onMobile
               items={PLATAFORMA_ITEMS}
               collapsed={effectiveCollapsed}
             />
+
+            {!effectiveCollapsed && (
+              <li role="separator" aria-hidden="true" className="mx-2 my-1.5 h-px bg-sidebar-border list-none" />
+            )}
+
+            <SidebarMenuItem>
+              {effectiveCollapsed ? (
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/actividad')}
+                  title="Actividad"
+                  aria-current={location.pathname.startsWith('/admin/actividad') ? 'page' : undefined}
+                  className={cn(
+                    'flex w-full items-center justify-center rounded-lg p-2.5',
+                    'text-sidebar-foreground/70 transition-colors',
+                    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    location.pathname.startsWith('/admin/actividad') && 'bg-sidebar-accent text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Activity className="w-4.5 h-4.5 shrink-0" strokeWidth={1.75} />
+                </button>
+              ) : (
+                <SidebarMenuButton
+                  isActive={location.pathname.startsWith('/admin/actividad')}
+                  onClick={() => navigate('/admin/actividad')}
+                  aria-current={location.pathname.startsWith('/admin/actividad') ? 'page' : undefined}
+                  className="h-10 px-3 gap-3 rounded-lg text-[13px]"
+                >
+                  <Activity className="w-4.5! h-4.5! shrink-0" strokeWidth={1.75} />
+                  <span className="truncate">Actividad</span>
+                </SidebarMenuButton>
+              )}
+            </SidebarMenuItem>
 
           </SidebarMenu>
         </SidebarContent>
