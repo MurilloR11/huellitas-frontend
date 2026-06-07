@@ -27,16 +27,15 @@ export function buildAuthUser(user: User): AuthUser {
 
 export const authApi = {
   async login(payload: LoginPayload): Promise<AuthUser> {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: { user }, error } = await supabase.auth.signInWithPassword({
       email: payload.email,
       password: payload.password,
     });
     if (error) throw new Error(mapError(error.message));
-    // Lee el perfil desde el backend (fuente de verdad del rol, no user_metadata)
-    const { data: profile } = await apiClient.get<AuthUser>('/auth/me');
-    // Fire-and-forget: log the login event; failure must never break the login flow
+    const supabaseProfile = buildAuthUser(user!);
+    const { data: backendProfile } = await apiClient.get<AuthUser>('/auth/me');
     apiClient.post('/auth/activity', { action: 'login' }).catch(() => {});
-    return profile;
+    return { ...supabaseProfile, role: backendProfile.role, status: backendProfile.status };
   },
 
   async register(payload: RegisterPayload): Promise<AuthUser> {
