@@ -251,7 +251,8 @@ function ContextCard({ adoption }: { adoption: AdoptionRequest }) {
   return (
     <>
       <div className="bg-white dark:bg-zinc-900 border border-stone-100 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
-        <div className="w-full h-44 bg-stone-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
+        {/* Image with name overlay */}
+        <div className="relative w-full h-40 bg-stone-100 dark:bg-zinc-800">
           {adoption.pet_photo ? (
             <img
               src={adoption.pet_photo}
@@ -259,51 +260,70 @@ function ContextCard({ adoption }: { adoption: AdoptionRequest }) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <PawPrint className="w-12 h-12 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
+            <div className="w-full h-full flex items-center justify-center">
+              <PawPrint className="w-12 h-12 text-stone-300 dark:text-zinc-600" strokeWidth={1.5} />
+            </div>
           )}
-        </div>
-        <div className="p-4 space-y-3">
-          <div>
-            <h2 className="text-lg font-bold text-stone-900 dark:text-zinc-100 leading-tight">
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute bottom-0 inset-x-0 px-4 pb-3">
+            <h2 className="text-base font-bold text-white leading-tight drop-shadow">
               {adoption.pet_name}
             </h2>
           </div>
+        </div>
 
-          <div className="space-y-2 pt-2 border-t border-stone-100 dark:border-zinc-800">
-            {adoption.foundation_name && (
-              <div className="flex items-start gap-2">
-                <Building2 className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" strokeWidth={1.75} />
-                <span className="text-xs text-stone-500 dark:text-zinc-400 leading-relaxed">
-                  {adoption.foundation_name}
-                </span>
+        {/* Info rows */}
+        <div className="p-4 space-y-2.5">
+          {adoption.foundation_name && (
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                style={{ background: 'var(--color-brand-light)' }}
+              >
+                <Building2 className="w-3.5 h-3.5" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
               </div>
-            )}
-            {adoption.foundation_address && (
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" strokeWidth={1.75} />
-                <span className="text-xs text-stone-500 dark:text-zinc-400 leading-relaxed">
-                  {adoption.foundation_address}
-                </span>
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-stone-400 shrink-0" strokeWidth={1.75} />
-              <span className="text-xs text-stone-500 dark:text-zinc-400">
-                Duración estimada: ~45 minutos
+              <span className="text-xs font-medium text-stone-700 dark:text-zinc-300 leading-relaxed">
+                {adoption.foundation_name}
               </span>
             </div>
+          )}
+          {adoption.foundation_address && (
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                style={{ background: 'var(--color-brand-light)' }}
+              >
+                <MapPin className="w-3.5 h-3.5" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
+              </div>
+              <span className="text-xs font-medium text-stone-700 dark:text-zinc-300 leading-relaxed">
+                {adoption.foundation_address}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+              style={{ background: 'var(--color-brand-light)' }}
+            >
+              <Clock className="w-3.5 h-3.5" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
+            </div>
+            <span className="text-xs font-medium text-stone-700 dark:text-zinc-300">
+              ~45 min de duración
+            </span>
           </div>
 
           {adoption.foundation_address && (
-            <a
-              href="#"
-              className="inline-flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-80"
-              style={{ color: 'var(--color-brand)' }}
-              onClick={e => e.preventDefault()}
-            >
-              <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
-              Ver en Google Maps
-            </a>
+            <div className="pt-0.5">
+              <a
+                href="#"
+                className="inline-flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-80"
+                style={{ color: 'var(--color-brand)' }}
+                onClick={e => e.preventDefault()}
+              >
+                <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Ver en Google Maps
+              </a>
+            </div>
           )}
         </div>
       </div>
