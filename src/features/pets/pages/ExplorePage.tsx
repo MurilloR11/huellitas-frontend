@@ -296,7 +296,7 @@ function PhotoCarousel({ photos, name }: { photos: string[]; name: string }) {
 
 // ─── Animal Modal ──────────────────────────────────────────────────────────────
 
-function AnimalModal({ animal, onClose, onApply }: { animal: Animal; onClose: () => void; onApply: () => void }) {
+function AnimalModal({ animal, onClose }: { animal: Animal; onClose: () => void }) {
   const statusVariant =
     animal.status === 'Available' ? 'available' : animal.status === 'Pending' ? 'pending' : 'reserved';
   const code = `HLL-${animal.id.padStart(5, '0')}`;
@@ -456,19 +456,6 @@ function AnimalModal({ animal, onClose, onApply }: { animal: Animal; onClose: ()
             )}
           </div>
 
-          {/* Footer — apply CTA */}
-          {animal.status === 'Available' && (
-            <div className="shrink-0 px-4 sm:px-6 py-4 border-t border-stone-100 dark:border-zinc-800">
-              <button
-                onClick={onApply}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
-                style={{ background: 'var(--color-brand)' }}
-              >
-                <PawPrint className="w-4 h-4" strokeWidth={2} />
-                Solicitar adopción
-              </button>
-            </div>
-          )}
 
         </div>
       </motion.div>
@@ -716,10 +703,6 @@ export default function ExplorePage() {
         <AnimalModal
           animal={selectedAnimal}
           onClose={() => setSelectedAnimal(null)}
-          onApply={() => {
-            setSelectedAnimal(null);
-            setActiveNav('apply');
-          }}
         />
       )}
     </AnimatePresence>
