@@ -395,14 +395,15 @@ export default function AdminUsersPage() {
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
                   <Button
                     key={n}
-                    variant={n === page ? 'default' : 'ghost'}
+                    variant="ghost"
                     size="sm"
                     onClick={() => setPage(n)}
                     className={`h-8 w-8 p-0 text-xs ${
                       n === page
-                        ? 'bg-stone-800 hover:bg-stone-700 text-white'
+                        ? 'text-white'
                         : 'text-stone-500 hover:bg-stone-100'
                     }`}
+                    style={n === page ? { background: 'var(--color-brand)' } : {}}
                   >
                     {n}
                   </Button>
