@@ -12,7 +12,6 @@ import {
   CalendarOff,
   CalendarCheck,
   Check,
-  ExternalLink,
   CalendarPlus,
   Loader2,
 } from 'lucide-react';
@@ -300,31 +299,6 @@ function ContextCard({ adoption }: { adoption: AdoptionRequest }) {
               </span>
             </div>
           )}
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-              style={{ background: 'var(--color-brand-light)' }}
-            >
-              <Clock className="w-3.5 h-3.5" style={{ color: 'var(--color-brand)' }} strokeWidth={1.75} />
-            </div>
-            <span className="text-xs font-medium text-stone-700 dark:text-zinc-300">
-              ~45 min de duración
-            </span>
-          </div>
-
-          {adoption.foundation_address && (
-            <div className="pt-0.5">
-              <a
-                href="#"
-                className="inline-flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-80"
-                style={{ color: 'var(--color-brand)' }}
-                onClick={e => e.preventDefault()}
-              >
-                <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
-                Ver en Google Maps
-              </a>
-            </div>
-          )}
         </div>
       </div>
 
@@ -386,10 +360,6 @@ function MobileBanner({ adoption }: { adoption: AdoptionRequest }) {
         <p className="text-xs text-stone-500 dark:text-zinc-400 truncate">
           {adoption.foundation_name || 'Fundación'}
         </p>
-      </div>
-      <div className="flex items-center gap-1 text-xs text-stone-400 shrink-0">
-        <Clock className="w-3.5 h-3.5" strokeWidth={1.75} />
-        ~45 min
       </div>
     </div>
   );
@@ -643,7 +613,6 @@ function AppointmentSummary({
     { label: 'Fecha',    value: formatDateEs(date) },
     { label: 'Hora',     value: time               },
     { label: 'Lugar',    value: adoption.foundation_address || adoption.foundation_name || '—' },
-    { label: 'Duración', value: '~45 minutos'      },
   ];
 
   return (
