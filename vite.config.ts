@@ -21,8 +21,8 @@ export default defineConfig({
           if (id.includes('react-router') || id.includes('react-dom') || /node_modules\/react\//.test(id))
             return 'vendor-react';
           if (id.includes('@tanstack')) return 'vendor-query';
-          if (id.includes('recharts') || id.includes('chart.js') || id.includes('react-chartjs'))
-            return 'vendor-charts';
+          // Las gráficas solo se usan en el panel admin (cargado con lazy):
+          // se dejan fuera de los vendor chunks para que no bajen en la landing.
           if (id.includes('@radix-ui')) return 'vendor-radix';
           if (id.includes('@supabase')) return 'vendor-supabase';
           if (id.includes('@sentry')) return 'vendor-sentry';

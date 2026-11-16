@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useEffect } from 'react';
+import { lazy, useEffect } from 'react';
 import { createBrowserRouter, Navigate, useNavigate, useParams } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { HomePage } from '../features/home/pages/HomePage';
@@ -7,26 +7,31 @@ import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
 import PendingApprovalPage from '../features/auth/pages/PendingApprovalPage';
 import RejectedPage from '../features/auth/pages/RejectedPage';
-import AIPage from '../features/ai/pages/AIPage';
-import ExplorePage from '../features/pets/pages/ExplorePage';
-import AccountPage from '../features/account/pages/AccountPage';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import type { Role } from '../features/auth/types';
-import AdminLayout from '../features/admin/pages/AdminLayout';
-import AdminPage from '../features/admin/pages/AdminPage';
-import AdminFoundationsPage from '../features/admin/pages/AdminFoundationsPage';
-import AdminUsersPage from '../features/admin/pages/AdminUsersPage';
-import AdminPetsPage from '../features/admin/pages/AdminPetsPage';
-import AdminAdoptionsPage from '../features/admin/pages/AdminAdoptionsPage';
-import AdminActivityPage from '../features/admin/pages/AdminActivityPage';
-import FoundationPage from '../features/foundations/pages/FoundationPage';
-import DeveloperPage from '../features/developer/pages/DeveloperPage';
-import ApplyPage from '../features/adoptions/pages/ApplyPage';
-import MyAdoptionsPage from '../features/adoptions/pages/MyAdoptionsPage';
-import TermsPage from '../features/legal/pages/TermsPage';
-import PrivacyPage from '../features/legal/pages/PrivacyPage';
 import NotFoundPage from '../shared/pages/NotFoundPage';
-import { NotificationsPage } from '../features/notifications/pages/NotificationsPage';
+
+// Páginas pesadas o de un solo rol: se cargan bajo demanda (code splitting).
+// La landing, el login y el registro se mantienen en el bundle inicial.
+const AIPage = lazy(() => import('../features/ai/pages/AIPage'));
+const ExplorePage = lazy(() => import('../features/pets/pages/ExplorePage'));
+const AccountPage = lazy(() => import('../features/account/pages/AccountPage'));
+const AdminLayout = lazy(() => import('../features/admin/pages/AdminLayout'));
+const AdminPage = lazy(() => import('../features/admin/pages/AdminPage'));
+const AdminFoundationsPage = lazy(() => import('../features/admin/pages/AdminFoundationsPage'));
+const AdminUsersPage = lazy(() => import('../features/admin/pages/AdminUsersPage'));
+const AdminPetsPage = lazy(() => import('../features/admin/pages/AdminPetsPage'));
+const AdminAdoptionsPage = lazy(() => import('../features/admin/pages/AdminAdoptionsPage'));
+const AdminActivityPage = lazy(() => import('../features/admin/pages/AdminActivityPage'));
+const FoundationPage = lazy(() => import('../features/foundations/pages/FoundationPage'));
+const DeveloperPage = lazy(() => import('../features/developer/pages/DeveloperPage'));
+const ApplyPage = lazy(() => import('../features/adoptions/pages/ApplyPage'));
+const MyAdoptionsPage = lazy(() => import('../features/adoptions/pages/MyAdoptionsPage'));
+const TermsPage = lazy(() => import('../features/legal/pages/TermsPage'));
+const PrivacyPage = lazy(() => import('../features/legal/pages/PrivacyPage'));
+const NotificationsPage = lazy(() =>
+  import('../features/notifications/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
+);
 
 const PetsList = () => <div className="p-8">Mascotas en adopción</div>;
 const PetDetail = () => <div className="p-8">Detalle de mascota</div>;
