@@ -57,7 +57,7 @@ describe('LandingPage', () => {
 
   it('renders the footer', () => {
     renderLanding();
-    expect(screen.getByText('© 2025 HuellitasAPI')).toBeInTheDocument();
+    expect(screen.getByText(/© \d{4} HuellitasAPI/)).toBeInTheDocument();
   });
 
   it('sets up IntersectionObserver for fade-in animations', () => {

@@ -39,7 +39,7 @@ describe('FinalCTASection', () => {
   it('renders CTA links', () => {
     renderSection();
     expect(screen.getByRole('link', { name: /registrar fundación/i })).toHaveAttribute('href', '/register');
-    expect(screen.getByRole('link', { name: /explorar animales/i })).toHaveAttribute('href', '/pets');
+    expect(screen.getByRole('link', { name: /explorar animales/i })).toHaveAttribute('href', '/register');
     expect(screen.getByRole('link', { name: /obtener api key/i })).toHaveAttribute('href', '/register');
   });
 });

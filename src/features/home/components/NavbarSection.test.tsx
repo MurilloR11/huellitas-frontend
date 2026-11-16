@@ -20,7 +20,7 @@ describe('NavbarSection', () => {
 
   it('renders desktop navigation links', () => {
     renderNavbar();
-    expect(screen.getByText('Proyecto')).toBeInTheDocument();
+    expect(screen.getByText('Nosotros')).toBeInTheDocument();
     expect(screen.getByText('Misión y Visión')).toBeInTheDocument();
     expect(screen.getByText('Objetivos')).toBeInTheDocument();
     expect(screen.getByText('Tecnologías')).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('NavbarSection', () => {
     await user.click(screen.getByLabelText('Abrir menú'));
 
     // Click a nav link in the mobile menu
-    const projectLinks = screen.getAllByText('Proyecto');
+    const projectLinks = screen.getAllByText('Nosotros');
     await user.click(projectLinks[projectLinks.length - 1]);
 
     // Menu should be closed (hamburger button should show "Abrir menú" again)

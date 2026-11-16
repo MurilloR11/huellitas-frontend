@@ -1,11 +1,18 @@
 import { vi } from 'vitest';
 import type { User } from '@supabase/supabase-js';
 
-const { mockSignIn, mockSignUp, mockSignOut, mockGetUser } = vi.hoisted(() => ({
+const { mockSignIn, mockSignUp, mockSignOut, mockGetUser, mockApiGet, mockApiPost } = vi.hoisted(() => ({
   mockSignIn: vi.fn(),
   mockSignUp: vi.fn(),
   mockSignOut: vi.fn().mockResolvedValue({ error: null }),
   mockGetUser: vi.fn(),
+  mockApiGet: vi.fn(),
+  mockApiPost: vi.fn().mockResolvedValue({ data: {} }),
+}));
+
+// El backend se simula: las pruebas unitarias no deben hacer peticiones reales.
+vi.mock('../../../shared/lib/apiClient', () => ({
+  default: { get: mockApiGet, post: mockApiPost },
 }));
 
 vi.mock('../../../shared/lib/supabaseClient', () => ({
@@ -33,13 +40,17 @@ describe('authApi', () => {
   describe('login', () => {
     it('calls signInWithPassword and returns AuthUser', async () => {
       mockSignIn.mockResolvedValue({ data: { user: fakeUser, session: {} }, error: null });
+      mockApiGet.mockResolvedValue({ data: { role: 'ciudadano', status: null } });
 
       const result = await authApi.login({ email: 'a@b.com', password: 'pass' });
 
       expect(mockSignIn).toHaveBeenCalledWith({ email: 'a@b.com', password: 'pass' });
+      expect(mockApiGet).toHaveBeenCalledWith('/auth/me');
+      expect(mockApiPost).toHaveBeenCalledWith('/auth/activity', { action: 'login' });
       expect(result.id).toBe('uuid-123');
       expect(result.email).toBe('a@b.com');
       expect(result.full_name).toBe('Test User');
+      expect(result.role).toBe('ciudadano');
     });
 
     it('throws a readable error on invalid credentials', async () => {
@@ -91,8 +102,10 @@ describe('authApi', () => {
 
     it('returns AuthUser when session exists', async () => {
       mockGetUser.mockResolvedValue({ data: { user: fakeUser } });
+      mockApiGet.mockResolvedValue({ data: { id: 'uuid-123', email: 'a@b.com', role: 'ciudadano' } });
 
       const result = await authApi.me();
+      expect(mockApiGet).toHaveBeenCalledWith('/auth/me');
       expect(result?.id).toBe('uuid-123');
     });
   });

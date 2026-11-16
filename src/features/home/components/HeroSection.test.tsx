@@ -13,13 +13,13 @@ function renderHero() {
 describe('HeroSection', () => {
   it('renders the main heading', () => {
     renderHero();
-    expect(screen.getByRole('heading', { name: /huellitasapi/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /cada animal merece/i })).toBeInTheDocument();
     expect(screen.getByText(/plataforma web para la adopción de animales/i)).toBeInTheDocument();
   });
 
   it('renders the CTA buttons', () => {
     renderHero();
-    expect(screen.getByRole('link', { name: /explorar animales/i })).toHaveAttribute('href', '/pets');
+    expect(screen.getByRole('link', { name: /explorar animales/i })).toHaveAttribute('href', '/register');
     expect(screen.getByRole('link', { name: /iniciar sesión/i })).toHaveAttribute('href', '/login');
   });
 

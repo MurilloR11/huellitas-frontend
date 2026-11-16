@@ -6,9 +6,11 @@ describe('queryClient', () => {
     expect(queryClient.getDefaultOptions).toBeDefined();
   });
 
-  it('has staleTime set to 5 minutes', () => {
+  it('always treats data as stale (realtime + polling keep it fresh)', () => {
     const defaults = queryClient.getDefaultOptions();
-    expect(defaults.queries?.staleTime).toBe(1000 * 60 * 5);
+    expect(defaults.queries?.staleTime).toBe(0);
+    expect(defaults.queries?.refetchInterval).toBe(30_000);
+    expect(defaults.queries?.refetchOnWindowFocus).toBe(false);
   });
 
   it('has retry set to 1', () => {

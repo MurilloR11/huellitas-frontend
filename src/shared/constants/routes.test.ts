@@ -55,8 +55,13 @@ describe('ROUTES', () => {
       'FOUNDATION_DASHBOARD',
       'AI',
       'ADMIN',
+      'DEVELOPER_DASHBOARD',
       'PENDING',
       'REJECTED',
+      'ACCOUNT',
+      'TERMS',
+      'PRIVACY',
+      'NOTIFICATIONS',
     ]);
   });
 });

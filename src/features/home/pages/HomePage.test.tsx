@@ -33,6 +33,6 @@ describe('HomePage', () => {
     expect(screen.getByText(/plataforma web para la adopción de animales/i)).toBeInTheDocument();
     expect(screen.getByText(/del animal al hogar/i)).toBeInTheDocument();
     expect(screen.getByText(/todo lo que faltaba en el tolima/i)).toBeInTheDocument();
-    expect(screen.getByText('© 2025 HuellitasAPI')).toBeInTheDocument();
+    expect(screen.getByText(/© \d{4} HuellitasAPI/)).toBeInTheDocument();
   });
 });

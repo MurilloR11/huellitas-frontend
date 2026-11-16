@@ -34,7 +34,7 @@ describe('FooterSection', () => {
 
   it('renders copyright and tagline', () => {
     renderFooter();
-    expect(screen.getByText('© 2025 HuellitasAPI')).toBeInTheDocument();
+    expect(screen.getByText(/© \d{4} HuellitasAPI/)).toBeInTheDocument();
     expect(screen.getByText('Hecho con amor por el Tolima')).toBeInTheDocument();
   });
 
