@@ -2,6 +2,23 @@
 
 Plataforma web para la gestión y adopción de animales en el departamento del Tolima, Colombia. Conecta fundaciones animalistas con ciudadanos comprometidos con el bienestar animal, centralizando el proceso de adopción de forma segura y eficiente.
 
+## Probar la demo
+
+**Demo en vivo:** [huellitas-frontend-gamma.vercel.app](https://huellitas-frontend-gamma.vercel.app)
+
+Cada rol tiene su propio flujo y sus propias rutas. Puedes entrar con estas cuentas de prueba:
+
+| Rol | Correo | Contraseña | Qué puedes ver |
+|---|---|---|---|
+| Ciudadano | `demo.ciudadano@example.com` | `Demo-3tBHLoV5!` | Explorar mascotas, requisitos y flujo de solicitud de adopción |
+| Fundación | `demo.fundacion@example.com` | `Demo-aebtpxdn!` | Panel de la fundación: mascotas, solicitudes y disponibilidad de visitas |
+| Administrador | `demo.admin@example.com` | `Demo-ajkD7bIA!` | Panel admin: estadísticas, usuarios, fundaciones, mascotas y actividad |
+| Developer | `demo.developer@example.com` | `Demo-99bXGtt0!` | Portal de desarrolladores y documentación de la API (Swagger) |
+
+> **Modo demo de solo lectura:** estas cuentas pueden navegar todas las pantallas, pero el backend bloquea cualquier acción que cree, edite o borre datos. En el panel admin, los correos de los usuarios reales aparecen enmascarados.
+>
+> El backend está en el plan gratuito de Render: si lleva un rato sin uso, la primera petición puede tardar hasta ~50 segundos mientras el servidor despierta.
+
 ## Descripción
 
 HuellitasAPI permite a las **fundaciones animalistas** registrar animales disponibles para adopción con información completa (datos médicos, fotografías, disponibilidad), y a los **ciudadanos** buscar, filtrar y solicitar adopciones desde una sola plataforma. Además expone una **API RESTful pública** para que desarrolladores externos puedan integrar los datos en sus propias aplicaciones.
