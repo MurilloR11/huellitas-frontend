@@ -7,7 +7,7 @@ Plataforma web de adopción de animales para el departamento del Tolima (Colombi
 ![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-Auth%20%2B%20Realtime-3FCF8E?logo=supabase&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-165%20pruebas-6E9F18?logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-165%20pruebas%20en%20verde-6E9F18?logo=vitest&logoColor=white)
 ![Playwright](https://img.shields.io/badge/Playwright-E2E-2EAD33?logo=playwright&logoColor=white)
 
 | | |
@@ -76,7 +76,7 @@ flowchart LR
 - **Autenticación:** el frontend inicia sesión directamente con Supabase Auth. El JWT se envía al backend en cada petición desde una instancia de Axios (`shared/lib/apiClient.ts`).
 - **Estado del servidor:** TanStack Query maneja las peticiones, la caché y los reintentos. Las suscripciones de Supabase Realtime (`useRealtimeTable`) invalidan la caché cuando cambian las solicitudes, las visitas, las mascotas o las notificaciones, así que la pantalla se actualiza sin recargar.
 - **Organización por *features*:** cada dominio (`auth`, `pets`, `adoptions`, `admin`, etc.) tiene sus propias páginas, componentes, servicios de API y tipos. El código compartido vive en `shared/`.
-- **Build:** Vite separa las dependencias grandes (React, TanStack Query, Radix, gráficas, Supabase, Sentry y Framer Motion) en *chunks* propios con `manualChunks`.
+- **Build:** las páginas por rol se cargan con `React.lazy` y Vite separa las dependencias compartidas (React, TanStack Query, Radix, Supabase, Sentry y Framer Motion) en *chunks* propios con `manualChunks`.
 
 ## Stack
 
@@ -104,9 +104,18 @@ npm run test:coverage   # con reporte de cobertura
 npm run test:e2e        # pruebas E2E con Playwright
 ```
 
-- **165 pruebas unitarias** con Vitest y Testing Library, en 27 archivos. Cubren el contexto de autenticación, los servicios de login y registro, el cliente HTTP, el router, la configuración de TanStack Query y los componentes de la página de inicio.
-- **Umbral mínimo de cobertura** configurado en `vite.config.ts`: 70 % en líneas, funciones y *statements*, y 60 % en ramas.
-- **Pruebas E2E con Playwright** de la página de inicio, del login (mostrar y ocultar contraseña) y del registro (cambio de tipo de cuenta).
+- **165 pruebas unitarias** con Vitest y Testing Library, en 27 archivos, todas en verde. Cubren el contexto de autenticación, los servicios de login y registro (con el cliente HTTP simulado), el cliente HTTP, el router, la configuración de TanStack Query y los componentes de la página de inicio.
+- **5 pruebas E2E con Playwright:** la página de inicio, el login (mostrar y ocultar contraseña), el registro (cambio de tipo de cuenta), la carga de una página diferida y la redirección al login de una ruta privada.
+- **Cobertura:** `npm run test:coverage` genera el reporte. El umbral está configurado en `vite.config.ts`, y la cobertura actual se concentra en autenticación, router y landing. Las páginas de los paneles todavía no tienen pruebas.
+
+### Rendimiento
+
+Las páginas de cada rol se cargan **bajo demanda** con `React.lazy`, y las dependencias grandes van en *chunks* separados. Así, quien entra a la landing no descarga Swagger, las gráficas ni el generador de PDF.
+
+| | Antes | Ahora |
+|---|---|---|
+| JS de la carga inicial | 3.540 kB (990 kB gzip) | **1.135 kB (340 kB gzip)** |
+| Archivo principal (`index`) | 2.359 kB | **193 kB (50 kB gzip)** |
 
 ## Estructura del proyecto
 
